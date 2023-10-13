@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:yaml/yaml.dart';
 
+import 'project_template.dart';
+
 class FlameProject {
   /// The name of the project.
   ///
@@ -38,14 +40,12 @@ class FlameProject {
 Future<void> createProject(FlameProject project) async {
   final location = await project.location.create(recursive: true);
 
-  print(location.path);
-
   final result = await Process.run(
     'flutter',
     [
       'create',
-      // '--org',
-      // project.organization,
+      '--org',
+      project.organization,
       project.name,
     ],
     runInShell: true,
@@ -56,8 +56,9 @@ Future<void> createProject(FlameProject project) async {
     throw Exception('Failed to create the project.');
   }
 
-  final configFile =
-      File(path.join(project.location.path, 'flame_configuration.yaml'));
+  final projectDir = path.join(location.path, project.name);
+
+  final configFile = File(path.join(projectDir, 'flame_configuration.yaml'));
   await configFile.create();
   await configFile.writeAsString(
     '''# This file is used to configure the Flame Workspace.
@@ -66,6 +67,33 @@ Future<void> createProject(FlameProject project) async {
 project_name: ${project.name}
 organization: ${project.organization}''',
   );
+
+  final dependencies = [
+    'flame',
+    'flame_audio',
+    'flame_forge2d',
+    'flame_isolate',
+  ];
+
+  await Process.run(
+    'flutter',
+    ['pub', 'add', ...dependencies],
+    runInShell: true,
+    workingDirectory: projectDir,
+  );
+
+  final dir = Directory(path.join(projectDir, 'lib'));
+  await for (final f in dir.list()) {
+    f.delete();
+  }
+
+  final main = File(path.join(projectDir, 'lib', 'main.dart'));
+  await main.create();
+  await main.writeAsString(mainFile(project));
+
+  final game = File(path.join(projectDir, 'lib', 'game.dart'));
+  await game.create();
+  await game.writeAsString(gameFile(project));
 }
 
 FlameProject importProject(Directory location) {
@@ -83,7 +111,7 @@ FlameProject importProject(Directory location) {
           .path)
       .readAsStringSync();
 
-  var doc = loadYaml(configContent);
+  var doc = loadYaml(configContent) as Map;
   final name = doc['project_name'];
 
   if (name == null) {
