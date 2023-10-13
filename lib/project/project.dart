@@ -26,7 +26,7 @@ class FlameProject {
   /// Used in the `flutter create --org [organization]` argument.
   final String organization;
 
-  /// The location of the project.
+  /// The location of the parent folder.
   final Directory location;
 
   const FlameProject({
@@ -34,6 +34,8 @@ class FlameProject {
     required this.organization,
     required this.location,
   });
+
+  Directory get projectDirectory => Directory(path.join(location.path, name));
 }
 
 /// Creates a new Flame project.
