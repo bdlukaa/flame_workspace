@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
+import 'package:flame_workspace/project/project.dart';
 import 'package:flutter/material.dart';
 
 import 'create_project.dart';
@@ -26,13 +29,17 @@ class WelcomeView extends StatelessWidget {
           _ActionButton(
             icon: Icons.folder_open,
             text: 'Open existing project',
-            onPressed: () {
-              FilePicker.platform.getDirectoryPath(
+            onPressed: () async {
+              final directory = await FilePicker.platform.getDirectoryPath(
                 dialogTitle: 'Open existing project',
                 // TODO: Get the default location from the user's preferences
                 // initialDirectory: ,
                 lockParentWindow: true,
               );
+              if (directory != null && context.mounted) {
+                final project = importProject(Directory(directory));
+                openProject(context, project);
+              }
             },
           ),
           const SizedBox(width: 16),

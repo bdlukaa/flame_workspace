@@ -1,3 +1,4 @@
+import 'package:flame_workspace/project/workbench_view.dart';
 import 'package:flutter/material.dart';
 
 import 'welcome/welcome.dart';
@@ -20,6 +21,7 @@ class FlameWorkspaceApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (_) => const WelcomeView(),
+        '/project': (_) => const WorkbenchView(),
       },
     );
   }

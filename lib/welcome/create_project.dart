@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flame_workspace/project/project.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -29,6 +32,8 @@ class _CreateProjectViewState extends State<CreateProjectView> {
 
   bool _includeAudio = true;
   bool _includePhysics = true;
+
+  bool _loading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +69,7 @@ class _CreateProjectViewState extends State<CreateProjectView> {
                   Row(children: [
                     Expanded(
                       child: TextFormField(
+                        enabled: !_loading,
                         autofocus: true,
                         decoration: const InputDecoration(
                           labelText: 'Project name',
@@ -91,6 +97,7 @@ class _CreateProjectViewState extends State<CreateProjectView> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: TextFormField(
+                        enabled: !_loading,
                         autofocus: true,
                         decoration: const InputDecoration(
                           labelText: 'Organization name',
@@ -118,6 +125,7 @@ class _CreateProjectViewState extends State<CreateProjectView> {
                     ),
                   ]),
                   TextFormField(
+                    enabled: !_loading,
                     controller: _locationController,
                     decoration: InputDecoration(
                       labelText: 'Location',
@@ -155,9 +163,21 @@ class _CreateProjectViewState extends State<CreateProjectView> {
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: FilledButton(
-              onPressed: _create,
-              child: const Text('Create'),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (_loading)
+                  const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                  ),
+                const SizedBox(width: 16.0),
+                FilledButton(
+                  onPressed: !_loading ? _create : null,
+                  child: const Text('Create'),
+                ),
+              ],
             ),
           ),
         ]);
@@ -179,10 +199,41 @@ class _CreateProjectViewState extends State<CreateProjectView> {
     });
   }
 
-  void _create() {
+  void _create() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Create the project
-      Navigator.of(context).pop();
+      setState(() => _loading = true);
+
+      final location = Directory(_locationController.text);
+
+      final project = FlameProject(
+        name: _nameController.text,
+        organization: _organizationController.text,
+        location: location,
+      );
+
+      try {
+        await createProject(project);
+      } catch (e, trace) {
+        debugPrint('Failed to create project');
+        debugPrint('$e\n$trace');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString()),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      } finally {
+        if (mounted) {
+          setState(() => _loading = false);
+        }
+      }
+
+      if (mounted) {
+        openProject(context, project);
+      }
     }
   }
 }
