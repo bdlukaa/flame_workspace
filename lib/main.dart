@@ -17,7 +17,13 @@ class FlameWorkspaceApp extends StatelessWidget {
       title: 'Flame Workspace',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFffb431)),
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          brightness: Brightness.dark,
+          seedColor: const Color(0xFFffb431),
+          surface: Colors.blueGrey,
+        ),
+        visualDensity: VisualDensity.compact,
       ),
       initialRoute: '/',
       routes: {
