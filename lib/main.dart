@@ -1,5 +1,5 @@
 import 'package:flame_workspace/project/project.dart';
-import 'package:flame_workspace/project/workbench_view.dart';
+import 'package:flame_workspace/workbench/workbench_view.dart';
 import 'package:flutter/material.dart';
 
 import 'welcome/welcome.dart';

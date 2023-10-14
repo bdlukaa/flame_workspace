@@ -6,6 +6,49 @@ import 'package:yaml/yaml.dart';
 
 import 'project_template.dart';
 
+class DartDependency {
+  /// The name of the dependency.
+  final String name;
+
+  /// The version of the dependency.
+  ///
+  /// If null, the latest version will be used.
+  final String? version;
+
+  /// A comment to be added to the pubspec.yaml file next to the dependency.
+  final String? comment;
+
+  const DartDependency({required this.name, this.version, this.comment});
+
+  static const flame = DartDependency(name: 'flame', version: '1.9.1');
+  static const flameAudio =
+      DartDependency(name: 'flame_audio', version: '2.1.1');
+  static const flameForge2d =
+      DartDependency(name: 'flame_forge2d', version: '0.15.0+1');
+  static const flameIsolate =
+      DartDependency(name: 'flame_isolate', version: '0.5.0+1');
+  static const windowManager = DartDependency(
+    name: 'window_manager',
+    version: '0.3.7',
+    comment:
+        'Used internally by the Flame Workspace to manage the window on preview mode',
+  );
+
+  /// The default dependencies of a Flame project.
+  static const defaultDependencies = <DartDependency>[
+    flame,
+    flameAudio,
+    flameForge2d,
+    flameIsolate,
+    windowManager,
+  ];
+
+  @override
+  String toString() {
+    return '$name: ${version ?? 'any'} ${comment != null ? '# $comment' : ''}';
+  }
+}
+
 class FlameProject {
   /// The name of the project.
   ///
@@ -29,16 +72,34 @@ class FlameProject {
   /// The location of the parent folder.
   final Directory location;
 
+  /// The dependencies of the project.
+  ///
+  /// See also:
+  ///   * [DartDependency.defaultDependencies], which contains the default
+  ///     dependencies.
+  final List<DartDependency> dependencies;
+
+  /// Creates a new Flame project.
   const FlameProject({
     required this.name,
     required this.organization,
     required this.location,
+    this.dependencies = const [],
   });
 
   Directory get projectDirectory => Directory(path.join(location.path, name));
 }
 
 /// Creates a new Flame project.
+///
+/// Steps:
+///   1. Creates the project folder.
+///   2. Runs `flutter create --org [organization] [name]` in the project folder.
+///   3. Creates the `flame_configuration.yaml` file.
+///   4. Creates the `pubspec.yaml` file.
+///   5. Creates the `lib/main.dart` file.
+///   6. Creates the `lib/game.dart` file.
+///
 Future<void> createProject(FlameProject project) async {
   final location = await project.location.create(recursive: true);
 
@@ -62,27 +123,11 @@ Future<void> createProject(FlameProject project) async {
 
   final configFile = File(path.join(projectDir, 'flame_configuration.yaml'));
   await configFile.create();
-  await configFile.writeAsString(
-    '''# This file is used to configure the Flame Workspace.
-# This file is generated automatically and should not be modified manually.
+  await configFile.writeAsString(project.flameConfigFile);
 
-project_name: ${project.name}
-organization: ${project.organization}''',
-  );
-
-  final dependencies = [
-    'flame',
-    'flame_audio',
-    'flame_forge2d',
-    'flame_isolate',
-  ];
-
-  await Process.run(
-    'flutter',
-    ['pub', 'add', ...dependencies],
-    runInShell: true,
-    workingDirectory: projectDir,
-  );
+  final pubspec = File(path.join(projectDir, 'pubspec.yaml'));
+  await pubspec.create();
+  await pubspec.writeAsString(project.pubspecFile);
 
   final dir = Directory(path.join(projectDir, 'lib'));
   await for (final f in dir.list()) {
@@ -91,11 +136,11 @@ organization: ${project.organization}''',
 
   final main = File(path.join(projectDir, 'lib', 'main.dart'));
   await main.create();
-  await main.writeAsString(mainFile(project));
+  await main.writeAsString(project.mainFile);
 
   final game = File(path.join(projectDir, 'lib', 'game.dart'));
   await game.create();
-  await game.writeAsString(gameFile(project));
+  await game.writeAsString(project.gameFile);
 }
 
 FlameProject importProject(Directory location) {
