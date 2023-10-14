@@ -21,7 +21,7 @@ class FlameWorkspaceApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           brightness: Brightness.dark,
           seedColor: const Color(0xFFffb431),
-          surface: Colors.blueGrey,
+          // surface: Colors.blueGrey,
         ),
         visualDensity: VisualDensity.compact,
       ),

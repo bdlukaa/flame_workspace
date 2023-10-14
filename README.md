@@ -1,5 +1,13 @@
 # Flame Workspace
 
+### Packages
+
+* flame_workspace
+  The main package. It contains the `Workspace` class, which is the entry point of the IDE.
+
+* template
+  A template used when creating a new Flame project.
+
 
 ### Roadmap
 
