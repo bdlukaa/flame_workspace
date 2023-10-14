@@ -20,6 +20,7 @@ class FlameWorkspaceCore {
   /// Initializes the package server.
   Future<void> ensureInitialized() async {
     if (kDebugMode) {
+      assert(!kIsWeb, 'Can not run in web mode');
       debugPrint('Initializing Flame Workspace Core');
       _server = await createServer();
 

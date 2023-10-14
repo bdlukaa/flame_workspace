@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_simple_treeview/flutter_simple_treeview.dart';
 import 'package:path/path.dart' as path;
 
+import '../project/parser.dart';
 import 'workbench_view.dart';
 
 class ProjectStructureView extends StatefulWidget {
@@ -140,6 +141,11 @@ class _SceneViewState extends State<SceneView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    final workbench = Workbench.of(context);
+    final scenes = ProjectIndexer.scenes(workbench.indexed);
+
+    print(scenes.length);
 
     return Padding(
       padding: const EdgeInsetsDirectional.all(12.0),

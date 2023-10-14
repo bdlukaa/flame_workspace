@@ -1,6 +1,7 @@
 import 'package:flame_workspace/project/runner.dart';
 import 'package:flutter/material.dart';
 
+import '../project/parser.dart';
 import '../project/project.dart';
 import 'assets_view.dart';
 import 'component_view.dart';
@@ -11,11 +12,13 @@ import 'structure_view.dart';
 class Workbench extends InheritedWidget {
   final FlameProject project;
   final FlameProjectRunner runner;
+  final List<Map<String, dynamic>> indexed;
 
   const Workbench({
     super.key,
     required this.project,
     required this.runner,
+    required this.indexed,
     required super.child,
   });
 
@@ -49,11 +52,41 @@ class _WorkbenchViewState extends State<WorkbenchView> {
 
   late final runner = FlameProjectRunner(widget.project);
 
+  List<Map<String, dynamic>>? indexed;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.project.index().then((v) {
+      if (mounted) setState(() => indexed = v);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (indexed == null) {
+      return Scaffold(
+        body: Center(
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text('Indexing project...', style: theme.textTheme.labelLarge),
+                const SizedBox(height: 12.0),
+                const CircularProgressIndicator.adaptive(strokeWidth: 2.1),
+              ]),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Workbench(
       project: widget.project,
       runner: runner,
+      indexed: indexed!,
       child: Scaffold(
         body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Card(

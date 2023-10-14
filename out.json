@@ -1,0 +1,69 @@
+[
+  {
+    "declarations": [
+      {
+        "kind": "class",
+        "name": "Scene1",
+        "extends": "FlameScene",
+        "members": [
+          {
+            "kind": "constructor",
+            "name": "Scene1",
+            "parameters": {
+              "all": [{ "name": "super.sceneName", "default": "'Scene 1'" }],
+              "named": 1
+            }
+          },
+          {
+            "kind": "method",
+            "name": "onLoad",
+            "returns": "Future<void>",
+            "annotations": [{ "name": "@override" }]
+          }
+        ]
+      },
+      {
+        "kind": "class",
+        "name": "MyCircle",
+        "extends": "PositionComponent",
+        "with": ["FlameComponent"],
+        "members": [
+          {
+            "kind": "constructor",
+            "name": "MyCircle",
+            "parameters": {
+              "all": [
+                { "name": "radius", "type": "double", "default": "20.0" },
+                { "name": "paint", "type": "Paint?" },
+                { "name": "position", "type": "Vector2?" }
+              ],
+              "named": 3
+            }
+          },
+          {
+            "kind": "method",
+            "name": "onLoad",
+            "returns": "void",
+            "annotations": [{ "name": "@override" }]
+          },
+          {
+            "kind": "method",
+            "name": "render",
+            "parameters": { "all": [{ "name": "canvas", "type": "Canvas" }] },
+            "returns": "void",
+            "annotations": [{ "name": "@override" }]
+          }
+        ]
+      }
+    ],
+    "directives": [
+      { "kind": "import", "uri": "package:flame/components.dart" },
+      {
+        "kind": "import",
+        "uri": "package:flame_workspace_core/creation/scene.dart"
+      },
+      { "kind": "import", "uri": "package:flutter/widgets.dart" }
+    ],
+    "source": "template\\lib\\scenes\\main_scene.dart"
+  }
+]

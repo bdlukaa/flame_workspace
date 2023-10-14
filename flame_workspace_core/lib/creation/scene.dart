@@ -5,7 +5,7 @@ import '../flame_workspace_core.dart';
 
 /// A scene is a represents screen of your game. It can be a level, a world map,
 /// or anything the user can interact with and has components.
-class FlameScene extends World with FlameComponentMixin {
+class FlameScene extends World with FlameComponent {
   /// The name of the scene.
   final String sceneName;
 
@@ -53,6 +53,13 @@ extension FlameComponentExtension on Component {
       });
     }
 
+    if (this is FlameComponent) {
+      final component = this as FlameComponent;
+      data.addAll({
+        'properties': component.properties,
+      });
+    }
+
     data.addAll({
       'type': runtimeType.toString(),
       'children': children.map((e) => e.serialized).toList(),
@@ -62,7 +69,9 @@ extension FlameComponentExtension on Component {
   }
 }
 
-mixin FlameComponentMixin on Component {
+mixin FlameComponent on Component {
+  final List<MapEntry<String, dynamic>> properties = [];
+
   @override
   @mustCallSuper
   void add(Component component) {
@@ -75,5 +84,15 @@ mixin FlameComponentMixin on Component {
   void remove(Component component) {
     FlameWorkspaceCore.instance.send();
     super.remove(component);
+  }
+
+  /// Registers a property to be serialized.
+  ///
+  /// This is usually used on components that are not built into the engine.
+  void registerProperty(MapEntry<String, dynamic> entry) {
+    if (properties.any((e) => e.key == entry.key)) {
+      throw Exception('Property already registered');
+    }
+    properties.add(entry);
   }
 }

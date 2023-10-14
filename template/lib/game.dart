@@ -1,6 +1,8 @@
 import 'package:flame/game.dart';
 import 'package:flame/palette.dart';
 
+import 'scenes/main_scene.dart';
+
 class MyGame extends FlameGame with SingleGameInstance {
   MyGame() : super();
 
@@ -8,7 +10,9 @@ class MyGame extends FlameGame with SingleGameInstance {
   Color backgroundColor() => const Color(0x00000000);
 
   @override
-  Future<void> onLoad() async {}
+  Future<void> onLoad() async {
+    add(Scene1());
+  }
 
   @override
   void update(double dt) {
