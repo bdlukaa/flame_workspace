@@ -56,6 +56,6 @@ class FlameProjectRunner {
   }
 
   Widget buildPreview() {
-    return Container();
+    return const Placeholder();
   }
 }

@@ -1,4 +1,9 @@
+import 'dart:io';
+
+import 'package:flame_workspace/workbench/structure_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_simple_treeview/flutter_simple_treeview.dart';
+import 'package:path/path.dart' as path;
 
 import 'workbench_view.dart';
 
@@ -59,7 +64,8 @@ class _ProjectConfiguration extends StatelessWidget {
     final theme = Theme.of(context);
     final project = Workbench.of(context).project;
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    final projectConfiguration =
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Project Configuration', style: theme.textTheme.titleSmall),
       const SizedBox(height: 8.0),
       Padding(
@@ -84,6 +90,53 @@ class _ProjectConfiguration extends StatelessWidget {
           const Text('English'),
         ]),
       ),
+    ]);
+
+    final files = project.projectDirectory.listSync()
+      ..sort((a, b) {
+        if (a is Directory && b is File) {
+          return -1;
+        } else if (a is File && b is Directory) {
+          return 1;
+        } else {
+          return a.path.compareTo(b.path);
+        }
+      });
+    final projectStructure =
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text('Project Structure', style: theme.textTheme.titleSmall),
+      const SizedBox(height: 8.0),
+      Expanded(
+        child: Padding(
+          padding: const EdgeInsetsDirectional.only(start: 12.0),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(8.0),
+            child: TreeView(
+              // treeController: controller,
+              indent: 24.0,
+              nodes: files.map((entity) {
+                if (entity is Directory) {
+                  return nodeForDirectory(entity);
+                } else {
+                  return TreeNode(
+                    content: Row(children: [
+                      const Icon(Icons.article, size: 16.0),
+                      const SizedBox(width: 8.0),
+                      Text(path.basename(entity.path)),
+                    ]),
+                  );
+                }
+              }).toList(),
+            ),
+          ),
+        ),
+      ),
+    ]);
+
+    return Row(children: [
+      projectConfiguration,
+      const SizedBox(width: 32.0),
+      projectStructure,
     ]);
   }
 }

@@ -14,6 +14,33 @@ class ProjectStructureView extends StatefulWidget {
   State<ProjectStructureView> createState() => _ProjectStructureViewState();
 }
 
+TreeNode nodeForDirectory(Directory dir) {
+  final children = <TreeNode>[];
+  for (final entity in dir.listSync()) {
+    if (entity is Directory) {
+      children.add(nodeForDirectory(entity));
+    } else if (entity is File) {
+      children.add(TreeNode(
+        content: Row(children: [
+          const Icon(Icons.article, size: 16.0),
+          const SizedBox(width: 8.0),
+          Text(path.basename(entity.path)),
+        ]),
+      ));
+    }
+  }
+  return TreeNode(
+    content: Row(
+      children: [
+        const Icon(Icons.folder, size: 16.0),
+        const SizedBox(width: 8.0),
+        Text(path.basename(dir.path)),
+      ],
+    ),
+    children: children,
+  );
+}
+
 class _ProjectStructureViewState extends State<ProjectStructureView> {
   final _files = <FileSystemEntity>[];
   late final StreamSubscription<FileSystemEvent> _filesSubscription;
@@ -25,7 +52,7 @@ class _ProjectStructureViewState extends State<ProjectStructureView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final workbench = Workbench.of(context);
-      _files.addAll(workbench.project.location.listSync());
+      _files.addAll(workbench.project.projectDirectory.listSync());
 
       _filesSubscription = workbench.project.projectDirectory
           .watch()
@@ -63,23 +90,6 @@ class _ProjectStructureViewState extends State<ProjectStructureView> {
         return a.path.compareTo(b.path);
       }
     });
-  }
-
-  TreeNode nodeForDirectory(Directory dir) {
-    final children = <TreeNode>[];
-    for (final entity in dir.listSync()) {
-      if (entity is Directory) {
-        children.add(nodeForDirectory(entity));
-      } else if (entity is File) {
-        children.add(TreeNode(
-          content: Text(path.basename(entity.path)),
-        ));
-      }
-    }
-    return TreeNode(
-      content: Text(path.basename(dir.path)),
-      children: children,
-    );
   }
 
   @override
