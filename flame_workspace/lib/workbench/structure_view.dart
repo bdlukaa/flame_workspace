@@ -52,17 +52,14 @@ class _ProjectStructureViewState extends State<ProjectStructureView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final workbench = Workbench.of(context);
-      _files.addAll(workbench.project.projectDirectory.listSync());
+      _files.addAll(workbench.project.location.listSync());
 
-      _filesSubscription = workbench.project.projectDirectory
-          .watch()
-          .listen((FileSystemEvent event) {
+      _filesSubscription =
+          workbench.project.location.watch().listen((FileSystemEvent event) {
         if (mounted) {
           _files
             ..clear()
-            ..addAll(
-              workbench.project.projectDirectory.listSync(),
-            );
+            ..addAll(workbench.project.location.listSync());
           _sortFiles();
           setState(() {});
         }
@@ -96,26 +93,83 @@ class _ProjectStructureViewState extends State<ProjectStructureView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-        padding: const EdgeInsetsDirectional.all(8.0),
-        child: Text('Project Structure', style: theme.textTheme.labelMedium),
-      ),
+      const Expanded(flex: 2, child: SceneView()),
+      const Divider(),
       Expanded(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(8.0),
-          child: TreeView(
-            treeController: controller,
-            indent: 24.0,
-            nodes: _files.map((entity) {
-              if (entity is Directory) {
-                return nodeForDirectory(entity);
-              } else {
-                return TreeNode(content: Text(path.basename(entity.path)));
-              }
-            }).toList(),
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsetsDirectional.all(12.0),
+              child: Text(
+                'Project Structure',
+                style: theme.textTheme.labelMedium,
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                child: TreeView(
+                  treeController: controller,
+                  indent: 24.0,
+                  nodes: _files.map((entity) {
+                    if (entity is Directory) {
+                      return nodeForDirectory(entity);
+                    } else {
+                      return TreeNode(
+                          content: Text(path.basename(entity.path)));
+                    }
+                  }).toList(),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     ]);
+  }
+}
+
+class SceneView extends StatefulWidget {
+  const SceneView({super.key});
+
+  @override
+  State<SceneView> createState() => _SceneViewState();
+}
+
+class _SceneViewState extends State<SceneView> {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.all(12.0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text('Scene 1', style: theme.textTheme.labelMedium),
+          Tooltip(
+            message: 'Add component',
+            child: InkWell(
+              child: const Icon(Icons.add),
+              onTap: () {
+                // Add component
+              },
+            ),
+          ),
+        ]),
+        _buildComponent(),
+        _buildComponent(),
+      ]),
+    );
+  }
+
+  Widget _buildComponent() {
+    return InkWell(
+      onTap: () {},
+      child: const Row(children: [
+        Icon(Icons.check_box_outline_blank, size: 20.0),
+        SizedBox(width: 6.0),
+        Text('Component'),
+      ]),
+    );
   }
 }

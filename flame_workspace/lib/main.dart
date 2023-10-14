@@ -24,6 +24,10 @@ class FlameWorkspaceApp extends StatelessWidget {
           // surface: Colors.blueGrey,
         ),
         visualDensity: VisualDensity.compact,
+        cardTheme: const CardTheme(
+          shape: RoundedRectangleBorder(),
+          margin: EdgeInsets.zero,
+        ),
       ),
       initialRoute: '/',
       routes: {

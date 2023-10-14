@@ -54,6 +54,7 @@ extension FlameComponentExtension on Component {
     }
 
     data.addAll({
+      'type': runtimeType.toString(),
       'children': children.map((e) => e.serialized).toList(),
     });
 
