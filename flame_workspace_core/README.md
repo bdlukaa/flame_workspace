@@ -1,39 +1,25 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+A package every Flame Project must depend on. It contains the necessary code to make the game work with the IDE. Game Preview and Code generation are some of the features provided by this package.
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/guides/libraries/writing-package-pages).
+### How it works?
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-library-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/developing-packages).
--->
+Flame is an awesome engine, but it doesn't contain helpful debugging features. This package is responsible to interpret the code to make their properties visible in the IDE in forms of Scenes and Components.
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+There is the `FlameWorkspaceCore`, which is resposible to create a web server with all the debugging info, such as the component tree. One, in debug mode, can access it by going to `http://localhost:8080`. The entire tree is sent every time something is updated in the screen.
 
-## Features
+### Scene
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
-
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
-
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+A `FlameScene` is a World. Everything in the screen is a Scene (expect for overlays). It is the root of the view tree. It can be a level, a map, and anything that can be a `Component`:
 
 ```dart
-const like = 'sample';
+class Scene1 extends FlameScene {
+  Scene1() : super(sceneName: 'Scene 1');
+
+  @override
+  Future<void> onLoad() async {
+    // Load all the assets that are needed in this world
+    // and add components etc.
+  }
+}
 ```
 
-## Additional information
-
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+Differently from `World`, the flame scene has a name and tracks components adding and removal.

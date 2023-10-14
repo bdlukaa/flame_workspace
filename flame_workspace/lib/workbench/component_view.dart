@@ -13,7 +13,7 @@ class ComponentView extends StatelessWidget {
       padding: const EdgeInsets.all(8.0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Component', style: theme.textTheme.labelSmall),
-        Text('no component selected'),
+        const Text('no component selected'),
       ]),
     );
   }

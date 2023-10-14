@@ -1,9 +1,13 @@
 library flame_workspace_core;
 
+export 'package:flame_workspace_core/creation/scene.dart'
+    show FlameComponentExtension;
+
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import 'creation/scene.dart';
 import 'debug_server.dart';
 
 class FlameWorkspaceCore {
@@ -22,6 +26,14 @@ class FlameWorkspaceCore {
       _server.listen((request) {
         request.response.write('Hello, world!');
       });
+    }
+  }
+
+  final FlameScene currentScene = FlameScene(sceneName: 'Scene 1');
+
+  void send() {
+    if (kDebugMode) {
+      print(currentScene.toMap());
     }
   }
 }

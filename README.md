@@ -20,17 +20,4 @@
 * flame_workspace_core
   A package every Flame Project must depend on. It contains the necessary code to make the game work with the IDE. Game Preview and Code generation are some of the features provided by this package.
 
-### Roadmap
-
-- [ ] IDE itself
-  - Editor will not be built-in. It'll be recommended to use VSCode to edit the Flutter code.
-  - In the middle of the screen, there will be the game preview.
-    The developer will see the game as it is being developed.
-  - On the left, there will be a sidebar with the project structure.
-    The developer will be able to interact with the project files from there.
-  - On the right, there will be a sidebar with the game objects.
-    The developer will be able to interact with the game objects from there.
-  - On the bottom, there will be a bottom bar with the console.
-    The developer will be able to see the logs from there.
-  - On the top, there will be a top bar with the menu.
-    The developer will be able to interact with the IDE from there.
+  It is resposible to interpret the code to make their properties visible in the IDE in forms of Scenes and Components. Read more about it in the [flame_workspace_core](./flame_workspace_core/README.md)

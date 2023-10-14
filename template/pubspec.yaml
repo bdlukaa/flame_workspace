@@ -16,6 +16,8 @@ dependencies:
 
   # Required dependencies
   flame: 1.9.1
+  flame_workspace_core:
+    path: ../flame_workspace_core
   flame_audio: 2.1.1
   flame_forge2d: 0.15.0+1
   flame_isolate: 0.5.0+1

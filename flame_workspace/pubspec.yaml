@@ -11,8 +11,12 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Flame
+  flame: 1.9.1
+
   file_picker: ^5.5.0
   yaml: ^3.1.2
+  path: ^1.8.3
 
   flutter_simple_treeview: ^3.0.2
 

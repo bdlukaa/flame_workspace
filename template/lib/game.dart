@@ -12,6 +12,8 @@ class MyGame extends FlameGame with SingleGameInstance {
 
   @override
   void update(double dt) {
+    // TODO: implement app loop
+
     super.update(dt);
   }
 }
