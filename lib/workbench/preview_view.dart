@@ -16,7 +16,12 @@ class GamePreviewView extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.0),
       ),
       child: Column(children: [
-        const Spacer(),
+        const Expanded(
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Placeholder(),
+          ),
+        ),
         Container(
           // height: 36.0,
           decoration: BoxDecoration(

@@ -74,7 +74,75 @@ flutter:
 
 ''';
 
-  String get mainFile => '''''';
+  String get mainFile => '''import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flame/game.dart';
+import 'package:window_manager/window_manager.dart';
 
-  String get gameFile => '''''';
+import 'game.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kIsWeb &&
+      ([
+        TargetPlatform.windows,
+        TargetPlatform.linux,
+        TargetPlatform.macOS,
+      ].contains(defaultTargetPlatform))) {
+    await windowManager.ensureInitialized();
+    await windowManager.waitUntilReadyToShow();
+  }
+
+  runApp(const MyGameApp());
+}
+
+class MyGameApp extends StatefulWidget {
+  const MyGameApp({super.key});
+
+  @override
+  State<MyGameApp> createState() => _MyGameAppState();
+}
+
+class _MyGameAppState extends State<MyGameApp> with WindowListener {
+  @override
+  void initState() {
+    super.initState();
+    windowManager.addListener(this);
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'My Game',
+      home: GameWidget<MyGame>(
+        game: MyGame(),
+      ),
+    );
+  }
+}''';
+
+  String get gameFile => '''import 'package:flame/game.dart';
+import 'package:flame/palette.dart';
+
+class MyGame extends FlameGame with SingleGameInstance {
+  MyGame() : super();
+
+  @override
+  Color backgroundColor() => const Color(0x00000000);
+
+  @override
+  Future<void> onLoad() async {}
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+  }
+}''';
 }

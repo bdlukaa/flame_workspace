@@ -88,6 +88,14 @@ class FlameProject {
   });
 
   Directory get projectDirectory => Directory(path.join(location.path, name));
+
+  /// The list of assets of the project.
+  ///
+  /// All the assets are declared inside the `assets` folder.
+  Iterable<File> get assets =>
+      Directory(path.join(projectDirectory.path, 'assets'))
+          .listSync(recursive: true)
+          .whereType<File>();
 }
 
 /// Creates a new Flame project.
@@ -95,6 +103,10 @@ class FlameProject {
 /// Steps:
 ///   1. Creates the project folder.
 ///   2. Runs `flutter create --org [organization] [name]` in the project folder.
+///      2.1 Delete the `lib` folder.
+///      2.2 Delete the `test` folder.
+///      2.3 Create the `assets` folder.
+///      2.4 Delete the `README.md` file.
 ///   3. Creates the `flame_configuration.yaml` file.
 ///   4. Creates the `pubspec.yaml` file.
 ///   5. Creates the `lib/main.dart` file.
@@ -115,11 +127,16 @@ Future<void> createProject(FlameProject project) async {
     workingDirectory: location.path,
   );
 
-  if (result.exitCode != 0) {
-    throw Exception('Failed to create the project.');
-  }
+  if (result.exitCode != 0) throw Exception('Failed to create the project.');
 
   final projectDir = path.join(location.path, project.name);
+
+  await Directory(path.join(projectDir, 'lib'))
+      .list()
+      .forEach((f) => f.delete());
+  Directory(path.join(projectDir, 'test')).delete(recursive: true);
+  Directory(path.join(projectDir, 'assets')).create();
+  File(path.join(projectDir, 'README.md')).delete();
 
   final configFile = File(path.join(projectDir, 'flame_configuration.yaml'));
   await configFile.create();
@@ -128,11 +145,6 @@ Future<void> createProject(FlameProject project) async {
   final pubspec = File(path.join(projectDir, 'pubspec.yaml'));
   await pubspec.create();
   await pubspec.writeAsString(project.pubspecFile);
-
-  final dir = Directory(path.join(projectDir, 'lib'));
-  await for (final f in dir.list()) {
-    f.delete();
-  }
 
   final main = File(path.join(projectDir, 'lib', 'main.dart'));
   await main.create();

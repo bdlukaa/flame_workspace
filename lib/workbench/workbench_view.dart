@@ -2,6 +2,7 @@ import 'package:flame_workspace/project/project.dart';
 import 'package:flame_workspace/workbench/preview_view.dart';
 import 'package:flutter/material.dart';
 
+import 'component_view.dart';
 import 'structure_view.dart';
 
 class WorkbenchView extends StatelessWidget {
@@ -20,24 +21,28 @@ class WorkbenchView extends StatelessWidget {
             color: Colors.blueGrey,
           ),
           Expanded(
-            flex: 2,
             child: Row(children: [
-              const Expanded(flex: 1, child: ProjectStructureView()),
-              const Expanded(flex: 2, child: GamePreviewView()),
               Expanded(
-                flex: 1,
-                child: Container(
-                  color: Colors.amber,
-                ),
+                flex: 4,
+                child: Column(children: [
+                  const Expanded(
+                    flex: 2,
+                    child: Row(children: [
+                      Expanded(flex: 1, child: ProjectStructureView()),
+                      Expanded(flex: 2, child: GamePreviewView()),
+                    ]),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      color: Colors.green,
+                    ),
+                  ),
+                ]),
               ),
+              const Expanded(flex: 1, child: ComponentView()),
             ]),
-          ),
-          Expanded(
-            flex: 1,
-            child: Container(
-              color: Colors.green,
-            ),
-          ),
+          )
         ]),
       ),
     );
