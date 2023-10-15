@@ -1,7 +1,7 @@
 class FlameSceneObject {
   final String name;
 
-  final List components;
+  final List<FlameComponentObject> components;
 
   FlameSceneObject({required this.name, required this.components});
 }
@@ -11,10 +11,20 @@ class FlameComponentObject {
   final String type;
   final List<FlameComponentField> parameters;
 
-  const FlameComponentObject({
+  List<FlameComponentObject> components = [];
+
+  /// The object declaration data
+  final Map<String, dynamic> data;
+
+  FlameComponentObject? parent;
+  final String? declarationName;
+
+  FlameComponentObject({
     required this.name,
     required this.type,
     required this.parameters,
+    required this.data,
+    this.declarationName,
   });
 
   @override

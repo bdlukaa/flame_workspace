@@ -57,6 +57,12 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   @override
   void initState() {
     super.initState();
+    indexProject();
+  }
+
+  void indexProject() {
+    indexed = null;
+    if (mounted) setState(() {});
     widget.project.index().then((v) {
       if (mounted) setState(() => indexed = v);
     });
@@ -97,7 +103,14 @@ class _WorkbenchViewState extends State<WorkbenchView> {
               padding: const EdgeInsetsDirectional.all(4.0),
               child:
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Spacer(),
+                Expanded(
+                  child: Row(children: [
+                    InkWell(
+                      onTap: indexProject,
+                      child: const Icon(Icons.lan, size: 20.0),
+                    ),
+                  ]),
+                ),
                 Expanded(
                   child: Center(
                     child: ToggleButtons(

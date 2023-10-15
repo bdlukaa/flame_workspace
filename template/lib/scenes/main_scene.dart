@@ -7,7 +7,7 @@ class Scene1 extends FlameScene {
     super.sceneName = 'Scene 1',
   });
 
-  FlameComponent circle = MyCircle(radius: 20);
+  MyCircle circle = MyCircle(radius: 20);
 
   @override
   Future<void> onLoad() async {
@@ -29,11 +29,39 @@ class MyCircle extends PositionComponent with FlameComponent {
           anchor: Anchor.center,
         );
 
-  Paint _paint;
+  final Paint _paint;
+
+  MySquare innerCircle = MySquare();
 
   @override
   void render(Canvas canvas) {
     super.render(canvas);
     canvas.drawCircle(Offset(radius, radius), radius, _paint);
+  }
+}
+
+class MySquare extends PositionComponent with FlameComponent {
+  double radius;
+
+  MySquare({this.radius = 20.0, Paint? paint, Vector2? position})
+      : _paint = paint ?? Paint()
+          ..color = const Color(0xFF80C080),
+        super(
+          position: position,
+          size: Vector2.all(2 * radius),
+          anchor: Anchor.center,
+        );
+
+  final Paint _paint;
+
+  PositionComponent innerCircle = PositionComponent();
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+    canvas.drawRect(
+      Rect.fromCircle(center: Offset(radius, radius), radius: radius),
+      _paint,
+    );
   }
 }

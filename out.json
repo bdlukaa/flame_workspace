@@ -14,7 +14,7 @@
               "named": 1
             }
           },
-          { "kind": "field", "name": "circle", "type": "FlameComponent" },
+          { "kind": "field", "name": "circle", "type": "MyCircle" },
           {
             "kind": "method",
             "name": "onLoad",
