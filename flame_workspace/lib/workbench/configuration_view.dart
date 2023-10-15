@@ -92,7 +92,7 @@ class _ProjectConfiguration extends StatelessWidget {
       ),
     ]);
 
-    final files = project.projectDirectory.listSync()
+    final files = project.location.listSync()
       ..sort((a, b) {
         if (a is Directory && b is File) {
           return -1;

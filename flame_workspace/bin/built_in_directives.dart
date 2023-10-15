@@ -7,7 +7,6 @@
 
 library built_in_directives;
 
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:analyzer/dart/analysis/features.dart';

@@ -1,8 +1,6 @@
 import 'dart:io';
 
-import 'package:analyzer/dart/analysis/features.dart';
-import 'package:analyzer/dart/analysis/utilities.dart';
-import 'package:dartdoc_json/dartdoc_json.dart' as dartdoc;
+import 'package:flame_workspace/project/parser.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:yaml/yaml.dart';
@@ -72,7 +70,7 @@ class FlameProject {
   /// Used in the `flutter create --org [organization]` argument.
   final String organization;
 
-  /// The location of the parent folder.
+  /// The location of the project folder folder.
   final Directory location;
 
   /// The dependencies of the project.
@@ -90,15 +88,15 @@ class FlameProject {
     this.dependencies = const [],
   });
 
-  Directory get projectDirectory => Directory(path.join(location.path, name));
-
   /// The list of assets of the project.
   ///
   /// All the assets are declared inside the `assets` folder.
-  Iterable<File> get assets =>
-      Directory(path.join(projectDirectory.path, 'assets'))
-          .listSync(recursive: true)
-          .whereType<File>();
+  Iterable<File> get assets => Directory(path.join(location.path, 'assets'))
+      .listSync(recursive: true)
+      .whereType<File>();
+
+  Future<List<Map<String, dynamic>>> index() =>
+      ProjectIndexer.indexProject(location);
 }
 
 /// Creates a new Flame project.
@@ -192,27 +190,5 @@ FlameProject importProject(Directory location) {
 void openProject(BuildContext context, FlameProject project) {
   if (context.mounted) {
     Navigator.of(context).pushReplacementNamed('/project', arguments: project);
-  }
-}
-
-extension FlameProjectIndexer on FlameProject {
-  /// Indexes all the files in the project.
-  Future<List<Map<String, dynamic>>> index([Directory? dir]) async {
-    final files = <Map<String, dynamic>>[];
-
-    final libDir = dir ?? Directory(path.join(location.path, 'lib'));
-    await for (final file in libDir
-        .list(recursive: true)
-        .where((f) => f is File && path.extension(f.path) == '.dart')) {
-      final parsed = parseFile(
-        path: file.path,
-        featureSet: FeatureSet.latestLanguageVersion(),
-      );
-      final unit = dartdoc.serializeCompilationUnit(parsed.unit);
-      unit['source'] = file.path;
-      files.add(unit);
-    }
-
-    return files;
   }
 }

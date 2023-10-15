@@ -1,9 +1,36 @@
-import 'package:flame_workspace/project/built_in_components.dart';
+import 'dart:io';
+
+import 'package:analyzer/dart/analysis/features.dart';
+import 'package:analyzer/dart/analysis/utilities.dart';
+import 'package:dartdoc_json/dartdoc_json.dart' as dartdoc;
+import 'package:path/path.dart' as path;
+
 import 'package:flame_workspace/utils.dart';
 
+import 'built_in_components.dart';
 import 'game_objects.dart';
 
 class ProjectIndexer {
+  static Future<List<Map<String, dynamic>>> indexProject(
+    Directory libDir,
+  ) async {
+    final files = <Map<String, dynamic>>[];
+
+    await for (final file in libDir
+        .list(recursive: true)
+        .where((f) => f is File && path.extension(f.path) == '.dart')) {
+      final parsed = parseFile(
+        path: file.path,
+        featureSet: FeatureSet.latestLanguageVersion(),
+      );
+      final unit = dartdoc.serializeCompilationUnit(parsed.unit);
+      unit['source'] = file.path;
+      files.add(unit);
+    }
+
+    return files;
+  }
+
   /// Returns all the scenes in the project
   ///
   /// `components` represents all the components in the project. If null, the

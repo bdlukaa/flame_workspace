@@ -40,7 +40,14 @@ class FlameComponentObject {
 
 class FlameComponentField {
   final String name;
+
+  /// The type of the field.
+  ///
+  /// If it ends with an `?`, it means that the field is nullable. If non-nullable
+  /// it must be either required or have a [defaultValue]
   final String type;
+
+  /// The default value of the field.
   final String? defaultValue;
 
   /// The super component of this field.
@@ -63,4 +70,6 @@ class FlameComponentField {
       "'$defaultValue'"
       "${superComponent == null ? '' : ", '$superComponent'"}"
       ")";
+
+  bool get isNullable => type == 'dynamic' || type.endsWith('?');
 }
