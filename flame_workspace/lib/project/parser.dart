@@ -49,11 +49,11 @@ class ProjectIndexer {
       scenes.addAll(declarations.where((d) {
         return d['kind'] == 'class' && d['extends'] == 'FlameScene';
       }).map((d) {
+        final members = (d['members'] as List).cast<Map>();
+
         final className = d['name'] as String;
 
-        final fields = (d['members'] as List)
-            .cast<Map>()
-            .where((m) => m['kind'] == 'field');
+        final fields = members.where((m) => m['kind'] == 'field');
 
         return FlameSceneObject(
           name: className,

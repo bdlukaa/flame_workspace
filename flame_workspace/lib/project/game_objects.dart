@@ -3,7 +3,10 @@ class FlameSceneObject {
 
   final List<FlameComponentObject> components;
 
-  FlameSceneObject({required this.name, required this.components});
+  FlameSceneObject({
+    required this.name,
+    required this.components,
+  });
 }
 
 class FlameComponentObject {

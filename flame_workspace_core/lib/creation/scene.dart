@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../flame_workspace_core.dart';
 
@@ -9,14 +10,13 @@ class FlameScene extends World with FlameComponent {
   /// The name of the scene.
   final String sceneName;
 
-  FlameScene({required this.sceneName, super.children}) : super();
+  final Color backgroundColor;
 
-  // Map<String, dynamic> toMap() {
-  //   return {
-  //     'sceneName': sceneName,
-  //     'components': children.map((x) => x.serialized).toList(),
-  //   };
-  // }
+  FlameScene({
+    required this.sceneName,
+    required this.backgroundColor,
+    super.children,
+  });
 }
 
 extension FlameComponentExtension on Component {

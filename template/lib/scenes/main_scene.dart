@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 class Scene1 extends FlameScene {
   Scene1({
     super.sceneName = 'Scene 1',
+    super.backgroundColor = const Color(0xFF000000),
   });
 
   MyCircle circle = MyCircle(radius: 20);

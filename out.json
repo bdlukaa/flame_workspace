@@ -10,8 +10,14 @@
             "kind": "constructor",
             "name": "Scene1",
             "parameters": {
-              "all": [{ "name": "super.sceneName", "default": "'Scene 1'" }],
-              "named": 1
+              "all": [
+                { "name": "super.sceneName", "default": "'Scene 1'" },
+                {
+                  "name": "super.backgroundColor",
+                  "default": "const Color(0xFF000000)"
+                }
+              ],
+              "named": 2
             }
           },
           { "kind": "field", "name": "circle", "type": "MyCircle" },
@@ -46,9 +52,10 @@
                   "type": "Color",
                   "default": "const Color(0xFF80C080)"
                 },
-                { "name": "super.position" }
+                { "name": "super.position" },
+                { "name": "flag", "type": "bool", "default": "false" }
               ],
-              "named": 3
+              "named": 4
             }
           },
           { "kind": "field", "name": "innerCircle", "type": "MySquare" },
