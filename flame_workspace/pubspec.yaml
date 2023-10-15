@@ -16,6 +16,7 @@ dependencies:
 
   analyzer: 5.13.0
   dartdoc_json: ^0.2.0
+  http: ^1.1.0
 
   file_picker: ^5.5.0
   yaml: ^3.1.2

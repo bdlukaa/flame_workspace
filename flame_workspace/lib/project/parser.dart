@@ -1,35 +1,7 @@
-import 'dart:io';
-
-import 'package:analyzer/dart/analysis/features.dart';
-import 'package:analyzer/dart/analysis/utilities.dart';
+import 'package:flame_workspace/project/built_in_components.dart';
 import 'package:flame_workspace/utils.dart';
-import 'package:path/path.dart' as path;
-import 'package:dartdoc_json/dartdoc_json.dart' as dartdoc;
 
 import 'game_objects.dart';
-import 'project.dart';
-
-extension FlameProjectIndexer on FlameProject {
-  /// Indexes all the files in the project.
-  Future<List<Map<String, dynamic>>> index() async {
-    final files = <Map<String, dynamic>>[];
-
-    final libDir = Directory(path.join(location.path, 'lib'));
-    await for (final file in libDir
-        .list(recursive: true)
-        .where((f) => f is File && path.extension(f.path) == '.dart')) {
-      final parsed = parseFile(
-        path: file.path,
-        featureSet: FeatureSet.latestLanguageVersion(),
-      );
-      final unit = dartdoc.serializeCompilationUnit(parsed.unit);
-      unit['source'] = file.path;
-      files.add(unit);
-    }
-
-    return files;
-  }
-}
 
 class ProjectIndexer {
   /// Returns all the scenes in the project
@@ -51,8 +23,6 @@ class ProjectIndexer {
         return d['kind'] == 'class' && d['extends'] == 'FlameScene';
       }).map((d) {
         final className = d['name'] as String;
-        // final name = (d['members'] as List?)
-        //     ?.firstWhereOrNull((d) => d['kind'] == 'constructor');
 
         final fields = (d['members'] as List)
             .cast<Map>()
@@ -112,15 +82,22 @@ class ProjectIndexer {
           .cast<Map>()
           .map((e) => e as Map<String, dynamic>);
       components.addAll(declarations.where((d) {
+        final w = d['with'] as List?;
+        final e = d['extends'] as String?;
         return d['kind'] == 'class' &&
-            d['with'] != null &&
-            (d['with'] as List).contains('FlameComponent');
+            (w != null && (w.contains('FlameComponent')) ||
+                [
+                  'PositionComponent',
+                  'Component',
+                  ...builtInComponents.map((e) => e.name),
+                ].contains(e));
       }).map((d) {
         final componentParameters = <FlameComponentField>[];
 
         if (d['members'] != null) {
           final members = (d['members'] as List).cast<Map>();
           for (final member in members) {
+            // TODO: add support for multiple constructors (factory constructors / named constructors)
             if (member['kind'] == 'constructor') {
               final parameters =
                   (member['parameters']['all'] as List).cast<Map>();
@@ -135,12 +112,12 @@ class ProjectIndexer {
                     '.super parameters are not allowed',
                   );
                   // If type is null, we search through the fields to find the type.
-                  final field = members.firstWhere(
+                  final field = members.firstWhereOrNull(
                     (m) =>
                         m['kind'] == 'field' &&
                         m['name'] == name.replaceAll('this.', ''),
                   );
-                  final fieldType = field['type'] as String?;
+                  final fieldType = field?['type'] as String?;
                   type = fieldType;
                 }
                 type ??= 'dynamic';

@@ -17,6 +17,12 @@ class FlameComponentObject {
   final Map<String, dynamic> data;
 
   FlameComponentObject? parent;
+
+  /// When the component is declared inline:
+  ///
+  /// `Component myComponent = Component();`
+  ///
+  /// The declaration name will be `myComponent`.
   final String? declarationName;
 
   FlameComponentObject({
@@ -37,9 +43,8 @@ class FlameComponentField {
   final String type;
   final String? defaultValue;
 
-  const FlameComponentField(this.name, this.type, [this.defaultValue]);
+  FlameComponentField(this.name, this.type, [this.defaultValue]);
 
   @override
-  String toString() =>
-      'FlameComponentField(name: $name, type: $type, defaultValue: $defaultValue)';
+  String toString() => "FlameComponentField('$name', '$type', '$defaultValue')";
 }
