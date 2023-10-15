@@ -44,7 +44,15 @@ class Scene1 extends FlameScene {
 
   @override
   Future<void> onLoad() async {
-    // The developer is responsible to add the components to the scene.
+    add(circle);
+    add(square);
+  }
+
+  @override
+  void update(dt) async {
+    super.update(dt);
+
+    
   }
 }
 ```

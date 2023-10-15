@@ -107,11 +107,13 @@ class ComponentView extends StatelessWidget {
               name: 'Type',
               value: component.name,
               type: '$String',
+              editable: false,
             ),
             _Field(
               name: 'Subtype',
               value: component.type,
               type: '$String',
+              editable: false,
             ),
           ],
         ),

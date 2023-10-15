@@ -31,6 +31,13 @@
             "name": "onLoad",
             "returns": "Future<void>",
             "annotations": [{ "name": "@override" }]
+          },
+          {
+            "kind": "method",
+            "name": "update",
+            "parameters": { "all": [{ "name": "dt" }] },
+            "returns": "void",
+            "annotations": [{ "name": "@override" }]
           }
         ]
       },

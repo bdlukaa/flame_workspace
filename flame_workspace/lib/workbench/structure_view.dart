@@ -1,12 +1,45 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flame_workspace/project/built_in_components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_simple_treeview/flutter_simple_treeview.dart';
 import 'package:path/path.dart' as path;
 
 import '../project/game_objects.dart';
 import 'workbench_view.dart';
+
+IconData? iconForComponent(String componentType) {
+  return switch (componentType) {
+    'CameraComponent' => Icons.videocam_rounded,
+    'CircleComponent' => Icons.circle_rounded,
+    'ClipComponent' => Icons.crop_rounded,
+    'CustomPainterComponent' => Icons.format_paint_rounded,
+    'FpsComponent' => Icons.sixty_fps_rounded,
+    'FpsTextComponent' => Icons.sixty_fps_select_rounded,
+    'IsometricTileMapComponent' => Icons.grid_view_rounded,
+    'KeyboardListenerComponent' => Icons.keyboard_rounded,
+    'ParallaxComponent' => Icons.lens_blur_rounded,
+    'ParticleSystemComponent' => Icons.local_fire_department_rounded,
+    'PolygonComponent' => Icons.hexagon_rounded,
+    'PositionComponent' => Icons.line_axis_rounded,
+    'RectangleComponent' => Icons.rectangle_rounded,
+    'ShapeComponent' => Icons.pentagon_rounded,
+    'SpawnComponent' => Icons.animation_rounded,
+    // * Sprites components
+    'SpriteAnimationComponent' => Icons.grain_rounded,
+    'SpriteAnimationGroupComponent' => Icons.web_stories_rounded,
+    'SpriteComponent' => Icons.grain_rounded,
+    'SpriteGroupComponent' => Icons.web_stories_rounded,
+    // * Text components
+    'TextBoxComponent' => Icons.abc_rounded,
+    'TextElementComponent' => Icons.abc_rounded,
+    //
+    'TimerComponent' => Icons.hourglass_full_rounded,
+    'World' => Icons.public_rounded,
+    _ => null,
+  };
+}
 
 class ProjectStructureView extends StatefulWidget {
   const ProjectStructureView({super.key});
@@ -159,9 +192,7 @@ class _SceneViewState extends State<SceneView> {
               message: 'Add component',
               child: InkWell(
                 child: const Icon(Icons.add),
-                onTap: () {
-                  // Add component
-                },
+                onTap: () => showAddComponentDialog(context),
               ),
             ),
           ]),
@@ -184,38 +215,6 @@ class SceneComponentField extends StatefulWidget {
 
 class _SceneComponentFieldState extends State<SceneComponentField> {
   bool _expanded = true;
-
-  IconData? iconFor(String componentType) {
-    return switch (componentType) {
-      'CameraComponent' => Icons.videocam_rounded,
-      'CircleComponent' => Icons.circle_rounded,
-      'ClipComponent' => Icons.crop_rounded,
-      'CustomPainterComponent' => Icons.format_paint_rounded,
-      'FpsComponent' => Icons.sixty_fps_rounded,
-      'FpsTextComponent' => Icons.sixty_fps_select_rounded,
-      'IsometricTileMapComponent' => Icons.grid_view_rounded,
-      'KeyboardListenerComponent' => Icons.keyboard_rounded,
-      'ParallaxComponent' => Icons.lens_blur_rounded,
-      'ParticleSystemComponent' => Icons.local_fire_department_rounded,
-      'PolygonComponent' => Icons.hexagon_rounded,
-      'PositionComponent' => Icons.line_axis_rounded,
-      'RectangleComponent' => Icons.rectangle_rounded,
-      'ShapeComponent' => Icons.pentagon_rounded,
-      'SpawnComponent' => Icons.animation_rounded,
-      // * Sprites components
-      'SpriteAnimationComponent' => Icons.grain_rounded,
-      'SpriteAnimationGroupComponent' => Icons.web_stories_rounded,
-      'SpriteComponent' => Icons.grain_rounded,
-      'SpriteGroupComponent' => Icons.web_stories_rounded,
-      // * Text components
-      'TextBoxComponent' => Icons.abc_rounded,
-      'TextElementComponent' => Icons.abc_rounded,
-      //
-      'TimerComponent' => Icons.hourglass_full_rounded,
-      'World' => Icons.public_rounded,
-      _ => null,
-    };
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -257,8 +256,8 @@ class _SceneComponentFieldState extends State<SceneComponentField> {
                 ),
               ),
               Icon(
-                iconFor(widget.component.name) ??
-                    iconFor(widget.component.type) ??
+                iconForComponent(widget.component.name) ??
+                    iconForComponent(widget.component.type) ??
                     Icons.square,
                 size: 16.0,
               ),
@@ -289,6 +288,114 @@ class _SceneComponentFieldState extends State<SceneComponentField> {
               ]),
             ),
       ],
+    );
+  }
+}
+
+void showAddComponentDialog(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) {
+      return AddComponentDialog(workbench: Workbench.of(context));
+    },
+  );
+}
+
+class AddComponentDialog extends StatelessWidget {
+  final Workbench workbench;
+
+  const AddComponentDialog({
+    super.key,
+    required this.workbench,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final components = workbench.components;
+
+    Widget buildComponent(FlameComponentObject component) {
+      return InkWell(
+        onTap: () {},
+        child: Padding(
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: 24.0,
+            vertical: 8.0,
+          ),
+          child: Row(children: [
+            Icon(
+              iconForComponent(component.name) ??
+                  iconForComponent(component.type) ??
+                  Icons.square,
+              size: 16.0,
+            ),
+            const SizedBox(width: 10.0),
+            Text(component.name),
+          ]),
+        ),
+      );
+    }
+
+    return SizedBox.fromSize(
+      size: const Size(500.0, 500.0),
+      child: CustomScrollView(slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsetsDirectional.symmetric(
+              horizontal: 24.0,
+              vertical: 12.0,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Project Components',
+                  style: theme.textTheme.labelLarge,
+                ),
+                Text('${components.length}', style: theme.textTheme.bodySmall),
+              ],
+            ),
+          ),
+        ),
+        SliverList.builder(
+          itemCount: components.length,
+          itemBuilder: (context, index) {
+            final component = components[index];
+
+            return buildComponent(component);
+          },
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsetsDirectional.symmetric(
+              horizontal: 24.0,
+              vertical: 12.0,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Components',
+                  style: theme.textTheme.labelLarge,
+                ),
+                Text(
+                  '${builtInComponents.length}',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ),
+        SliverList.builder(
+          itemCount: builtInComponents.length,
+          itemBuilder: (context, index) {
+            final component = builtInComponents[index];
+
+            return buildComponent(component);
+          },
+        ),
+      ]),
     );
   }
 }

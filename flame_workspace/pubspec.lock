@@ -158,6 +158,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.3"
+  flutter_native_view:
+    dependency: "direct main"
+    description:
+      name: flutter_native_view
+      sha256: bc43839a8423fb2f5a4bd88b59b0418930f518af090ee796360cbdc813245cd6
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.2"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:

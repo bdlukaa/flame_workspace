@@ -17,6 +17,25 @@ class Scene1 extends FlameScene {
     // and add components etc.
     // add(circle);
   }
+
+  bool _upping = false;
+
+  @override
+  void update(dt) async {
+    super.update(dt);
+
+    if (circle.radius == 100.0) {
+      _upping = false;
+    } else if (circle.radius == 20.0) {
+      _upping = true;
+    }
+
+    if (_upping) {
+      circle.radius += 0.001;
+    } else {
+      circle.radius -= 0.001;
+    }
+  }
 }
 
 class MyCircle extends PositionComponent with FlameComponent {
