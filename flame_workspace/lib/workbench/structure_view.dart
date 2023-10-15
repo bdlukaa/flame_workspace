@@ -143,9 +143,9 @@ class _SceneViewState extends State<SceneView> {
     final theme = Theme.of(context);
 
     final workbench = Workbench.of(context);
-    final scenes = ProjectIndexer.scenes(workbench.indexed);
+    // final scenes = ProjectIndexer.scenes(workbench.indexed);
 
-    print(scenes.length);
+    // print(scenes.length);
 
     return Padding(
       padding: const EdgeInsetsDirectional.all(12.0),

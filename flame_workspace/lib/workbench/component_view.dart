@@ -1,4 +1,7 @@
+import 'package:flame_workspace/project/parser.dart';
 import 'package:flutter/material.dart';
+
+import 'workbench_view.dart';
 
 const kFieldHeight = 28.0;
 
@@ -8,6 +11,10 @@ class ComponentView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    final workbench = Workbench.of(context);
+    final component = ProjectIndexer.components(workbench.indexed).first;
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -27,21 +34,18 @@ class ComponentView extends StatelessWidget {
                       style: theme.textTheme.labelMedium,
                     ),
                     Text(
-                      '1',
+                      '${component.parameters.length}',
                       style: theme.textTheme.bodySmall,
                     ),
                   ],
                 ),
                 const SizedBox(height: 8.0),
-                const Row(children: [
-                  Expanded(
-                    child: _NumberField(
-                      name: 'Speed',
-                      value: '1.0',
-                      labelWidth: null,
-                    ),
+                for (final parameter in component.parameters)
+                  _NumberField(
+                    name: parameter.name,
+                    value: '${parameter.defaultValue}',
+                    labelWidth: 82.0,
                   ),
-                ]),
               ],
             ),
           ),

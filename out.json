@@ -14,6 +14,7 @@
               "named": 1
             }
           },
+          { "kind": "field", "name": "circle", "type": "FlameComponent" },
           {
             "kind": "method",
             "name": "onLoad",
@@ -28,23 +29,18 @@
         "extends": "PositionComponent",
         "with": ["FlameComponent"],
         "members": [
+          { "kind": "field", "name": "radius", "type": "double" },
           {
             "kind": "constructor",
             "name": "MyCircle",
             "parameters": {
               "all": [
-                { "name": "radius", "type": "double", "default": "20.0" },
+                { "name": "this.radius", "default": "20.0" },
                 { "name": "paint", "type": "Paint?" },
                 { "name": "position", "type": "Vector2?" }
               ],
               "named": 3
             }
-          },
-          {
-            "kind": "method",
-            "name": "onLoad",
-            "returns": "void",
-            "annotations": [{ "name": "@override" }]
           },
           {
             "kind": "method",

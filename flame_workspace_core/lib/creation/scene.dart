@@ -9,7 +9,7 @@ class FlameScene extends World with FlameComponent {
   /// The name of the scene.
   final String sceneName;
 
-  FlameScene({required this.sceneName}) : super();
+  FlameScene({required this.sceneName, super.children}) : super();
 
   Map<String, dynamic> toMap() {
     return {

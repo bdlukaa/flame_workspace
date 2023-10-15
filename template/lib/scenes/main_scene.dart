@@ -7,18 +7,21 @@ class Scene1 extends FlameScene {
     super.sceneName = 'Scene 1',
   });
 
+  FlameComponent circle = MyCircle(radius: 20);
+
   @override
   Future<void> onLoad() async {
     // Load all the assets that are needed in this world
     // and add components etc.
-    add(MyCircle(radius: 20));
+    add(circle);
   }
 }
 
 class MyCircle extends PositionComponent with FlameComponent {
-  MyCircle({double radius = 20.0, Paint? paint, Vector2? position})
-      : _radius = radius,
-        _paint = paint ?? Paint()
+  double radius;
+
+  MyCircle({this.radius = 20.0, Paint? paint, Vector2? position})
+      : _paint = paint ?? Paint()
           ..color = const Color(0xFF80C080),
         super(
           position: position,
@@ -26,19 +29,11 @@ class MyCircle extends PositionComponent with FlameComponent {
           anchor: Anchor.center,
         );
 
-  double _radius;
   Paint _paint;
-
-  @override
-  void onLoad() {
-    super.onLoad();
-    registerProperty(MapEntry('radius', _radius));
-    registerProperty(MapEntry('paint', _paint));
-  }
 
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    canvas.drawCircle(Offset(_radius, _radius), _radius, _paint);
+    canvas.drawCircle(Offset(radius, radius), radius, _paint);
   }
 }
