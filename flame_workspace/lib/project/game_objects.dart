@@ -36,6 +36,17 @@ class FlameComponentObject {
   @override
   String toString() =>
       'FlameComponentObject(name: $name, type: $type, parameters: $parameters)';
+
+  /// Returns the super parameters for the given [superclass].
+  ///
+  /// This is usually used to get the position parameters as a `PositionComponent`.
+  Iterable<FlameComponentField> superParameters(String superclass) {
+    return parameters.where((p) {
+      return p.superComponents != null &&
+          p.superComponents!.isNotEmpty &&
+          p.superComponents!.last == superclass;
+    });
+  }
 }
 
 class FlameComponentField {

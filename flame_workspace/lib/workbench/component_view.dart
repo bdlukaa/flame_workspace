@@ -27,7 +27,13 @@ class ComponentView extends StatelessWidget {
       );
     }
 
-    print(component.parameters);
+    final transformParameters = component.superParameters('PositionComponent');
+
+    // Script parameters are defined as parameters that are not inherited from
+    // a superclass.
+    final scriptParameters = component.parameters.where(
+      (p) => p.superComponents == null || p.superComponents!.isEmpty,
+    );
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -49,10 +55,10 @@ class ComponentView extends StatelessWidget {
           ],
         ),
         ComponentSectionCard(
-          title: 'Script Properties',
-          trailing: '${component.parameters.length}',
+          title: 'Properties',
+          trailing: '${scriptParameters.length}',
           children: [
-            for (final parameter in component.parameters)
+            for (final parameter in scriptParameters)
               _Field(
                 name: parameter.name,
                 value: '${parameter.defaultValue}',
@@ -62,7 +68,7 @@ class ComponentView extends StatelessWidget {
         ),
         ComponentSectionCard(
           title: 'Transform',
-          trailing: '${component.parameters.length}',
+          trailing: '${transformParameters.length}',
           children: const [
             Row(children: [
               Expanded(

@@ -150,6 +150,7 @@ class _SceneViewState extends State<SceneView> {
         behavior: HitTestBehavior.opaque,
         onTap: () {
           design.onComponentSelected(null);
+          FocusScope.of(context).unfocus();
         },
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -165,36 +166,129 @@ class _SceneViewState extends State<SceneView> {
             ),
           ]),
           for (final component in design.currentScene.components)
-            _buildComponent(component),
+            SceneComponentField(component: component),
         ]),
       ),
     );
   }
+}
 
-  Widget _buildComponent(FlameComponentObject component) {
-    return Builder(builder: (context) {
-      final design = Design.of(context);
-      return InkWell(
-        onTap: () {
-          design.onComponentSelected(component);
-        },
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              const Icon(Icons.check_box_outline_blank, size: 20.0),
-              const SizedBox(width: 6.0),
-              Text(component.declarationName ?? component.name),
-            ]),
-            for (final childComponent in component.components)
-              Padding(
-                padding: const EdgeInsetsDirectional.only(start: 24.0),
-                child: _buildComponent(childComponent),
+class SceneComponentField extends StatefulWidget {
+  final FlameComponentObject component;
+
+  const SceneComponentField({super.key, required this.component});
+
+  @override
+  State<SceneComponentField> createState() => _SceneComponentFieldState();
+}
+
+class _SceneComponentFieldState extends State<SceneComponentField> {
+  bool _expanded = true;
+
+  IconData? iconFor(String componentType) {
+    return switch (componentType) {
+      'CameraComponent' => Icons.videocam_rounded,
+      'CircleComponent' => Icons.circle_rounded,
+      'ClipComponent' => Icons.crop_rounded,
+      'CustomPainterComponent' => Icons.format_paint_rounded,
+      'FpsComponent' => Icons.sixty_fps_rounded,
+      'FpsTextComponent' => Icons.sixty_fps_select_rounded,
+      'IsometricTileMapComponent' => Icons.grid_view_rounded,
+      'KeyboardListenerComponent' => Icons.keyboard_rounded,
+      'ParallaxComponent' => Icons.lens_blur_rounded,
+      'ParticleSystemComponent' => Icons.local_fire_department_rounded,
+      'PolygonComponent' => Icons.hexagon_rounded,
+      'PositionComponent' => Icons.line_axis_rounded,
+      'RectangleComponent' => Icons.rectangle_rounded,
+      'ShapeComponent' => Icons.pentagon_rounded,
+      'SpawnComponent' => Icons.animation_rounded,
+      // * Sprites components
+      'SpriteAnimationComponent' => Icons.grain_rounded,
+      'SpriteAnimationGroupComponent' => Icons.web_stories_rounded,
+      'SpriteComponent' => Icons.grain_rounded,
+      'SpriteGroupComponent' => Icons.web_stories_rounded,
+      // * Text components
+      'TextBoxComponent' => Icons.abc_rounded,
+      'TextElementComponent' => Icons.abc_rounded,
+      //
+      'TimerComponent' => Icons.hourglass_full_rounded,
+      'World' => Icons.public_rounded,
+      _ => null,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final design = Design.of(context);
+
+    final isSelected = design.currentSelectedComponent == widget.component;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () {
+            design.onComponentSelected(widget.component);
+          },
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(
+                style: isSelected ? BorderStyle.solid : BorderStyle.none,
+                color: theme.colorScheme.primary,
               ),
-          ],
+            ),
+            child: Row(children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Padding(
+                  padding:
+                      const EdgeInsetsDirectional.symmetric(horizontal: 4.0),
+                  child: Icon(
+                    widget.component.components.isEmpty
+                        ? null
+                        : _expanded
+                            ? Icons.keyboard_arrow_down
+                            : Icons.keyboard_arrow_right,
+                    size: 12.0,
+                  ),
+                ),
+              ),
+              Icon(
+                iconFor(widget.component.name) ??
+                    iconFor(widget.component.type) ??
+                    Icons.square,
+                size: 16.0,
+              ),
+              const SizedBox(width: 6.0),
+              Text(widget.component.declarationName ?? widget.component.name),
+            ]),
+          ),
         ),
-      );
-    });
+        if (_expanded)
+          for (final childComponent in widget.component.components)
+            IntrinsicHeight(
+              child: Row(children: [
+                Container(
+                  width: 24.0,
+                  padding: const EdgeInsetsDirectional.only(
+                    start: 10.0,
+                  ),
+                  child: const Align(
+                    alignment: Alignment.centerLeft,
+                    child: VerticalDivider(
+                      width: 1.0,
+                      endIndent: 0.0,
+                      thickness: 1.0,
+                    ),
+                  ),
+                ),
+                Expanded(child: SceneComponentField(component: childComponent)),
+              ]),
+            ),
+      ],
+    );
   }
 }
