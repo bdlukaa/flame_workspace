@@ -43,8 +43,24 @@ class FlameComponentField {
   final String type;
   final String? defaultValue;
 
-  FlameComponentField(this.name, this.type, [this.defaultValue]);
+  /// The super component of this field.
+  ///
+  /// This is used to determine the type of the field, when the type is not
+  /// explicitly declared.
+  final String? superComponent;
+
+  FlameComponentField(
+    this.name,
+    this.type, [
+    this.defaultValue,
+    this.superComponent,
+  ]);
 
   @override
-  String toString() => "FlameComponentField('$name', '$type', '$defaultValue')";
+  String toString() => "FlameComponentField("
+      "'$name', "
+      "'$type', "
+      "'$defaultValue'"
+      "${superComponent == null ? '' : ", '$superComponent'"}"
+      ")";
 }

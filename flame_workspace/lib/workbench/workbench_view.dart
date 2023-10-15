@@ -1,7 +1,6 @@
 import 'package:flame_workspace/project/runner.dart';
 import 'package:flutter/material.dart';
 
-import '../project/parser.dart';
 import '../project/project.dart';
 import 'assets_view.dart';
 import 'component_view.dart';

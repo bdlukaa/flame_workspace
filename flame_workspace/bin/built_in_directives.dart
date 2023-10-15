@@ -3,6 +3,8 @@
 ///
 /// The built in components are the base for every component in the Flame ecosystem
 /// and need to be parsed correctly.
+// ignore_for_file: avoid_print
+
 library built_in_directives;
 
 import 'dart:convert';
@@ -67,17 +69,21 @@ void main() async {
         }()
     ]);
 
-    final components = ProjectIndexer.components(indexed);
+    // First, get all the components
+    var components = ProjectIndexer.components(indexed).toList();
+    components.sort((a, b) => a.name.compareTo(b.name));
+    // Then, declare the components
     final declarations = components.map<String>((component) {
       String forComponent(FlameComponentObject component) {
+        // data: ${json.encode(component.data..remove('description'))},
         return """FlameComponentObject(
   name: '${component.name}',
   type: '${component.type}',
   parameters: ${component.parameters},
-  data: ${json.encode(component.data..remove('description'))},
-)..components = [
-  ${component.components.map(forComponent).join(',\n')}
-]""";
+  data: { /* This data is omitted and can be found at the flame-engine/flame repository */},
+)${component.components.isEmpty ? '' : '''..components = [
+${component.components.map(forComponent).join(',\n')}
+]'''}""";
       }
 
       return forComponent(component);

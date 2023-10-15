@@ -102,23 +102,44 @@ class ProjectIndexer {
               final parameters =
                   (member['parameters']['all'] as List).cast<Map>();
               for (final parameter in parameters) {
-                final name = parameter['name'] as String;
+                var name = parameter['name'] as String;
                 var type = parameter['type'] as String?;
                 final defaultValue = parameter['default'] as String?;
+                FlameComponentObject? superComponent;
 
                 if (type == null) {
-                  assert(
-                    name.startsWith('this.'),
-                    '.super parameters are not allowed',
-                  );
-                  // If type is null, we search through the fields to find the type.
-                  final field = members.firstWhereOrNull(
-                    (m) =>
-                        m['kind'] == 'field' &&
-                        m['name'] == name.replaceAll('this.', ''),
-                  );
-                  final fieldType = field?['type'] as String?;
-                  type = fieldType;
+                  if (name.startsWith('super.')) {
+                    final superclass = d['extends'] as String?;
+                    assert(
+                      superclass != null,
+                      'Cannot use super. without a superclass',
+                    );
+                    superComponent = [
+                      ...components,
+                      ...builtInComponents,
+                    ].firstWhereOrNull((c) => c.name == superclass);
+
+                    type = superComponent?.parameters
+                        .firstWhereOrNull(
+                          (p) => p.name == name.replaceAll('super.', ''),
+                        )
+                        ?.type;
+
+                    name = name.replaceAll('super.', '');
+                  } else {
+                    assert(
+                      name.startsWith('this.'),
+                      'Only members parameters are allowed',
+                    );
+                    // If type is null, we search through the fields to find the type.
+                    final field = members.firstWhereOrNull(
+                      (m) =>
+                          m['kind'] == 'field' &&
+                          m['name'] == name.replaceAll('this.', ''),
+                    );
+                    final fieldType = field?['type'] as String?;
+                    type = fieldType;
+                  }
                 }
                 type ??= 'dynamic';
 
@@ -126,6 +147,7 @@ class ProjectIndexer {
                   name.replaceAll('this.', ''),
                   type,
                   defaultValue,
+                  superComponent?.name,
                 ));
               }
             }
