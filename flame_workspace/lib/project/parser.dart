@@ -11,6 +11,8 @@ import 'built_in_components.dart';
 import 'game_objects.dart';
 
 class ProjectIndexer {
+  const ProjectIndexer._();
+
   static Future<List<Map<String, dynamic>>> indexProject(
     Directory libDir,
   ) async {

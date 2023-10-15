@@ -4,6 +4,7 @@ export 'package:flame_workspace_core/creation/scene.dart'
     show FlameComponentExtension;
 
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 
@@ -30,7 +31,10 @@ class FlameWorkspaceCore {
     }
   }
 
-  final FlameScene currentScene = FlameScene(sceneName: 'Scene 1');
+  final FlameScene currentScene = FlameScene(
+    sceneName: 'Scene 1',
+    backgroundColor: const Color(0xFF000000),
+  );
 
   void send() {
     if (kDebugMode) {

@@ -2,6 +2,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
+import '../project/parser_values.dart';
 import 'workbench_view.dart';
 
 const kFieldHeight = 28.0;
@@ -78,12 +79,16 @@ class ComponentView extends StatelessWidget {
       );
     }
 
-    final transformParameters = component.superParameters('PositionComponent');
+    final transformParameters = component.name == 'PositionComponent'
+        ? component.parameters
+        : component.superParameters('PositionComponent');
 
     // Script parameters are defined as parameters that are not inherited from
     // a superclass.
     final scriptParameters = component.parameters.where(
-      (p) => p.superComponents == null || p.superComponents!.isEmpty,
+      (p) =>
+          (p.superComponents == null || p.superComponents!.isEmpty) &&
+          !transformParameters.contains(p),
     );
 
     return Padding(
@@ -94,13 +99,18 @@ class ComponentView extends StatelessWidget {
           title: 'General',
           children: [
             _Field(
+              name: 'Name',
+              value: '${component.declarationName}',
+              type: '$String',
+            ),
+            _Field(
               name: 'Type',
               value: component.name,
               type: '$String',
             ),
             _Field(
-              name: 'Name',
-              value: '${component.declarationName}',
+              name: 'Subtype',
+              value: component.type,
               type: '$String',
             ),
           ],
@@ -192,7 +202,6 @@ class ComponentSectionCard extends StatelessWidget {
                 style: theme.textTheme.labelSmall,
               ),
           ]),
-          const SizedBox(height: 8.0),
           ...children,
         ]),
       ),
@@ -235,6 +244,8 @@ class _Field extends StatefulWidget {
 class _FieldState extends State<_Field> {
   late final controller = TextEditingController(text: widget.value);
   final focusNode = FocusNode();
+
+  bool _isHovering = false;
 
   @override
   void initState() {
@@ -290,75 +301,97 @@ class _FieldState extends State<_Field> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return LayoutBuilder(builder: (context, constraints) {
-      final label = Text(
-        widget.name,
-        style: theme.textTheme.labelSmall,
-        textAlign: TextAlign.center,
-      );
-      return SizedBox(
-        height: kFieldHeight,
-        child: Row(children: [
-          SizedBox(
-            width: widget.labelWidth ?? (constraints.maxWidth / 2),
-            child: Row(children: [
-              SizedBox(
-                width: 24.0,
-                child: Icon(icon?.$1, size: icon?.$2),
-              ),
-              const SizedBox(width: 6.0),
-              if (widget.description != null)
-                Tooltip(
-                  verticalOffset: 16.0,
-                  message: widget.description,
-                  child: label,
-                )
-              else
-                label,
-            ]),
-          ),
-          const VerticalDivider(indent: 0.0, endIndent: 0.0),
-          const SizedBox(width: 4.0),
-          Expanded(
-            child: switch (widget.type) {
-              'String' || 'int' || 'double' => buildEditable(),
-              'Color' => buildColorPicker(),
-              'bool' => buildFlagSwitch(),
-              _ => Container(),
-            },
-          ),
-        ]),
-      );
-    });
+    return MouseRegion(
+      onEnter: (d) => setState(() => _isHovering = true),
+      onExit: (d) => setState(() => _isHovering = false),
+      onHover: (d) => setState(() => _isHovering = true),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final label = Text(
+          widget.name,
+          style: theme.textTheme.labelSmall,
+          textAlign: TextAlign.center,
+        );
+        return SizedBox(
+          height: kFieldHeight,
+          child: Row(children: [
+            SizedBox(
+              width: widget.labelWidth ?? (constraints.maxWidth / 2),
+              child: Row(children: [
+                SizedBox(
+                  width: 24.0,
+                  child: Icon(icon?.$1, size: icon?.$2),
+                ),
+                const SizedBox(width: 6.0),
+                if (widget.description != null)
+                  Tooltip(
+                    verticalOffset: 16.0,
+                    message: widget.description,
+                    child: label,
+                  )
+                else
+                  label,
+              ]),
+            ),
+            const VerticalDivider(indent: 0.0, endIndent: 0.0),
+            const SizedBox(width: 4.0),
+            Expanded(
+              child: switch (widget.type) {
+                'String' || 'int' || 'double' => buildEditable(),
+                'Color' => buildColorPicker(),
+                'bool' => buildFlagSwitch(),
+                _ => Container(),
+              },
+            ),
+          ]),
+        );
+      }),
+    );
   }
 
   Widget buildEditable() {
     return Builder(builder: (context) {
       final theme = Theme.of(context);
-      return EditableText(
-        controller: controller,
-        focusNode: focusNode,
-        style: theme.textTheme.bodySmall!,
-        cursorColor: theme.indicatorColor,
-        cursorHeight: 16.0,
-        readOnly: !widget.editable,
-        backgroundCursorColor: Colors.transparent,
-        selectionColor: theme.colorScheme.primary.withOpacity(0.3),
-        maxLines: 1,
-        keyboardType: isNumbericField ? TextInputType.number : null,
-        textInputAction: TextInputAction.done,
-        onChanged: (text) {
-          final abcdRegex = RegExp(r'^[A-B\.]+$', caseSensitive: false);
-          if (text.contains(abcdRegex)) {
-            controller.text = text.replaceAll(abcdRegex, '');
-          }
-        },
-      );
+      return Row(children: [
+        Expanded(
+          child: EditableText(
+            controller: controller,
+            focusNode: focusNode,
+            style: theme.textTheme.bodySmall!,
+            cursorColor: theme.indicatorColor,
+            cursorHeight: 16.0,
+            readOnly: !widget.editable,
+            backgroundCursorColor: Colors.transparent,
+            selectionColor: theme.colorScheme.primary.withOpacity(0.3),
+            maxLines: 1,
+            keyboardType: isNumbericField ? TextInputType.number : null,
+            textInputAction: TextInputAction.done,
+            onChanged: (text) {
+              final abcdRegex = RegExp(r'^[A-B\.]+$', caseSensitive: false);
+              if (text.contains(abcdRegex)) {
+                controller.text = text.replaceAll(abcdRegex, '');
+              }
+            },
+          ),
+        ),
+        if (isNumbericField && _isHovering)
+          Column(mainAxisSize: MainAxisSize.min, children: [
+            InkWell(
+              onTap: () {},
+              child: const Icon(Icons.keyboard_arrow_up, size: 12.0),
+            ),
+            InkWell(
+              onTap: () {},
+              child: const Icon(Icons.keyboard_arrow_down, size: 12.0),
+            ),
+          ]),
+      ]);
     });
   }
 
   Widget buildColorPicker() {
     return Builder(builder: (context) {
+      final color = ValuesParser.parseColor(widget.value);
+
       return GestureDetector(
         onTap: widget.editable
             ? () {
@@ -369,12 +402,12 @@ class _FieldState extends State<_Field> {
                       title: const Text('Pick a color'),
                       children: [
                         ColorPicker(
-                          pickerColor: Colors.red,
+                          pickerColor: color,
                           paletteType: PaletteType.hsv,
                           labelTypes: const [ColorLabelType.rgb],
                           portraitOnly: true,
                           onColorChanged: (color) {
-                            print(color);
+                            debugPrint(color.toString());
                           },
                         ),
                       ],
@@ -385,7 +418,7 @@ class _FieldState extends State<_Field> {
             : null,
         child: Container(
           margin: const EdgeInsetsDirectional.symmetric(vertical: 5.0),
-          color: Colors.red,
+          color: color,
         ),
       );
     });
