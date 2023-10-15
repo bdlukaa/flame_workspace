@@ -34,7 +34,7 @@ class FlameWorkspaceCore {
 
   void send() {
     if (kDebugMode) {
-      print(currentScene.toMap());
+      // print(currentScene.toMap());
     }
   }
 }

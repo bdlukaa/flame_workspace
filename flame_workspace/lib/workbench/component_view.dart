@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
@@ -19,11 +20,60 @@ class ComponentView extends StatelessWidget {
     final component = design.currentSelectedComponent;
 
     if (component == null) {
+      final scene = design.currentScene;
       return Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Component', style: theme.textTheme.labelLarge),
-          const SizedBox(height: 8.0),
+          Text('Scene', style: theme.textTheme.labelLarge),
+          ComponentSectionCard(
+            title: 'General',
+            children: [
+              _Field(
+                name: 'Name',
+                value: scene.name,
+                type: '$String',
+                editable: false,
+              ),
+              _Field(
+                name: 'Color',
+                description: 'Background color',
+                value: 'Color(0xFF000000)',
+                type: '$Color',
+              ),
+            ],
+          ),
+          ComponentSectionCard(
+            title: 'Components',
+            trailing: '${scene.components.length}',
+            children: [
+              for (final component in scene.components)
+                SizedBox(
+                  height: kFieldHeight,
+                  child: Row(children: [
+                    Expanded(
+                      flex: 2,
+                      child: AutoSizeText(
+                        component.name,
+                        maxLines: 1,
+                        minFontSize: 8.0,
+                        style: theme.textTheme.labelMedium!,
+                      ),
+                    ),
+                    const VerticalDivider(),
+                    Expanded(
+                      child: Text(
+                        component.declarationName!,
+                        style: theme.textTheme.bodySmall!,
+                      ),
+                    ),
+                  ]),
+                ),
+              // Text(
+              //   '${component.name} |${component.declarationName ?? ''}',
+              //   style: theme.textTheme.labelMedium,
+              // ),
+            ],
+          ),
         ]),
       );
     }
@@ -166,6 +216,8 @@ class _Field extends StatefulWidget {
   /// If not provided, it will be half of the available space.
   final double? labelWidth;
 
+  final bool editable;
+
   const _Field({
     required this.name,
     required this.value,
@@ -173,6 +225,7 @@ class _Field extends StatefulWidget {
     this.description,
     this.onChanged,
     this.labelWidth,
+    this.editable = true,
   });
 
   @override
@@ -288,6 +341,7 @@ class _FieldState extends State<_Field> {
         style: theme.textTheme.bodySmall!,
         cursorColor: theme.indicatorColor,
         cursorHeight: 16.0,
+        readOnly: !widget.editable,
         backgroundCursorColor: Colors.transparent,
         selectionColor: theme.colorScheme.primary.withOpacity(0.3),
         maxLines: 1,
@@ -306,27 +360,29 @@ class _FieldState extends State<_Field> {
   Widget buildColorPicker() {
     return Builder(builder: (context) {
       return GestureDetector(
-        onTap: () {
-          showDialog(
-            context: context,
-            builder: (context) {
-              return SimpleDialog(
-                title: const Text('Pick a color'),
-                children: [
-                  ColorPicker(
-                    pickerColor: Colors.red,
-                    paletteType: PaletteType.hsv,
-                    labelTypes: const [ColorLabelType.rgb],
-                    portraitOnly: true,
-                    onColorChanged: (color) {
-                      print(color);
-                    },
-                  ),
-                ],
-              );
-            },
-          );
-        },
+        onTap: widget.editable
+            ? () {
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return SimpleDialog(
+                      title: const Text('Pick a color'),
+                      children: [
+                        ColorPicker(
+                          pickerColor: Colors.red,
+                          paletteType: PaletteType.hsv,
+                          labelTypes: const [ColorLabelType.rgb],
+                          portraitOnly: true,
+                          onColorChanged: (color) {
+                            print(color);
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                );
+              }
+            : null,
         child: Container(
           margin: const EdgeInsetsDirectional.symmetric(vertical: 5.0),
           color: Colors.red,
@@ -343,7 +399,7 @@ class _FieldState extends State<_Field> {
           size: const Size(16.0, 16.0),
           child: Checkbox.adaptive(
             value: bool.tryParse(widget.value, caseSensitive: false),
-            onChanged: widget.onChanged == null
+            onChanged: widget.onChanged == null || !widget.editable
                 ? null
                 : (v) {
                     if (v != null) {

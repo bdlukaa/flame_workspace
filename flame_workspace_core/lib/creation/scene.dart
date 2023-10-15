@@ -11,12 +11,12 @@ class FlameScene extends World with FlameComponent {
 
   FlameScene({required this.sceneName, super.children}) : super();
 
-  Map<String, dynamic> toMap() {
-    return {
-      'sceneName': sceneName,
-      'components': children.map((x) => x.serialized).toList(),
-    };
-  }
+  // Map<String, dynamic> toMap() {
+  //   return {
+  //     'sceneName': sceneName,
+  //     'components': children.map((x) => x.serialized).toList(),
+  //   };
+  // }
 }
 
 extension FlameComponentExtension on Component {
