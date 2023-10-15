@@ -29,6 +29,7 @@ class _CreateProjectViewState extends State<CreateProjectView> {
     // TODO: Get the default location from the user's preferences
     text: 'C:/Users/JohnDoe/Documents/FlameProjects/',
   );
+  final _sceneController = TextEditingController(text: 'Scene1');
 
   bool _includeAudio = true;
   bool _includePhysics = true;
@@ -127,14 +128,38 @@ class _CreateProjectViewState extends State<CreateProjectView> {
                   TextFormField(
                     enabled: !_loading,
                     controller: _locationController,
+                    textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
-                      labelText: 'Location',
+                      labelText: 'Initial scene',
                       border: InputBorder.none,
                       suffix: TextButton(
                         onPressed: _browse,
                         child: const Text('Browse'),
                       ),
                     ),
+                  ),
+                  TextFormField(
+                    enabled: !_loading,
+                    controller: _sceneController,
+                    decoration: const InputDecoration(
+                      labelText: 'Scene name',
+                      border: InputBorder.none,
+                    ),
+                    onChanged: (text) {
+                      if (text.trim().isEmpty) {
+                        _sceneController.text = '';
+                      } else if (text.trimLeft().contains(' ')) {
+                        _sceneController.text = text.replaceAll(' ', '_');
+                      }
+                    },
+                    validator: (text) {
+                      if (text == null || text.trim().isEmpty) {
+                        return 'Please enter a Scene name';
+                      } else if (text.trim().contains(' ')) {
+                        return 'Scene names must not contains spaces';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -209,6 +234,7 @@ class _CreateProjectViewState extends State<CreateProjectView> {
         name: _nameController.text,
         organization: _organizationController.text,
         location: location,
+        initialScene: _sceneController.text,
       );
 
       try {

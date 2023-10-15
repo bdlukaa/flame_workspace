@@ -80,11 +80,14 @@ class FlameProject {
   ///     dependencies.
   final List<DartDependency> dependencies;
 
+  final String initialScene;
+
   /// Creates a new Flame project.
   const FlameProject({
     required this.name,
     required this.organization,
     required this.location,
+    required this.initialScene,
     this.dependencies = const [],
   });
 
@@ -179,11 +182,13 @@ FlameProject importProject(Directory location) {
   }
 
   final organization = doc['organization'] ?? name;
+  final initialScene = doc['initial_scene'] ?? 'MyScene';
 
   return FlameProject(
     name: name,
     organization: organization,
     location: location,
+    initialScene: initialScene,
   );
 }
 

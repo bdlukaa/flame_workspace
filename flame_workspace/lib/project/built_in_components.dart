@@ -12,12 +12,6 @@ final builtInComponents = [
       FlameComponentField('viewport', 'Viewport?', 'null'),
       FlameComponentField('viewfinder', 'Viewfinder?', 'null'),
       FlameComponentField('backdrop', 'Component?', 'null'),
-      FlameComponentField('hudComponents', 'List<Component>?', 'null'),
-      FlameComponentField('width', 'double', 'null'),
-      FlameComponentField('height', 'double', 'null'),
-      FlameComponentField('viewfinder', 'Viewfinder?', 'null'),
-      FlameComponentField('world', 'World?', 'null'),
-      FlameComponentField('backdrop', 'Component?', 'null'),
       FlameComponentField('hudComponents', 'List<Component>?', 'null')
     ],
     data: {
@@ -29,24 +23,21 @@ final builtInComponents = [
     type: 'ShapeComponent',
     parameters: [
       FlameComponentField('radius', 'double?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'ShapeComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'ShapeComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'ShapeComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'ShapeComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'ShapeComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'ShapeComponent'),
-      FlameComponentField('paint', 'Paint?', 'null', 'ShapeComponent'),
+      FlameComponentField('position', 'Vector2?', 'null',
+          ['ShapeComponent', 'PositionComponent']),
       FlameComponentField(
-          'paintLayers', 'List<Paint>?', 'null', 'ShapeComponent'),
-      FlameComponentField('relation', 'double', 'null'),
-      FlameComponentField('parentSize', 'Vector2', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'ShapeComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'ShapeComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'ShapeComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'ShapeComponent'),
-      FlameComponentField('paint', 'Paint?', 'null', 'ShapeComponent'),
+          'scale', 'Vector2?', 'null', ['ShapeComponent', 'PositionComponent']),
       FlameComponentField(
-          'paintLayers', 'List<Paint>?', 'null', 'ShapeComponent')
+          'angle', 'double?', 'null', ['ShapeComponent', 'PositionComponent']),
+      FlameComponentField(
+          'anchor', 'Anchor?', 'null', ['ShapeComponent', 'PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null',
+          ['ShapeComponent', 'PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null',
+          ['ShapeComponent', 'PositionComponent']),
+      FlameComponentField('paint', 'Paint?', 'null', ['ShapeComponent']),
+      FlameComponentField(
+          'paintLayers', 'List<Paint>?', 'null', ['ShapeComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -57,39 +48,15 @@ final builtInComponents = [
     type: 'PositionComponent',
     parameters: [
       FlameComponentField('builder', 'ShapeBuilder', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('size', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PositionComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PositionComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('position', 'Vector2?', 'null'),
-      FlameComponentField('size', 'Vector2?', 'null'),
-      FlameComponentField('scale', 'Vector2?', 'null'),
-      FlameComponentField('angle', 'double?', 'null'),
-      FlameComponentField('anchor', 'Anchor?', 'null'),
-      FlameComponentField('children', 'Iterable<Component>?', 'null'),
-      FlameComponentField('priority', 'int?', 'null'),
-      FlameComponentField('key', 'ComponentKey?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null'),
-      FlameComponentField('size', 'Vector2?', 'null'),
-      FlameComponentField('scale', 'Vector2?', 'null'),
-      FlameComponentField('angle', 'double?', 'null'),
-      FlameComponentField('anchor', 'Anchor?', 'null'),
-      FlameComponentField('children', 'Iterable<Component>?', 'null'),
-      FlameComponentField('priority', 'int?', 'null'),
-      FlameComponentField('key', 'ComponentKey?', 'null'),
-      FlameComponentField('points', 'List<Vector2>', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null'),
-      FlameComponentField('size', 'Vector2?', 'null'),
-      FlameComponentField('scale', 'Vector2?', 'null'),
-      FlameComponentField('angle', 'double?', 'null'),
-      FlameComponentField('anchor', 'Anchor?', 'null'),
-      FlameComponentField('children', 'Iterable<Component>?', 'null'),
-      FlameComponentField('priority', 'int?', 'null'),
-      FlameComponentField('key', 'ComponentKey?', 'null')
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('key', 'dynamic', 'null', ['PositionComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -100,13 +67,14 @@ final builtInComponents = [
     type: 'PositionComponent',
     parameters: [
       FlameComponentField('painter', 'CustomPainter?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('size', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PositionComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PositionComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PositionComponent')
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -129,18 +97,34 @@ final builtInComponents = [
     parameters: [
       FlameComponentField('windowSize', 'int', '60'),
       FlameComponentField('decimalPlaces', 'int', '0'),
-      FlameComponentField('textRenderer', 'T?', 'null', 'TextComponent'),
-      FlameComponentField('position', 'Vector2?', 'null', 'TextComponent'),
-      FlameComponentField('size', 'Vector2?', 'null', 'TextComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'TextComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'TextComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'TextComponent'),
+      FlameComponentField('textRenderer', 'T?', 'null', ['TextComponent']),
+      FlameComponentField('position', 'Vector2?', 'null',
+          ['TextComponent', 'PositionComponent']),
+      FlameComponentField(
+          'size', 'Vector2?', 'null', ['TextComponent', 'PositionComponent']),
+      FlameComponentField(
+          'scale', 'Vector2?', 'null', ['TextComponent', 'PositionComponent']),
+      FlameComponentField(
+          'angle', 'double?', 'null', ['TextComponent', 'PositionComponent']),
+      FlameComponentField(
+          'anchor', 'Anchor?', 'null', ['TextComponent', 'PositionComponent']),
       FlameComponentField('priority', 'int?', 'null')
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
     },
   )..components = [
+      FlameComponentObject(
+        name: 'FpsComponent',
+        type: 'Component',
+        parameters: [
+          FlameComponentField('windowSize', 'int', '60'),
+          FlameComponentField('key', 'dynamic', 'null')
+        ],
+        data: {
+          /* This data is omitted and can be found at the flame-engine/flame repository */
+        },
+      ),
       FlameComponentObject(
         name: 'FpsComponent',
         type: 'Component',
@@ -161,14 +145,15 @@ final builtInComponents = [
       FlameComponentField('matrix', 'List<List<int>>', 'null'),
       FlameComponentField('destTileSize', 'Vector2?', 'null'),
       FlameComponentField('tileHeight', 'double?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('size', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PositionComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PositionComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PositionComponent')
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('key', 'dynamic', 'null', ['PositionComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -192,14 +177,15 @@ final builtInComponents = [
     type: 'PositionComponent',
     parameters: [
       FlameComponentField('nineTileBox', 'NineTileBox?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('size', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PositionComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PositionComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PositionComponent')
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('key', 'dynamic', 'null', ['PositionComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -210,14 +196,15 @@ final builtInComponents = [
     type: 'PositionComponent',
     parameters: [
       FlameComponentField('parallax', 'Parallax?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'PositionComponent'),
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
       FlameComponentField('size', 'Vector2?', 'null'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PositionComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PositionComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PositionComponent')
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('key', 'dynamic', 'null', ['PositionComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -228,13 +215,14 @@ final builtInComponents = [
     type: 'PositionComponent',
     parameters: [
       FlameComponentField('particle', 'Particle?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('size', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PositionComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PositionComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PositionComponent')
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('key', 'dynamic', 'null', ['PositionComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -245,29 +233,26 @@ final builtInComponents = [
     type: 'ShapeComponent',
     parameters: [
       FlameComponentField('_vertices', 'dynamic', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'ShapeComponent'),
-      FlameComponentField('size', 'Vector2?', 'null', 'ShapeComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'ShapeComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'ShapeComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'ShapeComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'ShapeComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'ShapeComponent'),
-      FlameComponentField('paint', 'Paint?', 'null', 'ShapeComponent'),
+      FlameComponentField('position', 'Vector2?', 'null',
+          ['ShapeComponent', 'PositionComponent']),
       FlameComponentField(
-          'paintLayers', 'List<Paint>?', 'null', 'ShapeComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'ShapeComponent'),
-      FlameComponentField('shrinkToBounds', 'bool?', 'null'),
-      FlameComponentField('relation', 'List<Vector2>', 'null'),
-      FlameComponentField('parentSize', 'Vector2', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null'),
-      FlameComponentField('scale', 'Vector2?', 'null'),
-      FlameComponentField('angle', 'double?', 'null'),
-      FlameComponentField('anchor', 'Anchor?', 'null'),
-      FlameComponentField('priority', 'int?', 'null'),
-      FlameComponentField('paint', 'Paint?', 'null'),
-      FlameComponentField('paintLayers', 'List<Paint>?', 'null'),
-      FlameComponentField('shrinkToBounds', 'bool?', 'null'),
-      FlameComponentField('key', 'ComponentKey?', 'null')
+          'size', 'Vector2?', 'null', ['ShapeComponent', 'PositionComponent']),
+      FlameComponentField(
+          'scale', 'Vector2?', 'null', ['ShapeComponent', 'PositionComponent']),
+      FlameComponentField(
+          'angle', 'double?', 'null', ['ShapeComponent', 'PositionComponent']),
+      FlameComponentField(
+          'anchor', 'Anchor?', 'null', ['ShapeComponent', 'PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null',
+          ['ShapeComponent', 'PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null',
+          ['ShapeComponent', 'PositionComponent']),
+      FlameComponentField('paint', 'Paint?', 'null', ['ShapeComponent']),
+      FlameComponentField(
+          'paintLayers', 'List<Paint>?', 'null', ['ShapeComponent']),
+      FlameComponentField(
+          'key', 'dynamic', 'null', ['ShapeComponent', 'PositionComponent']),
+      FlameComponentField('shrinkToBounds', 'bool?', 'null')
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -295,49 +280,26 @@ final builtInComponents = [
     name: 'RectangleComponent',
     type: 'PolygonComponent',
     parameters: [
-      FlameComponentField('position', 'Vector2?', 'null', 'PolygonComponent'),
-      FlameComponentField('size', 'Vector2?', 'null', 'PolygonComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PolygonComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PolygonComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PolygonComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'PolygonComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PolygonComponent'),
-      FlameComponentField('paint', 'Paint?', 'null', 'PolygonComponent'),
+      FlameComponentField('position', 'Vector2?', 'null',
+          ['PolygonComponent', 'ShapeComponent', 'PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null',
+          ['PolygonComponent', 'ShapeComponent', 'PositionComponent']),
+      FlameComponentField('scale', 'Vector2?', 'null',
+          ['PolygonComponent', 'ShapeComponent', 'PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null',
+          ['PolygonComponent', 'ShapeComponent', 'PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null',
+          ['PolygonComponent', 'ShapeComponent', 'PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null',
+          ['PolygonComponent', 'ShapeComponent', 'PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null',
+          ['PolygonComponent', 'ShapeComponent', 'PositionComponent']),
       FlameComponentField(
-          'paintLayers', 'List<Paint>?', 'null', 'PolygonComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PolygonComponent'),
-      FlameComponentField('size', 'double', '0'),
-      FlameComponentField('position', 'Vector2?', 'null', 'PolygonComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PolygonComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PolygonComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PolygonComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PolygonComponent'),
-      FlameComponentField('paint', 'Paint?', 'null', 'PolygonComponent'),
-      FlameComponentField(
-          'paintLayers', 'List<Paint>?', 'null', 'PolygonComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'PolygonComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PolygonComponent'),
-      FlameComponentField('relation', 'Vector2', 'null'),
-      FlameComponentField('parentSize', 'Vector2', 'null', 'PolygonComponent'),
-      FlameComponentField('position', 'Vector2?', 'null', 'PolygonComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PolygonComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PolygonComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PolygonComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PolygonComponent'),
-      FlameComponentField('paint', 'Paint?', 'null', 'PolygonComponent'),
-      FlameComponentField(
-          'paintLayers', 'List<Paint>?', 'null', 'PolygonComponent'),
-      FlameComponentField(
-          'shrinkToBounds', 'bool?', 'null', 'PolygonComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PolygonComponent'),
-      FlameComponentField('rect', 'Rect', 'null'),
-      FlameComponentField('scale', 'Vector2?', 'null'),
-      FlameComponentField('angle', 'double?', 'null'),
-      FlameComponentField('anchor', 'Anchor', 'Anchor.topLeft'),
-      FlameComponentField('priority', 'int?', 'null'),
-      FlameComponentField('paint', 'Paint?', 'null'),
-      FlameComponentField('paintLayers', 'List<Paint>?', 'null'),
-      FlameComponentField('key', 'ComponentKey?', 'null')
+          'paint', 'Paint?', 'null', ['PolygonComponent', 'ShapeComponent']),
+      FlameComponentField('paintLayers', 'List<Paint>?', 'null',
+          ['PolygonComponent', 'ShapeComponent']),
+      FlameComponentField('key', 'dynamic', 'null',
+          ['PolygonComponent', 'ShapeComponent', 'PositionComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -355,14 +317,15 @@ final builtInComponents = [
     name: 'ShapeComponent',
     type: 'PositionComponent',
     parameters: [
-      FlameComponentField('position', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('size', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PositionComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PositionComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PositionComponent'),
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('key', 'dynamic', 'null', ['PositionComponent']),
       FlameComponentField('paint', 'Paint?', 'null'),
       FlameComponentField('paintLayers', 'List<Paint>?', 'null')
     ],
@@ -377,14 +340,6 @@ final builtInComponents = [
       FlameComponentField(
           'factory', 'PositionComponent Function(int amount)', 'null'),
       FlameComponentField('period', 'double', 'null'),
-      FlameComponentField('area', 'Shape?', 'null'),
-      FlameComponentField('within', 'bool', 'true'),
-      FlameComponentField('random', 'Random?', 'null'),
-      FlameComponentField('key', 'dynamic', 'null'),
-      FlameComponentField(
-          'factory', 'PositionComponent Function(int amount)', 'null'),
-      FlameComponentField('minPeriod', 'double', 'null'),
-      FlameComponentField('maxPeriod', 'double', 'null'),
       FlameComponentField('area', 'Shape?', 'null'),
       FlameComponentField('within', 'bool', 'true'),
       FlameComponentField('random', 'Random?', 'null'),
@@ -403,28 +358,17 @@ final builtInComponents = [
       FlameComponentField('removeOnFinish', 'bool', 'false'),
       FlameComponentField('playing', 'bool', 'true'),
       FlameComponentField('paint', 'Paint?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('size', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PositionComponent'),
-      FlameComponentField('nativeAngle', 'double', 'null', 'PositionComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PositionComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('image', 'Image', 'null'),
-      FlameComponentField('data', 'SpriteAnimationData', 'null'),
-      FlameComponentField('autoResize', 'bool?', 'null'),
-      FlameComponentField('removeOnFinish', 'bool', 'false'),
-      FlameComponentField('playing', 'bool', 'true'),
-      FlameComponentField('paint', 'Paint?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null'),
-      FlameComponentField('size', 'Vector2?', 'null'),
-      FlameComponentField('scale', 'Vector2?', 'null'),
-      FlameComponentField('angle', 'double?', 'null'),
-      FlameComponentField('anchor', 'Anchor?', 'null'),
-      FlameComponentField('priority', 'int?', 'null'),
-      FlameComponentField('key', 'ComponentKey?', 'null')
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField(
+          'nativeAngle', 'double', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('key', 'dynamic', 'null', ['PositionComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -440,29 +384,17 @@ final builtInComponents = [
       FlameComponentField('playing', 'bool', 'true'),
       FlameComponentField('removeOnFinish', 'Map<T, bool>', 'const {}'),
       FlameComponentField('paint', 'Paint?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('size', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PositionComponent'),
-      FlameComponentField('nativeAngle', 'double', 'null', 'PositionComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PositionComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('image', 'Image', 'null'),
-      FlameComponentField('data', 'Map<T, SpriteAnimationData>', 'null'),
-      FlameComponentField('current', 'T?', 'null'),
-      FlameComponentField('autoResize', 'bool?', 'null'),
-      FlameComponentField('playing', 'bool', 'true'),
-      FlameComponentField('removeOnFinish', 'Map<T, bool>', 'const {}'),
-      FlameComponentField('paint', 'Paint?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null'),
-      FlameComponentField('size', 'Vector2?', 'null'),
-      FlameComponentField('scale', 'Vector2?', 'null'),
-      FlameComponentField('angle', 'double?', 'null'),
-      FlameComponentField('anchor', 'Anchor?', 'null'),
-      FlameComponentField('priority', 'int?', 'null'),
-      FlameComponentField('key', 'ComponentKey?', 'null')
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField(
+          'nativeAngle', 'double', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('key', 'dynamic', 'null', ['PositionComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -489,28 +421,17 @@ final builtInComponents = [
       FlameComponentField('sprite', 'Sprite?', 'null'),
       FlameComponentField('autoResize', 'bool?', 'null'),
       FlameComponentField('paint', 'Paint?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'PositionComponent'),
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
       FlameComponentField('size', 'Vector2?', 'null'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PositionComponent'),
-      FlameComponentField('nativeAngle', 'double', 'null', 'PositionComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PositionComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('image', 'Image', 'null'),
-      FlameComponentField('srcPosition', 'Vector2?', 'null'),
-      FlameComponentField('srcSize', 'Vector2?', 'null'),
-      FlameComponentField('autoResize', 'bool?', 'null'),
-      FlameComponentField('paint', 'Paint?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null'),
-      FlameComponentField('size', 'Vector2?', 'null'),
-      FlameComponentField('scale', 'Vector2?', 'null'),
-      FlameComponentField('angle', 'double?', 'null'),
-      FlameComponentField('anchor', 'Anchor?', 'null'),
-      FlameComponentField('children', 'Iterable<Component>?', 'null'),
-      FlameComponentField('priority', 'int?', 'null'),
-      FlameComponentField('key', 'ComponentKey?', 'null')
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField(
+          'nativeAngle', 'double', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('key', 'dynamic', 'null', ['PositionComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -524,15 +445,17 @@ final builtInComponents = [
       FlameComponentField('current', 'T?', 'null'),
       FlameComponentField('autoResize', 'bool?', 'null'),
       FlameComponentField('paint', 'Paint?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'PositionComponent'),
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
       FlameComponentField('size', 'Vector2?', 'null'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PositionComponent'),
-      FlameComponentField('nativeAngle', 'double', 'null', 'PositionComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PositionComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PositionComponent')
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField(
+          'nativeAngle', 'double', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('key', 'dynamic', 'null', ['PositionComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -542,19 +465,27 @@ final builtInComponents = [
     name: 'TextBoxComponent',
     type: 'TextComponent',
     parameters: [
-      FlameComponentField('text', 'String?', 'null', 'TextComponent'),
-      FlameComponentField('textRenderer', 'T?', 'null', 'TextComponent'),
+      FlameComponentField('text', 'String?', 'null', ['TextComponent']),
+      FlameComponentField('textRenderer', 'T?', 'null', ['TextComponent']),
       FlameComponentField('boxConfig', 'TextBoxConfig?', 'null'),
       FlameComponentField('align', 'Anchor?', 'null'),
       FlameComponentField('pixelRatio', 'double?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'TextComponent'),
-      FlameComponentField('size', 'Vector2?', 'null', 'TextComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'TextComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'TextComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'TextComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'TextComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'TextComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'TextComponent')
+      FlameComponentField('position', 'Vector2?', 'null',
+          ['TextComponent', 'PositionComponent']),
+      FlameComponentField(
+          'size', 'Vector2?', 'null', ['TextComponent', 'PositionComponent']),
+      FlameComponentField(
+          'scale', 'Vector2?', 'null', ['TextComponent', 'PositionComponent']),
+      FlameComponentField(
+          'angle', 'double?', 'null', ['TextComponent', 'PositionComponent']),
+      FlameComponentField(
+          'anchor', 'Anchor?', 'null', ['TextComponent', 'PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null',
+          ['TextComponent', 'PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null',
+          ['TextComponent', 'PositionComponent']),
+      FlameComponentField(
+          'key', 'dynamic', 'null', ['TextComponent', 'PositionComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -566,14 +497,15 @@ final builtInComponents = [
     parameters: [
       FlameComponentField('text', 'String?', 'null'),
       FlameComponentField('textRenderer', 'T?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('size', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PositionComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PositionComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PositionComponent')
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('key', 'dynamic', 'null', ['PositionComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -584,24 +516,15 @@ final builtInComponents = [
     type: 'PositionComponent',
     parameters: [
       FlameComponentField('element', 'TextElement', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('size', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('scale', 'Vector2?', 'null', 'PositionComponent'),
-      FlameComponentField('angle', 'double?', 'null', 'PositionComponent'),
-      FlameComponentField('anchor', 'Anchor?', 'null', 'PositionComponent'),
-      FlameComponentField('children', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('priority', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('key', 'dynamic', 'null', 'PositionComponent'),
-      FlameComponentField('document', 'DocumentRoot', 'null'),
-      FlameComponentField('style', 'DocumentStyle?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null'),
-      FlameComponentField('size', 'Vector2?', 'null'),
-      FlameComponentField('scale', 'Vector2?', 'null'),
-      FlameComponentField('angle', 'double?', 'null'),
-      FlameComponentField('anchor', 'Anchor?', 'null'),
-      FlameComponentField('children', 'List<Component>?', 'null'),
-      FlameComponentField('priority', 'int', '0'),
-      FlameComponentField('key', 'ComponentKey?', 'null')
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('key', 'dynamic', 'null', ['PositionComponent'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */

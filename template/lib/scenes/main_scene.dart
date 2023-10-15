@@ -8,12 +8,13 @@ class Scene1 extends FlameScene {
   });
 
   MyCircle circle = MyCircle(radius: 20);
+  RectangleComponent rectangle = RectangleComponent();
 
   @override
   Future<void> onLoad() async {
     // Load all the assets that are needed in this world
     // and add components etc.
-    add(circle);
+    // add(circle);
   }
 }
 

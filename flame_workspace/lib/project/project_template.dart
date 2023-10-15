@@ -17,7 +17,10 @@ extension ProjectFiles on FlameProject {
 # This file is generated automatically and should not be modified manually.
 
 project_name: $name
-organization: $organization''';
+organization: $organization
+
+# The name of the initial scene class.
+initial_scene: $initialScene''';
 
   String get pubspecFile => '''name: $name
 description: "An awesome game created with Flame and Flame Workspace."

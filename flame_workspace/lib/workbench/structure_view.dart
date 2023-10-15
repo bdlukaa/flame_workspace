@@ -6,7 +6,6 @@ import 'package:flutter_simple_treeview/flutter_simple_treeview.dart';
 import 'package:path/path.dart' as path;
 
 import '../project/game_objects.dart';
-import '../project/parser.dart';
 import 'workbench_view.dart';
 
 class ProjectStructureView extends StatefulWidget {
@@ -143,49 +142,59 @@ class _SceneViewState extends State<SceneView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final workbench = Workbench.of(context);
-    final scenes = ProjectIndexer.scenes(workbench.indexed);
+    final design = Design.of(context);
 
     return Padding(
       padding: const EdgeInsetsDirectional.all(12.0),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text('Scene 1', style: theme.textTheme.labelMedium),
-          Tooltip(
-            message: 'Add component',
-            child: InkWell(
-              child: const Icon(Icons.add),
-              onTap: () {
-                // Add component
-              },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          design.onComponentSelected(null);
+        },
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text(design.currentScene.name, style: theme.textTheme.labelMedium),
+            Tooltip(
+              message: 'Add component',
+              child: InkWell(
+                child: const Icon(Icons.add),
+                onTap: () {
+                  // Add component
+                },
+              ),
             ),
-          ),
+          ]),
+          for (final component in design.currentScene.components)
+            _buildComponent(component),
         ]),
-        for (final component in scenes.first.components)
-          _buildComponent(component),
-      ]),
+      ),
     );
   }
 
   Widget _buildComponent(FlameComponentObject component) {
-    return InkWell(
-      onTap: () {},
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            const Icon(Icons.check_box_outline_blank, size: 20.0),
-            const SizedBox(width: 6.0),
-            Text(component.declarationName ?? component.name),
-          ]),
-          for (final childComponent in component.components)
-            Padding(
-              padding: const EdgeInsetsDirectional.only(start: 24.0),
-              child: _buildComponent(childComponent),
-            ),
-        ],
-      ),
-    );
+    return Builder(builder: (context) {
+      final design = Design.of(context);
+      return InkWell(
+        onTap: () {
+          design.onComponentSelected(component);
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Icon(Icons.check_box_outline_blank, size: 20.0),
+              const SizedBox(width: 6.0),
+              Text(component.declarationName ?? component.name),
+            ]),
+            for (final childComponent in component.components)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(start: 24.0),
+                child: _buildComponent(childComponent),
+              ),
+          ],
+        ),
+      );
+    });
   }
 }

@@ -79,6 +79,7 @@ class ProjectIndexer {
     Iterable<FlameComponentObject> components,
     Iterable<Map> fields,
   ) {
+    components = [...components, ...builtInComponents];
     return components.where((component) {
       return fields.any((field) {
         return field['type'] == component.name;
@@ -125,7 +126,9 @@ class ProjectIndexer {
           final members = (d['members'] as List).cast<Map>();
           for (final member in members) {
             // TODO: add support for multiple constructors (factory constructors / named constructors)
-            if (member['kind'] == 'constructor') {
+            if (member['kind'] == 'constructor' &&
+                member['factory'] != true &&
+                !(member['name'] as String).contains('.')) {
               final parameters =
                   (member['parameters']['all'] as List).cast<Map>();
               for (final parameter in parameters) {
@@ -133,6 +136,7 @@ class ProjectIndexer {
                 var type = parameter['type'] as String?;
                 final defaultValue = parameter['default'] as String?;
                 FlameComponentObject? superComponent;
+                FlameComponentField? superParameter;
 
                 if (type == null) {
                   if (name.startsWith('super.')) {
@@ -146,11 +150,13 @@ class ProjectIndexer {
                       ...builtInComponents,
                     ].firstWhereOrNull((c) => c.name == superclass);
 
-                    type = superComponent?.parameters
-                        .firstWhereOrNull(
-                          (p) => p.name == name.replaceAll('super.', ''),
-                        )
-                        ?.type;
+                    superParameter =
+                        superComponent?.parameters.firstWhereOrNull(
+                      (p) {
+                        return p.name == name.replaceAll('super.', '');
+                      },
+                    );
+                    type = superParameter?.type;
 
                     name = name.replaceAll('super.', '');
                   } else {
@@ -174,7 +180,13 @@ class ProjectIndexer {
                   name.replaceAll('this.', ''),
                   type,
                   defaultValue,
-                  superComponent?.name,
+                  superComponent == null
+                      ? null
+                      : [
+                          superComponent.name,
+                          if (superParameter?.superComponents != null)
+                            ...superParameter!.superComponents!,
+                        ],
                 ));
               }
             }

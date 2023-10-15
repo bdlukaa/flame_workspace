@@ -1,3 +1,5 @@
+import 'package:flame_workspace/project/game_objects.dart';
+import 'package:flame_workspace/project/parser.dart';
 import 'package:flame_workspace/project/runner.dart';
 import 'package:flutter/material.dart';
 
@@ -11,13 +13,18 @@ import 'structure_view.dart';
 class Workbench extends InheritedWidget {
   final FlameProject project;
   final FlameProjectRunner runner;
+
   final List<Map<String, dynamic>> indexed;
+  final List<FlameSceneObject> scenes;
+  final List<FlameComponentObject> components;
 
   const Workbench({
     super.key,
     required this.project,
     required this.runner,
     required this.indexed,
+    required this.scenes,
+    required this.components,
     required super.child,
   });
 
@@ -53,18 +60,26 @@ class _WorkbenchViewState extends State<WorkbenchView> {
 
   List<Map<String, dynamic>>? indexed;
 
+  final scenes = <FlameSceneObject>[];
+  final components = <FlameComponentObject>[];
+
   @override
   void initState() {
     super.initState();
     indexProject();
   }
 
-  void indexProject() {
+  void indexProject() async {
     indexed = null;
     if (mounted) setState(() {});
-    widget.project.index().then((v) {
-      if (mounted) setState(() => indexed = v);
-    });
+    indexed = await widget.project.index();
+    components
+      ..clear()
+      ..addAll(ProjectIndexer.components(indexed!));
+    scenes
+      ..clear()
+      ..addAll(ProjectIndexer.scenes(indexed!));
+    if (mounted) setState(() {});
   }
 
   @override
@@ -92,6 +107,8 @@ class _WorkbenchViewState extends State<WorkbenchView> {
       project: widget.project,
       runner: runner,
       indexed: indexed!,
+      scenes: scenes,
+      components: components,
       child: Scaffold(
         body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Card(
@@ -162,15 +179,71 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   }
 }
 
-class DesignView extends StatelessWidget {
+class DesignView extends StatefulWidget {
   const DesignView({super.key});
 
   @override
+  State<DesignView> createState() => _DesignViewState();
+}
+
+class _DesignViewState extends State<DesignView> {
+  FlameSceneObject? _currentScene;
+  FlameSceneObject get currentScene => _currentScene!;
+
+  FlameComponentObject? _currentSelectedComponent;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final workbench = Workbench.of(context);
+    _currentScene ??= workbench.scenes.firstWhere(
+      (scene) => scene.name == workbench.project.initialScene,
+      orElse: () => workbench.scenes.first,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const Row(children: [
-      Expanded(flex: 1, child: ProjectStructureView()),
-      Expanded(flex: 3, child: GamePreviewView()),
-      Expanded(flex: 1, child: ComponentView()),
-    ]);
+    return Design(
+      currentScene: currentScene,
+      currentSelectedComponent: _currentSelectedComponent,
+      onComponentSelected: (component) {
+        setState(() => _currentSelectedComponent = component);
+      },
+      child: const Row(children: [
+        Expanded(flex: 1, child: ProjectStructureView()),
+        Expanded(flex: 3, child: GamePreviewView()),
+        Expanded(flex: 1, child: ComponentView()),
+      ]),
+    );
+  }
+}
+
+class Design extends InheritedWidget {
+  const Design({
+    super.key,
+    required super.child,
+    required this.currentScene,
+    required this.currentSelectedComponent,
+    required this.onComponentSelected,
+  });
+
+  /// The current scene being edited.
+  ///
+  /// This can not be null.
+  final FlameSceneObject currentScene;
+
+  /// The current component being edited.
+  final FlameComponentObject? currentSelectedComponent;
+
+  final ValueChanged<FlameComponentObject?> onComponentSelected;
+
+  static Design of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<Design>()!;
+  }
+
+  @override
+  bool updateShouldNotify(Design oldWidget) {
+    return true;
   }
 }

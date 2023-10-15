@@ -54,13 +54,16 @@ class FlameComponentField {
   ///
   /// This is used to determine the type of the field, when the type is not
   /// explicitly declared.
-  final String? superComponent;
+  ///
+  /// When multiple values are used, the super field is recursive. The last one
+  /// is the origin class.
+  final List<String>? superComponents;
 
   FlameComponentField(
     this.name,
     this.type, [
     this.defaultValue,
-    this.superComponent,
+    this.superComponents,
   ]);
 
   @override
@@ -68,7 +71,7 @@ class FlameComponentField {
       "'$name', "
       "'$type', "
       "'$defaultValue'"
-      "${superComponent == null ? '' : ", '$superComponent'"}"
+      "${superComponents == null ? '' : ", [${superComponents!.map((e) => "'$e'").join(', ')}]"}"
       ")";
 
   bool get isNullable => type == 'dynamic' || type.endsWith('?');
