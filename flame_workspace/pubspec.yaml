@@ -23,7 +23,13 @@ dependencies:
   file_picker: ^5.5.0
   yaml: ^3.1.2
   path: ^1.8.3
+
+  # Windowing
+  window_manager: ^0.3.7
   flutter_native_view: ^0.0.2
+  win32: ^5.0.9
+  ffi: ^2.1.0
+  process_run: ^0.13.1
 
   # UI
   flutter_simple_treeview: ^3.0.2

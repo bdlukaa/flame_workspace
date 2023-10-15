@@ -3,7 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  flutter_native_view
+  audioplayers_windows
   screen_retriever
   window_manager
 )

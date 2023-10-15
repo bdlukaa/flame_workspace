@@ -1,10 +1,14 @@
 import 'package:flame_workspace/project/project.dart';
 import 'package:flame_workspace/workbench/workbench_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_view/flutter_native_view.dart';
 
 import 'welcome/welcome.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FlutterNativeView.ensureInitialized();
+
   runApp(const FlameWorkspaceApp());
 }
 

@@ -67,6 +67,10 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   void initState() {
     super.initState();
     indexProject();
+
+    runner.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   void indexProject() async {
@@ -80,6 +84,12 @@ class _WorkbenchViewState extends State<WorkbenchView> {
       ..clear()
       ..addAll(ProjectIndexer.scenes(indexed!));
     if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    runner.dispose();
+    super.dispose();
   }
 
   @override
@@ -148,17 +158,29 @@ class _WorkbenchViewState extends State<WorkbenchView> {
                   child:
                       Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                     InkWell(
-                      onTap: runner.isRunning ? null : () {},
+                      onTap: runner.isRunning
+                          ? null
+                          : () {
+                              runner.run();
+                            },
                       child: const Icon(Icons.play_arrow, size: 20.0),
                     ),
                     const SizedBox(width: 8.0),
                     InkWell(
-                      onTap: !runner.isRunning ? null : () {},
+                      onTap: !runner.isRunning
+                          ? null
+                          : () {
+                              runner.stop();
+                            },
                       child: const Icon(Icons.pause, size: 20.0),
                     ),
                     const SizedBox(width: 8.0),
                     InkWell(
-                      onTap: !runner.isRunning ? null : () {},
+                      onTap: !runner.isRunning
+                          ? null
+                          : () {
+                              runner.stop();
+                            },
                       child: const Icon(Icons.stop, size: 20.0),
                     ),
                   ]),

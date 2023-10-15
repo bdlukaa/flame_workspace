@@ -24,6 +24,7 @@ class ProjectIndexer {
       final parsed = parseFile(
         path: file.path,
         featureSet: FeatureSet.latestLanguageVersion(),
+        throwIfDiagnostics: false, // Do not throw on errors/linting
       );
       final unit = dartdoc.serializeCompilationUnit(parsed.unit);
       unit['source'] = file.path;
@@ -45,6 +46,7 @@ class ProjectIndexer {
 
     final scenes = <FlameSceneObject>[];
     for (final file in indexed) {
+      if (file['declarations'] == null) continue;
       final declarations = (file['declarations'] as List)
           .cast<Map>()
           .map((e) => e as Map<String, dynamic>);
@@ -108,6 +110,7 @@ class ProjectIndexer {
     final components = <FlameComponentObject>[];
 
     for (final file in indexed) {
+      if (file['declarations'] == null) continue;
       final declarations = (file['declarations'] as List)
           .cast<Map>()
           .map((e) => e as Map<String, dynamic>);
