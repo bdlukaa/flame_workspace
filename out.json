@@ -16,6 +16,11 @@
           },
           { "kind": "field", "name": "circle", "type": "MyCircle" },
           {
+            "kind": "field",
+            "name": "rectangle",
+            "type": "RectangleComponent"
+          },
+          {
             "kind": "method",
             "name": "onLoad",
             "returns": "Future<void>",
@@ -36,11 +41,53 @@
             "parameters": {
               "all": [
                 { "name": "this.radius", "default": "20.0" },
-                { "name": "paint", "type": "Paint?" },
-                { "name": "position", "type": "Vector2?" }
+                {
+                  "name": "color",
+                  "type": "Color",
+                  "default": "const Color(0xFF80C080)"
+                },
+                { "name": "super.position" }
               ],
               "named": 3
             }
+          },
+          { "kind": "field", "name": "innerCircle", "type": "MySquare" },
+          {
+            "kind": "method",
+            "name": "render",
+            "parameters": { "all": [{ "name": "canvas", "type": "Canvas" }] },
+            "returns": "void",
+            "annotations": [{ "name": "@override" }]
+          }
+        ]
+      },
+      {
+        "kind": "class",
+        "name": "MySquare",
+        "extends": "PositionComponent",
+        "with": ["FlameComponent"],
+        "members": [
+          { "kind": "field", "name": "radius", "type": "double" },
+          {
+            "kind": "constructor",
+            "name": "MySquare",
+            "parameters": {
+              "all": [
+                { "name": "this.radius", "default": "20.0" },
+                {
+                  "name": "color",
+                  "type": "Color",
+                  "default": "const Color(0xFF80C080)"
+                },
+                { "name": "super.position" }
+              ],
+              "named": 3
+            }
+          },
+          {
+            "kind": "field",
+            "name": "innerCircle",
+            "type": "PositionComponent"
           },
           {
             "kind": "method",

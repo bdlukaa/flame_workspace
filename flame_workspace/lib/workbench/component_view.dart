@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 import 'workbench_view.dart';
 
@@ -45,12 +46,12 @@ class ComponentView extends StatelessWidget {
             _Field(
               name: 'Type',
               value: component.name,
-              labelWidth: 82.0,
+              type: '$String',
             ),
             _Field(
               name: 'Name',
               value: '${component.declarationName}',
-              labelWidth: 82.0,
+              type: '$String',
             ),
           ],
         ),
@@ -62,68 +63,49 @@ class ComponentView extends StatelessWidget {
               _Field(
                 name: parameter.name,
                 value: '${parameter.defaultValue}',
-                labelWidth: 82.0,
+                type: parameter.type,
               ),
           ],
         ),
-        ComponentSectionCard(
-          title: 'Transform',
-          trailing: '${transformParameters.length}',
-          children: const [
-            Row(children: [
-              Expanded(
-                child: _Field(
-                  name: 'x',
-                  value: '1.0',
-                  numberOnly: true,
-                ),
+        if (transformParameters.isNotEmpty)
+          ComponentSectionCard(
+            title: 'Transform',
+            trailing: '${transformParameters.length}',
+            children: const [
+              _Field(
+                name: 'x',
+                description: 'x axis',
+                value: '1.0',
+                type: 'double',
               ),
-              Expanded(
-                child: _Field(
-                  name: 'y',
-                  value: '1.0',
-                  numberOnly: true,
-                ),
+              _Field(
+                name: 'y',
+                value: '1.0',
+                type: 'double',
               ),
-            ]),
-            Row(children: [
-              Expanded(
-                child: _Field(
-                  name: 'w',
-                  description: 'width',
-                  value: '30.0',
-                  numberOnly: true,
-                ),
+              _Field(
+                name: 'width',
+                value: '30.0',
+                type: 'double',
               ),
-              Expanded(
-                child: _Field(
-                  name: 'h',
-                  description: 'height',
-                  value: '30.0',
-                  numberOnly: true,
-                ),
+              _Field(
+                name: 'height',
+                value: '30.0',
+                type: 'double',
               ),
-            ]),
-            Row(children: [
-              Expanded(
-                child: _Field(
-                  name: 'a',
-                  description: 'rotation angle',
-                  value: '0.0',
-                  numberOnly: true,
-                ),
+              _Field(
+                name: 'ratation',
+                description: 'rotation angle',
+                value: '0.0',
+                type: 'double',
               ),
-              Expanded(
-                child: _Field(
-                  name: 's',
-                  description: 'scale',
-                  value: '1.0',
-                  numberOnly: true,
-                ),
+              _Field(
+                name: 'scale',
+                value: '1.0',
+                type: 'double',
               ),
-            ])
-          ],
-        ),
+            ],
+          ),
       ]),
     );
   }
@@ -157,7 +139,7 @@ class ComponentSectionCard extends StatelessWidget {
             if (trailing != null)
               Text(
                 trailing!,
-                style: theme.textTheme.bodySmall,
+                style: theme.textTheme.labelSmall,
               ),
           ]),
           const SizedBox(height: 8.0),
@@ -170,21 +152,27 @@ class ComponentSectionCard extends StatelessWidget {
 
 class _Field extends StatefulWidget {
   final String name;
-  final String? description;
   final String value;
+  final String type;
+
+  /// The description of the field.
+  ///
+  /// If provided, a tooltip will be shown when hovering over the field name.
+  final String? description;
   final ValueChanged<String>? onChanged;
 
+  /// The width of the [name] label.
+  ///
+  /// If not provided, it will be half of the available space.
   final double? labelWidth;
-
-  final bool numberOnly;
 
   const _Field({
     required this.name,
     required this.value,
+    required this.type,
     this.description,
     this.onChanged,
-    this.labelWidth = 12.0,
-    this.numberOnly = false,
+    this.labelWidth,
   });
 
   @override
@@ -200,7 +188,7 @@ class _FieldState extends State<_Field> {
     super.initState();
     focusNode.addListener(() {
       if (!focusNode.hasFocus) {
-        if (widget.numberOnly) {
+        if (isNumbericField) {
           if (controller.text.isEmpty) {
             controller.text = '0.0';
           } else if (controller.text.endsWith('.')) {
@@ -231,53 +219,144 @@ class _FieldState extends State<_Field> {
     super.dispose();
   }
 
+  bool get isNumbericField => widget.type == 'double' || widget.type == 'int';
+
+  bool get isNullable => widget.type.endsWith('?');
+
+  (IconData icon, double size)? get icon {
+    return switch (widget.type.replaceAll('?', '')) {
+      'String' => (Icons.abc, 24.0),
+      'int' || 'double' => (Icons.onetwothree_rounded, 24.0),
+      'bool' => (Icons.indeterminate_check_box_outlined, 18.0),
+      'Color' => (Icons.format_paint, 18.0),
+      _ => null,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final label = SizedBox(
-      width: widget.labelWidth,
-      child: Text(
+    return LayoutBuilder(builder: (context, constraints) {
+      final label = Text(
         widget.name,
         style: theme.textTheme.labelSmall,
         textAlign: TextAlign.center,
-      ),
-    );
-
-    return SizedBox(
-      height: kFieldHeight,
-      child: Row(children: [
-        if (widget.description != null)
-          Tooltip(
-            verticalOffset: 16.0,
-            message: widget.description,
-            child: label,
-          )
-        else
-          label,
-        const VerticalDivider(indent: 0.0, endIndent: 0.0),
-        const SizedBox(width: 4.0),
-        Expanded(
-          child: EditableText(
-            controller: controller,
-            focusNode: focusNode,
-            style: theme.textTheme.bodySmall!,
-            cursorColor: theme.indicatorColor,
-            cursorHeight: 16.0,
-            backgroundCursorColor: Colors.transparent,
-            selectionColor: theme.colorScheme.primary.withOpacity(0.3),
-            maxLines: 1,
-            keyboardType: widget.numberOnly ? null : TextInputType.number,
-            textInputAction: TextInputAction.done,
-            onChanged: (text) {
-              final abcdRegex = RegExp(r'^[A-B\.]+$', caseSensitive: false);
-              if (text.contains(abcdRegex)) {
-                controller.text = text.replaceAll(abcdRegex, '');
-              }
+      );
+      return SizedBox(
+        height: kFieldHeight,
+        child: Row(children: [
+          SizedBox(
+            width: widget.labelWidth ?? (constraints.maxWidth / 2),
+            child: Row(children: [
+              SizedBox(
+                width: 24.0,
+                child: Icon(icon?.$1, size: icon?.$2),
+              ),
+              const SizedBox(width: 6.0),
+              if (widget.description != null)
+                Tooltip(
+                  verticalOffset: 16.0,
+                  message: widget.description,
+                  child: label,
+                )
+              else
+                label,
+            ]),
+          ),
+          const VerticalDivider(indent: 0.0, endIndent: 0.0),
+          const SizedBox(width: 4.0),
+          Expanded(
+            child: switch (widget.type) {
+              'String' || 'int' || 'double' => buildEditable(),
+              'Color' => buildColorPicker(),
+              'bool' => buildFlagSwitch(),
+              _ => Container(),
             },
           ),
+        ]),
+      );
+    });
+  }
+
+  Widget buildEditable() {
+    return Builder(builder: (context) {
+      final theme = Theme.of(context);
+      return EditableText(
+        controller: controller,
+        focusNode: focusNode,
+        style: theme.textTheme.bodySmall!,
+        cursorColor: theme.indicatorColor,
+        cursorHeight: 16.0,
+        backgroundCursorColor: Colors.transparent,
+        selectionColor: theme.colorScheme.primary.withOpacity(0.3),
+        maxLines: 1,
+        keyboardType: isNumbericField ? TextInputType.number : null,
+        textInputAction: TextInputAction.done,
+        onChanged: (text) {
+          final abcdRegex = RegExp(r'^[A-B\.]+$', caseSensitive: false);
+          if (text.contains(abcdRegex)) {
+            controller.text = text.replaceAll(abcdRegex, '');
+          }
+        },
+      );
+    });
+  }
+
+  Widget buildColorPicker() {
+    return Builder(builder: (context) {
+      return GestureDetector(
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (context) {
+              return SimpleDialog(
+                title: const Text('Pick a color'),
+                children: [
+                  ColorPicker(
+                    pickerColor: Colors.red,
+                    paletteType: PaletteType.hsv,
+                    labelTypes: const [ColorLabelType.rgb],
+                    portraitOnly: true,
+                    onColorChanged: (color) {
+                      print(color);
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+        },
+        child: Container(
+          margin: const EdgeInsetsDirectional.symmetric(vertical: 5.0),
+          color: Colors.red,
         ),
-      ]),
-    );
+      );
+    });
+  }
+
+  Widget buildFlagSwitch() {
+    return Builder(builder: (context) {
+      final theme = Theme.of(context);
+      return Row(children: [
+        SizedBox.fromSize(
+          size: const Size(16.0, 16.0),
+          child: Checkbox.adaptive(
+            value: bool.tryParse(widget.value, caseSensitive: false),
+            onChanged: widget.onChanged == null
+                ? null
+                : (v) {
+                    if (v != null) {
+                      widget.onChanged!(v.toString());
+                    }
+                  },
+          ),
+        ),
+        const SizedBox(width: 6.0),
+        Flexible(
+          child: Text('Active', style: theme.textTheme.labelMedium),
+        ),
+      ]);
+    });
   }
 }

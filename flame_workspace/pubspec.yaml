@@ -14,15 +14,19 @@ dependencies:
   # Flame
   flame: 1.9.1
 
+  # Project indexer/analyzer
   analyzer: 5.13.0
   dartdoc_json: ^0.2.0
   http: ^1.1.0
 
+  # External functionality
   file_picker: ^5.5.0
   yaml: ^3.1.2
   path: ^1.8.3
 
+  # UI
   flutter_simple_treeview: ^3.0.2
+  flutter_colorpicker: ^1.0.3
 
 dev_dependencies:
   flutter_test:

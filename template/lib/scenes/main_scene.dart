@@ -21,11 +21,13 @@ class Scene1 extends FlameScene {
 class MyCircle extends PositionComponent with FlameComponent {
   double radius;
 
-  MyCircle({this.radius = 20.0, Paint? paint, Vector2? position})
-      : _paint = paint ?? Paint()
-          ..color = const Color(0xFF80C080),
+  MyCircle({
+    this.radius = 20.0,
+    Color color = const Color(0xFF80C080),
+    super.position,
+    bool flag = false,
+  })  : _paint = Paint()..color = const Color(0xFF80C080),
         super(
-          position: position,
           size: Vector2.all(2 * radius),
           anchor: Anchor.center,
         );
@@ -44,11 +46,12 @@ class MyCircle extends PositionComponent with FlameComponent {
 class MySquare extends PositionComponent with FlameComponent {
   double radius;
 
-  MySquare({this.radius = 20.0, Paint? paint, Vector2? position})
-      : _paint = paint ?? Paint()
-          ..color = const Color(0xFF80C080),
+  MySquare({
+    this.radius = 20.0,
+    Color color = const Color(0xFF80C080),
+    super.position,
+  })  : _paint = Paint()..color = color,
         super(
-          position: position,
           size: Vector2.all(2 * radius),
           anchor: Anchor.center,
         );
