@@ -394,33 +394,33 @@ class _FieldState extends State<_Field> {
     return Builder(builder: (context) {
       final color = ValuesParser.parseColor(widget.value);
 
-      return GestureDetector(
-        onTap: widget.editable
-            ? () {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return SimpleDialog(
-                      title: const Text('Pick a color'),
-                      children: [
-                        ColorPicker(
-                          pickerColor: color,
-                          paletteType: PaletteType.hsv,
-                          labelTypes: const [ColorLabelType.rgb],
-                          portraitOnly: true,
-                          onColorChanged: (color) {
-                            debugPrint(color.toString());
-                          },
-                        ),
-                      ],
-                    );
-                  },
-                );
-              }
-            : null,
-        child: Container(
-          margin: const EdgeInsetsDirectional.symmetric(vertical: 5.0),
-          color: color,
+      return Padding(
+        padding: const EdgeInsetsDirectional.symmetric(vertical: 5.0),
+        child: InkWell(
+          onTap: widget.editable
+              ? () {
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return SimpleDialog(
+                        // title: const Text('Pick a color'),
+                        children: [
+                          ColorPicker(
+                            pickerColor: color,
+                            paletteType: PaletteType.hsv,
+                            labelTypes: const [ColorLabelType.rgb],
+                            portraitOnly: true,
+                            onColorChanged: (color) {
+                              debugPrint(color.toString());
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                }
+              : null,
+          child: Container(color: color),
         ),
       );
     });

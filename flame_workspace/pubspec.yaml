@@ -32,7 +32,6 @@ dependencies:
   process_run: ^0.13.1
 
   # UI
-  flutter_simple_treeview: ^3.0.2
   flutter_colorpicker: ^1.0.3
   auto_size_text: ^3.0.0
 

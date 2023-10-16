@@ -1,13 +1,14 @@
-import 'package:flame_workspace/project/game_objects.dart';
-import 'package:flame_workspace/project/parser.dart';
-import 'package:flame_workspace/project/runner.dart';
 import 'package:flutter/material.dart';
 
+import '../project/game_objects.dart';
+import '../project/parser.dart';
 import '../project/project.dart';
+import '../project/runner.dart';
 import 'assets_view.dart';
 import 'component_view.dart';
 import 'configuration_view.dart';
 import 'preview_view.dart';
+import 'scene_view.dart';
 import 'structure_view.dart';
 
 class Workbench extends InheritedWidget {
@@ -233,7 +234,14 @@ class _DesignViewState extends State<DesignView> {
         setState(() => _currentSelectedComponent = component);
       },
       child: const Row(children: [
-        Expanded(flex: 1, child: ProjectStructureView()),
+        Expanded(
+          flex: 1,
+          child: Column(children: [
+            Expanded(flex: 3, child: SceneView()),
+            Divider(),
+            Expanded(flex: 2, child: ProjectStructureView()),
+          ]),
+        ),
         Expanded(flex: 3, child: GamePreviewView()),
         Expanded(flex: 1, child: ComponentView()),
       ]),

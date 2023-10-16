@@ -63,6 +63,15 @@ class MyCircle extends PositionComponent with FlameComponent {
   }
 }
 
+class MyOtherCircle extends MyCircle with FlameComponent {
+  MyOtherCircle({
+    super.radius = 20.0,
+    super.color = const Color(0xFF80C080),
+    super.position,
+    super.flag = false,
+  });
+}
+
 class MySquare extends PositionComponent with FlameComponent {
   double radius;
 

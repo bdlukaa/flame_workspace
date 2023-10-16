@@ -1,10 +1,8 @@
 import 'dart:io';
 
-import 'package:flame_workspace/workbench/structure_view.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_simple_treeview/flutter_simple_treeview.dart';
-import 'package:path/path.dart' as path;
 
+import '../widgets/tree_view.dart';
 import 'workbench_view.dart';
 
 class ConfigurationView extends StatefulWidget {
@@ -112,19 +110,12 @@ class _ProjectConfiguration extends StatelessWidget {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(8.0),
             child: TreeView(
-              // treeController: controller,
-              indent: 24.0,
+              initiallyExpanded: false,
               nodes: files.map((entity) {
                 if (entity is Directory) {
                   return nodeForDirectory(entity);
                 } else {
-                  return TreeNode(
-                    content: Row(children: [
-                      const Icon(Icons.article, size: 16.0),
-                      const SizedBox(width: 8.0),
-                      Text(path.basename(entity.path)),
-                    ]),
-                  );
+                  return nodeForFile(entity as File);
                 }
               }).toList(),
             ),
@@ -136,7 +127,7 @@ class _ProjectConfiguration extends StatelessWidget {
     return Row(children: [
       projectConfiguration,
       const SizedBox(width: 32.0),
-      projectStructure,
+      IntrinsicWidth(child: projectStructure),
     ]);
   }
 }

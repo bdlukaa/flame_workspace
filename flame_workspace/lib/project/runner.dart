@@ -5,9 +5,7 @@ import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_native_view/flutter_native_view.dart';
-import 'package:process_run/process_run.dart';
 import 'package:win32/win32.dart';
 
 import 'project.dart';
@@ -17,18 +15,6 @@ const kPreviewLogPrefix = 'preview: ';
 
 /// The runner for a Flame project. This class is responsible for running the
 /// project preview.
-///
-/// Under the hood, this class uses the `flutter run` command to run the project.
-/// Flutter will initialize a web server. The game previewer will then connect
-/// to this web server to display the game.
-///
-/// TODO(runner): Flutter Web is not as performant as Flutter Desktop.
-///               We should consider running the app in a desktop proccess and
-///               display the window in the previewer. This would allow us to
-///               make a performant game previewer. Hot reload be possible when
-///               running on native platform.
-///
-///               A Texture would be necessary to display the preview.
 class FlameProjectRunner with ChangeNotifier {
   final FlameProject project;
 
