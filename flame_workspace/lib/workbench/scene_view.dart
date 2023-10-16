@@ -126,11 +126,17 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
   FlameComponentObject? _selectedComponent;
   final _searchController = TextEditingController();
 
+  Iterable<TreeNode> projectComponents = [];
+  Iterable<TreeNode> rootComponents = [];
+
   @override
   void initState() {
     super.initState();
+    _updateComponents();
     _searchController.addListener(() {
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(_updateComponents);
+      }
     });
   }
 
@@ -140,9 +146,7 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  void _updateComponents() {
     final components = widget.workbench.components;
 
     int sorter(TreeNode a, TreeNode b) {
@@ -216,17 +220,22 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
       }).whereType<TreeNode>();
     }
 
-    final rootComponents = componentsFor(
+    rootComponents = componentsFor(
       types: ['Component'],
       components: builtInComponents,
     ).toList()
       ..sort(sorter);
 
-    final projectComponents = componentsFor(
+    projectComponents = componentsFor(
       types: builtInComponents.map((e) => e.type),
       components: components,
     ).toList()
       ..sort(sorter);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
 
     final windowSize = MediaQuery.sizeOf(context);
     return SizedBox.fromSize(
@@ -292,8 +301,10 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
                         'Project Components',
                         style: theme.textTheme.labelLarge,
                       ),
-                      Text('${components.length}',
-                          style: theme.textTheme.bodySmall),
+                      Text(
+                        '${projectComponents.length}',
+                        style: theme.textTheme.bodySmall,
+                      ),
                     ],
                   ),
                 ),
