@@ -3,9 +3,12 @@ class FlameSceneObject {
 
   final List<FlameComponentObject> components;
 
+  final List<String> modifiers;
+
   FlameSceneObject({
     required this.name,
     required this.components,
+    this.modifiers = const [],
   });
 }
 
@@ -28,12 +31,15 @@ class FlameComponentObject {
   /// The declaration name will be `myComponent`.
   final String? declarationName;
 
+  final List<String> modifiers;
+
   FlameComponentObject({
     required this.name,
     required this.type,
     required this.parameters,
     required this.data,
     this.declarationName,
+    this.modifiers = const [],
   });
 
   @override

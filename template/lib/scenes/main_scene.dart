@@ -1,8 +1,9 @@
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame_workspace_core/creation/scene.dart';
 import 'package:flutter/widgets.dart';
 
-class Scene1 extends FlameScene {
+class Scene1 extends FlameScene with TapCallbacks {
   Scene1({
     super.sceneName = 'Scene 1',
     super.backgroundColor = const Color(0xFF000000),

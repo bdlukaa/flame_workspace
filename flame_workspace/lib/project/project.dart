@@ -98,8 +98,8 @@ class FlameProject {
       .listSync(recursive: true)
       .whereType<File>();
 
-  Future<List<Map<String, dynamic>>> index() =>
-      ProjectIndexer.indexProject(location);
+  Future<List<Map<String, dynamic>>> index() async =>
+      (await ProjectIndexer.indexProject(location)).map((e) => e.$1).toList();
 }
 
 /// Creates a new Flame project.

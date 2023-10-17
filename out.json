@@ -5,6 +5,7 @@
         "kind": "class",
         "name": "Scene1",
         "extends": "FlameScene",
+        "with": ["TapCallbacks"],
         "members": [
           {
             "kind": "constructor",
@@ -57,7 +58,7 @@
                 {
                   "name": "color",
                   "type": "Color",
-                  "default": "const Color(0xFF80C080)"
+                  "default": "const Color(0xFFFF0000)"
                 },
                 { "name": "super.position" },
                 { "name": "flag", "type": "bool", "default": "false" }
@@ -72,6 +73,27 @@
             "parameters": { "all": [{ "name": "canvas", "type": "Canvas" }] },
             "returns": "void",
             "annotations": [{ "name": "@override" }]
+          }
+        ]
+      },
+      {
+        "kind": "class",
+        "name": "MyOtherCircle",
+        "extends": "MyCircle",
+        "with": ["FlameComponent"],
+        "members": [
+          {
+            "kind": "constructor",
+            "name": "MyOtherCircle",
+            "parameters": {
+              "all": [
+                { "name": "super.radius", "default": "20.0" },
+                { "name": "super.color", "default": "const Color(0xFF80C080)" },
+                { "name": "super.position" },
+                { "name": "super.flag", "default": "false" }
+              ],
+              "named": 4
+            }
           }
         ]
       },
@@ -115,6 +137,7 @@
     ],
     "directives": [
       { "kind": "import", "uri": "package:flame/components.dart" },
+      { "kind": "import", "uri": "package:flame/events.dart" },
       {
         "kind": "import",
         "uri": "package:flame_workspace_core/creation/scene.dart"

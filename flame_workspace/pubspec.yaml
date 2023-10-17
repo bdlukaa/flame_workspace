@@ -17,6 +17,8 @@ dependencies:
   # Project indexer/analyzer
   analyzer: 5.13.0
   dartdoc_json: ^0.2.0
+  code_builder: ^4.7.0
+  source_gen: ^1.4.0
   http: ^1.1.0
 
   # External functionality

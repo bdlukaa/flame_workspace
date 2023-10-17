@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:dartdoc_json/dartdoc_json.dart' as dartdoc;
 import 'package:path/path.dart' as path;
 
@@ -13,10 +14,10 @@ import 'game_objects.dart';
 class ProjectIndexer {
   const ProjectIndexer._();
 
-  static Future<List<Map<String, dynamic>>> indexProject(
+  static Future<List<(Map<String, dynamic>, CompilationUnit)>> indexProject(
     Directory libDir,
   ) async {
-    final files = <Map<String, dynamic>>[];
+    final files = <(Map<String, dynamic>, CompilationUnit)>[];
 
     await for (final file in libDir
         .list(recursive: true)
@@ -28,7 +29,7 @@ class ProjectIndexer {
       );
       final unit = dartdoc.serializeCompilationUnit(parsed.unit);
       unit['source'] = file.path;
-      files.add(unit);
+      files.add((unit, parsed.unit));
     }
 
     return files;
