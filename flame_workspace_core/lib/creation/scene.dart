@@ -74,6 +74,7 @@ mixin FlameComponent on Component {
   @override
   @mustCallSuper
   void add(Component component) {
+    print('added $component');
     FlameWorkspaceCore.instance.send();
     super.add(component);
   }

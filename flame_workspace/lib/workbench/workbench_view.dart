@@ -4,9 +4,11 @@ import '../project/game_objects.dart';
 import '../project/parser.dart';
 import '../project/project.dart';
 import '../project/runner.dart';
+import '../widgets/inked_icon_button.dart';
 import 'assets_view.dart';
 import 'component_view.dart';
 import 'configuration_view.dart';
+import 'notifications_field.dart';
 import 'preview_view.dart';
 import 'scene_view.dart';
 import 'structure_view.dart';
@@ -128,65 +130,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
             child: Container(
               height: 38.0,
               padding: const EdgeInsetsDirectional.all(4.0),
-              child:
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Expanded(
-                  child: Row(children: [
-                    InkWell(
-                      onTap: indexProject,
-                      child: const Icon(Icons.lan, size: 20.0),
-                    ),
-                  ]),
-                ),
-                Expanded(
-                  child: Center(
-                    child: ToggleButtons(
-                      isSelected: WorkbenchViewMode.values
-                          .map((m) => m == mode)
-                          .toList(),
-                      children: const [
-                        Icon(Icons.design_services),
-                        Icon(Icons.web_stories),
-                        Icon(Icons.settings),
-                      ],
-                      onPressed: (index) => setState(() {
-                        mode = WorkbenchViewMode.values[index];
-                      }),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child:
-                      Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                    InkWell(
-                      onTap: runner.isRunning
-                          ? null
-                          : () {
-                              runner.run();
-                            },
-                      child: const Icon(Icons.play_arrow, size: 20.0),
-                    ),
-                    const SizedBox(width: 8.0),
-                    InkWell(
-                      onTap: !runner.isRunning
-                          ? null
-                          : () {
-                              runner.stop();
-                            },
-                      child: const Icon(Icons.pause, size: 20.0),
-                    ),
-                    const SizedBox(width: 8.0),
-                    InkWell(
-                      onTap: !runner.isRunning
-                          ? null
-                          : () {
-                              runner.stop();
-                            },
-                      child: const Icon(Icons.stop, size: 20.0),
-                    ),
-                  ]),
-                ),
-              ]),
+              child: _buildToolbar(),
             ),
           ),
           Expanded(
@@ -199,6 +143,91 @@ class _WorkbenchViewState extends State<WorkbenchView> {
         ]),
       ),
     );
+  }
+
+  Widget _buildToolbar() {
+    return Builder(builder: (context) {
+      final theme = Theme.of(context);
+      return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        const SizedBox(width: 24.0),
+        Expanded(
+          child: Row(children: [
+            InkedIconButton(
+              onTap: indexProject,
+              tooltip: 'Reindex project',
+              icon: const Icon(Icons.lan),
+            ),
+            const SizedBox(width: 8.0),
+            const NotificationsField(),
+          ]),
+        ),
+        Expanded(
+          child: Center(
+            child: ToggleButtons(
+              isSelected:
+                  WorkbenchViewMode.values.map((m) => m == mode).toList(),
+              children: const [
+                Icon(Icons.design_services),
+                Icon(Icons.web_stories),
+                Icon(Icons.settings),
+              ],
+              onPressed: (index) => setState(() {
+                mode = WorkbenchViewMode.values[index];
+              }),
+            ),
+          ),
+        ),
+        Expanded(
+          child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+            InkedIconButton(
+              onTap: !runner.isReady ? null : runner.hotReload,
+              tooltip: 'Hot reload',
+              icon: Icon(Icons.bolt, color: theme.colorScheme.primary),
+            ),
+            const SizedBox(width: 8.0),
+            InkedIconButton(
+              onTap: !runner.isReady ? null : runner.hotRestart,
+              tooltip: 'Hot restart',
+              icon: Icon(
+                Icons.local_fire_department,
+                color: theme.colorScheme.tertiary,
+              ),
+            ),
+            const VerticalDivider(),
+            InkedIconButton(
+              onTap: runner.isRunning
+                  ? null
+                  : () {
+                      runner.run();
+                    },
+              tooltip: 'Run',
+              icon: const Icon(Icons.play_arrow, color: Colors.lightBlue),
+            ),
+            const SizedBox(width: 8.0),
+            InkedIconButton(
+              onTap: !runner.isRunning
+                  ? null
+                  : () {
+                      runner.stop();
+                    },
+              tooltip: 'Pause',
+              icon: const Icon(Icons.pause),
+            ),
+            const SizedBox(width: 8.0),
+            InkedIconButton(
+              onTap: !runner.isRunning
+                  ? null
+                  : () {
+                      runner.stop();
+                    },
+              tooltip: 'Stop',
+              icon: const Icon(Icons.stop, color: Colors.red),
+            ),
+          ]),
+        ),
+        const SizedBox(width: 24.0),
+      ]);
+    });
   }
 }
 

@@ -7,7 +7,7 @@ class MyGame extends FlameGame with SingleGameInstance {
   MyGame() : super();
 
   @override
-  Color backgroundColor() => const Color(0x00000000);
+  Color backgroundColor() => const Color(0xFFFFFFFF);
 
   @override
   Future<void> onLoad() async {

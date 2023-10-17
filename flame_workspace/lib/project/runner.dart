@@ -12,6 +12,7 @@ import 'project.dart';
 
 const kWorkspaceLogPrefix = 'flame_workspace: ';
 const kPreviewLogPrefix = 'preview: ';
+const kInitialLog = '$kWorkspaceLogPrefix' 'Project not running';
 
 /// The runner for a Flame project. This class is responsible for running the
 /// project preview.
@@ -21,7 +22,7 @@ class FlameProjectRunner with ChangeNotifier {
   final String hostname;
   final int port;
 
-  final List<String> logs = [];
+  final List<String> logs = [kInitialLog];
 
   FlameProjectRunner(
     this.project, {

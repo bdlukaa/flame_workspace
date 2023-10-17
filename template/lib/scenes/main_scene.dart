@@ -8,14 +8,14 @@ class Scene1 extends FlameScene {
     super.backgroundColor = const Color(0xFF000000),
   });
 
-  MyCircle circle = MyCircle(radius: 20);
+  MyCircle circle = MyCircle(radius: 100, position: Vector2(100, 100));
   RectangleComponent rectangle = RectangleComponent();
 
   @override
   Future<void> onLoad() async {
     // Load all the assets that are needed in this world
     // and add components etc.
-    // add(circle);
+    add(circle);
   }
 
   bool _upping = false;
@@ -24,17 +24,17 @@ class Scene1 extends FlameScene {
   void update(dt) async {
     super.update(dt);
 
-    if (circle.radius == 100.0) {
-      _upping = false;
-    } else if (circle.radius == 20.0) {
-      _upping = true;
-    }
+    // if (circle.radius == 100.0) {
+    //   _upping = false;
+    // } else if (circle.radius == 20.0) {
+    //   _upping = true;
+    // }
 
-    if (_upping) {
-      circle.radius += 0.001;
-    } else {
-      circle.radius -= 0.001;
-    }
+    // if (_upping) {
+    //   circle.radius += 0.001;
+    // } else {
+    //   circle.radius -= 0.001;
+    // }
   }
 }
 
@@ -43,7 +43,7 @@ class MyCircle extends PositionComponent with FlameComponent {
 
   MyCircle({
     this.radius = 20.0,
-    Color color = const Color(0xFF80C080),
+    Color color = const Color(0xFFFF0000),
     super.position,
     bool flag = false,
   })  : _paint = Paint()..color = const Color(0xFF80C080),
