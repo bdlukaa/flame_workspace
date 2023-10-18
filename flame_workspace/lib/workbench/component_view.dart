@@ -69,10 +69,6 @@ class ComponentView extends StatelessWidget {
                     ),
                   ]),
                 ),
-              // Text(
-              //   '${component.name} |${component.declarationName ?? ''}',
-              //   style: theme.textTheme.labelMedium,
-              // ),
             ],
           ),
         ]),

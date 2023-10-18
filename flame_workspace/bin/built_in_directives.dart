@@ -7,6 +7,7 @@
 
 library built_in_directives;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:analyzer/dart/analysis/features.dart';
@@ -17,21 +18,113 @@ import 'package:http/http.dart' as http;
 import 'package:dartdoc_json/dartdoc_json.dart' as dartdoc;
 
 void main() async {
-  print('Downloading components.dart');
-  // Get all the files in the /components lib
+  /// Run the function multiple times to ensure all the inheritance is done.
+  /// It depends on its own previous fetch to know all the components.
+  ///
+  /// It firts gets all the root components, then it runs multiple times to
+  /// get the components that are children of the root components. This runs
+  /// recursively 5 times.
+  for (var i = 0; i < 5; i++) {
+    await getAll();
+  }
+}
+
+Future<void> getAll() async {
+  print('Generating!');
+
+  print('Get all the export files');
   final response = await http.get(
     Uri.parse(
-      'https://raw.githubusercontent.com/flame-engine/flame/main/packages/flame/lib/components.dart',
+      'https://api.github.com/repos/flame-engine/flame/contents/packages/flame/lib/',
     ),
+    headers: {'X-GitHub-Api-Version': '2022-11-28'},
   );
 
   if (response.statusCode == 200) {
-    final paths = (response.body.split('\n')
-          ..removeWhere((line) => line.startsWith('//')))
+    final files = (jsonDecode(response.body) as List).cast<Map>();
+    List<Map<String, dynamic>> indexed = [];
+    await Future.wait([
+      for (final file in files)
+        () async {
+          final name = file['name'] as String;
+          if (name.endsWith('.dart')) {
+            try {
+              print(name);
+              final i = await forFile(name);
+              indexed.addAll(i);
+            } catch (e, s) {
+              // print('Failed to get for file $name: \n$e\n$s');
+            }
+          }
+        }()
+    ]);
+
+    // First, get all the components
+    var components = ProjectIndexer.components(indexed).toList();
+
+    // Remove duplicates
+    for (final component in List<FlameComponentObject>.from(components)) {
+      if (components.where((c) => c.name == component.name).length > 1) {
+        print('Duplicate found: ${component.name}');
+        components.remove(component);
+      }
+    }
+
+    components.sort((a, b) => a.name.compareTo(b.name));
+    // Then, declare the components
+    final declarations = components.map<String>((component) {
+      String forComponent(FlameComponentObject component) {
+        // data: ${json.encode(component.data..remove('description'))},
+        return """FlameComponentObject(
+  name: '${component.name}',
+  type: '${component.type}',
+  parameters: ${component.parameters},
+  data: { /* This data is omitted and can be found at the flame-engine/flame repository */},
+)${component.components.isEmpty ? '' : '''..components = [
+${component.components.map(forComponent).join(',\n')}
+]'''}""";
+      }
+
+      return forComponent(component);
+    });
+
+    final file = File(r'flame_workspace\lib\project\built_in_components.dart');
+    await file.writeAsString('''/// Automatically generated file.
+/// Do not edit manually
+
+import 'game_objects.dart';
+
+final builtInComponents = <FlameComponentObject>[
+  ${declarations.join(',\n')}
+];
+''');
+
+    await Process.run('dart', ['format', file.path]);
+  } else {
+    print('Failed to get the file.');
+  }
+}
+
+Future<List<Map<String, dynamic>>> forFile(String path) async {
+  print('Getting for file $path');
+  final response = await http.get(
+    Uri.parse(
+        'https://raw.githubusercontent.com/flame-engine/flame/main/packages/flame/lib/$path'),
+  );
+
+  if (response.statusCode == 200) {
+    final paths = response.body
+        .split('\n')
         .map((line) {
-      if (line.trim().isEmpty) return line;
-      return line.split("'")[1];
-    }).toList();
+          if (line.startsWith('//') || !line.startsWith('export')) return null;
+          if (line.contains('package:')) return null;
+          if (line.trim().isEmpty) return line;
+          final split = line.split("'");
+          if (split.length < 2) return null;
+          return split[1];
+        })
+        .whereType<String>()
+        .toList();
 
     // paths.removeRange(5, paths.length - 1);
 
@@ -52,7 +145,10 @@ void main() async {
           if (fileResponse.statusCode == 200) {
             try {
               final parsed = parseString(
-                content: fileResponse.body,
+                content: fileResponse.body
+                    .split('\n')
+                    .where((l) => !l.startsWith('library'))
+                    .join('\n'),
                 featureSet: FeatureSet.latestLanguageVersion(),
               );
               final unit = dartdoc.serializeCompilationUnit(parsed.unit);
@@ -68,38 +164,7 @@ void main() async {
         }()
     ]);
 
-    // First, get all the components
-    var components = ProjectIndexer.components(indexed).toList();
-    components.sort((a, b) => a.name.compareTo(b.name));
-    // Then, declare the components
-    final declarations = components.map<String>((component) {
-      String forComponent(FlameComponentObject component) {
-        // data: ${json.encode(component.data..remove('description'))},
-        return """FlameComponentObject(
-  name: '${component.name}',
-  type: '${component.type}',
-  parameters: ${component.parameters},
-  data: { /* This data is omitted and can be found at the flame-engine/flame repository */},
-)${component.components.isEmpty ? '' : '''..components = [
-${component.components.map(forComponent).join(',\n')}
-]'''}""";
-      }
-
-      return forComponent(component);
-    });
-
-    final file = File(r'flame_workspace\lib\project\built_in_components.dart');
-    file.writeAsString('''/// Automatically generated file.
-/// Do not edit manually
-
-import 'game_objects.dart';
-
-final builtInComponents = [
-  ${declarations.join(',\n')}
-];
-''');
-
-    await Process.run('dart', ['format', file.path]);
+    return indexed;
   } else {
     throw 'Failed to do so :/';
   }

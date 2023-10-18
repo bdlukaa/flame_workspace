@@ -14,25 +14,55 @@ IconData? iconForComponent(String componentType) {
     'FpsComponent' => Icons.sixty_fps_rounded,
     'FpsTextComponent' => Icons.sixty_fps_select_rounded,
     'IsometricTileMapComponent' => Icons.grid_view_rounded,
-    'KeyboardListenerComponent' => Icons.keyboard_rounded,
     'ParallaxComponent' => Icons.lens_blur_rounded,
     'ParticleSystemComponent' => Icons.local_fire_department_rounded,
     'PolygonComponent' => Icons.hexagon_rounded,
-    'PositionComponent' => Icons.line_axis_rounded,
     'RectangleComponent' => Icons.rectangle_rounded,
     'ShapeComponent' => Icons.pentagon_rounded,
     'SpawnComponent' => Icons.animation_rounded,
+    //
+    'Viewfinder' => Icons.search_rounded,
+    'FollowBehavior' => Icons.link_rounded,
+    'BoundedPositionBehavior' => Icons.fence,
+    //
+    'KeyboardListenerComponent' => Icons.keyboard_rounded,
+    'HardwareKeyboardDetector' => Icons.keyboard_rounded,
+    //
+    'PositionComponent' => Icons.line_axis_rounded,
+    'AlignComponent' => Icons.align_horizontal_center,
+    'ButtonComponent' => Icons.smart_button_rounded,
+    //
+    'Route' => Icons.route,
+    'OverlayRoute' => Icons.layers,
+    'RouterComponent' => Icons.route,
     // * Sprites components
     'SpriteAnimationComponent' => Icons.grain_rounded,
     'SpriteAnimationGroupComponent' => Icons.web_stories_rounded,
     'SpriteComponent' => Icons.grain_rounded,
     'SpriteGroupComponent' => Icons.web_stories_rounded,
+    'SpriteBatchComponent' => Icons.batch_prediction_rounded,
     // * Text components
+    'TextComponent' => Icons.abc_rounded,
     'TextBoxComponent' => Icons.abc_rounded,
     'TextElementComponent' => Icons.abc_rounded,
     //
     'TimerComponent' => Icons.hourglass_full_rounded,
     'World' => Icons.public_rounded,
+    // Viewport
+    'Viewport' => Icons.crop_7_5_rounded,
+    'CircularViewport' => Icons.circle_rounded,
+    'FixedAspectRatioViewport' => Icons.aspect_ratio,
+    //
+    'Effect' => Icons.blur_circular_rounded,
+    'AnchorEffect' => Icons.anchor_rounded,
+    'ComponentEffect' => Icons.grid_view,
+    'GlowEffect' => Icons.wb_iridescent,
+    'MoveEffect' => Icons.zoom_out_map,
+    'OpacityEffect' => Icons.opacity,
+    'RotateEffect' => Icons.threesixty_outlined,
+    'ScaleEffect' => Icons.scale_outlined,
+    'SequenceEffect' => Icons.animation,
+    'SizeEffect' => Icons.photo_size_select_small,
     _ => null,
   };
 }

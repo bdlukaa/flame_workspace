@@ -3,7 +3,94 @@
 
 import 'game_objects.dart';
 
-final builtInComponents = [
+final builtInComponents = <FlameComponentObject>[
+  FlameComponentObject(
+    name: 'AlignComponent',
+    type: 'PositionComponent',
+    parameters: [
+      FlameComponentField('child', 'PositionComponent?', 'null'),
+      FlameComponentField('alignment', 'Anchor', 'Anchor.topLeft'),
+      FlameComponentField('widthFactor', 'double?', 'null'),
+      FlameComponentField('heightFactor', 'double?', 'null'),
+      FlameComponentField('keepChildAnchor', 'bool', 'false')
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'AnchorByEffect',
+    type: 'AnchorEffect',
+    parameters: [
+      FlameComponentField('offset', 'Vector2', 'null'),
+      FlameComponentField('controller', 'EffectController', 'null'),
+      FlameComponentField('target', 'AnchorProvider?', 'null'),
+      FlameComponentField('onComplete', 'void Function()?', 'null')
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'AnchorEffect',
+    type: 'Effect',
+    parameters: [
+      FlameComponentField('controller', 'EffectController', 'null', ['Effect']),
+      FlameComponentField('target', 'AnchorProvider?', 'null'),
+      FlameComponentField('onComplete', 'void Function()?', 'null', ['Effect'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'AnchorToEffect',
+    type: 'AnchorEffect',
+    parameters: [
+      FlameComponentField('destination', 'Anchor', 'null'),
+      FlameComponentField('controller', 'EffectController', 'null'),
+      FlameComponentField('target', 'AnchorProvider?', 'null'),
+      FlameComponentField('onComplete', 'void Function()?', 'null')
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'BoundedPositionBehavior',
+    type: 'Component',
+    parameters: [
+      FlameComponentField('bounds', 'Shape', 'null'),
+      FlameComponentField('target', 'PositionProvider?', 'null'),
+      FlameComponentField('precision', 'double', '0.5'),
+      FlameComponentField('priority', 'dynamic', 'null')
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'ButtonComponent',
+    type: 'PositionComponent',
+    parameters: [
+      FlameComponentField('button', 'PositionComponent?', 'null'),
+      FlameComponentField('buttonDown', 'PositionComponent?', 'null'),
+      FlameComponentField('onPressed', 'void Function()?', 'null'),
+      FlameComponentField('onReleased', 'void Function()?', 'null'),
+      FlameComponentField('onCancelled', 'void Function()?', 'null'),
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null'),
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
   FlameComponentObject(
     name: 'CameraComponent',
     type: 'Component',
@@ -19,25 +106,11 @@ final builtInComponents = [
     },
   ),
   FlameComponentObject(
-    name: 'CircleComponent',
-    type: 'ShapeComponent',
+    name: 'CircularViewport',
+    type: 'Viewport',
     parameters: [
-      FlameComponentField('radius', 'double?', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null',
-          ['ShapeComponent', 'PositionComponent']),
-      FlameComponentField(
-          'scale', 'Vector2?', 'null', ['ShapeComponent', 'PositionComponent']),
-      FlameComponentField(
-          'angle', 'double?', 'null', ['ShapeComponent', 'PositionComponent']),
-      FlameComponentField(
-          'anchor', 'Anchor?', 'null', ['ShapeComponent', 'PositionComponent']),
-      FlameComponentField('children', 'dynamic', 'null',
-          ['ShapeComponent', 'PositionComponent']),
-      FlameComponentField('priority', 'dynamic', 'null',
-          ['ShapeComponent', 'PositionComponent']),
-      FlameComponentField('paint', 'Paint?', 'null', ['ShapeComponent']),
-      FlameComponentField(
-          'paintLayers', 'List<Paint>?', 'null', ['ShapeComponent'])
+      FlameComponentField('radius', 'double', 'null'),
+      FlameComponentField('children', 'dynamic', 'null', ['Viewport'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -63,6 +136,34 @@ final builtInComponents = [
     },
   ),
   FlameComponentObject(
+    name: 'ComponentEffect',
+    type: 'Effect',
+    parameters: [
+      FlameComponentField('controller', 'EffectController', 'null', ['Effect']),
+      FlameComponentField('onComplete', 'void Function()?', 'null', ['Effect'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'CompositeHitbox',
+    type: 'PositionComponent',
+    parameters: [
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
     name: 'CustomPainterComponent',
     type: 'PositionComponent',
     parameters: [
@@ -75,6 +176,67 @@ final builtInComponents = [
       FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
       FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
       FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'Effect',
+    type: 'Component',
+    parameters: [
+      FlameComponentField('controller', 'EffectController', 'null'),
+      FlameComponentField('onComplete', 'void Function()?', 'null')
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'FixedAspectRatioViewport',
+    type: 'Viewport',
+    parameters: [
+      FlameComponentField('aspectRatio', 'double', 'null'),
+      FlameComponentField('children', 'dynamic', 'null', ['Viewport'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'FixedResolutionViewport',
+    type: 'FixedAspectRatioViewport',
+    parameters: [
+      FlameComponentField('resolution', 'Vector2', 'null'),
+      FlameComponentField('children', 'dynamic', 'null',
+          ['FixedAspectRatioViewport', 'Viewport'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'FixedSizeViewport',
+    type: 'Viewport',
+    parameters: [
+      FlameComponentField('width', 'double', 'null'),
+      FlameComponentField('height', 'double', 'null'),
+      FlameComponentField('children', 'dynamic', 'null', ['Viewport'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'FollowBehavior',
+    type: 'Component',
+    parameters: [
+      FlameComponentField('target', 'ReadOnlyPositionProvider', 'null'),
+      FlameComponentField('owner', 'PositionProvider?', 'null'),
+      FlameComponentField('maxSpeed', 'double', 'double.infinity'),
+      FlameComponentField('horizontalOnly', 'bool', 'false'),
+      FlameComponentField('verticalOnly', 'bool', 'false'),
+      FlameComponentField('priority', 'dynamic', 'null')
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -138,6 +300,80 @@ final builtInComponents = [
       )
     ],
   FlameComponentObject(
+    name: 'GlowEffect',
+    type: 'Effect',
+    parameters: [
+      FlameComponentField('strength', 'double', 'null'),
+      FlameComponentField('controller', 'EffectController', 'null', ['Effect']),
+      FlameComponentField('style', 'BlurStyle', 'BlurStyle.outer')
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'HardwareKeyboardDetector',
+    type: 'Component',
+    parameters: [
+      FlameComponentField('onKeyEvent', 'void Function(KeyEvent)?', 'null')
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'HudButtonComponent',
+    type: 'ButtonComponent',
+    parameters: [
+      FlameComponentField(
+          'button', 'PositionComponent?', 'null', ['ButtonComponent']),
+      FlameComponentField(
+          'buttonDown', 'PositionComponent?', 'null', ['ButtonComponent']),
+      FlameComponentField('margin', 'EdgeInsets?', 'null'),
+      FlameComponentField(
+          'onPressed', 'void Function()?', 'null', ['ButtonComponent']),
+      FlameComponentField(
+          'onReleased', 'void Function()?', 'null', ['ButtonComponent']),
+      FlameComponentField(
+          'onCancelled', 'void Function()?', 'null', ['ButtonComponent']),
+      FlameComponentField('position', 'Vector2?', 'null',
+          ['ButtonComponent', 'PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null'),
+      FlameComponentField('scale', 'Vector2?', 'null',
+          ['ButtonComponent', 'PositionComponent']),
+      FlameComponentField(
+          'angle', 'double?', 'null', ['ButtonComponent', 'PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null',
+          ['ButtonComponent', 'PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null',
+          ['ButtonComponent', 'PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null',
+          ['ButtonComponent', 'PositionComponent'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'HudMarginComponent',
+    type: 'PositionComponent',
+    parameters: [
+      FlameComponentField('margin', 'EdgeInsets?', 'null'),
+      FlameComponentField(
+          'position', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('size', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('scale', 'Vector2?', 'null', ['PositionComponent']),
+      FlameComponentField('angle', 'double?', 'null', ['PositionComponent']),
+      FlameComponentField('anchor', 'Anchor?', 'null', ['PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent']),
+      FlameComponentField('key', 'dynamic', 'null', ['PositionComponent'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
     name: 'IsometricTileMapComponent',
     type: 'PositionComponent',
     parameters: [
@@ -160,6 +396,31 @@ final builtInComponents = [
     },
   ),
   FlameComponentObject(
+    name: 'JoystickComponent',
+    type: 'HudMarginComponent',
+    parameters: [
+      FlameComponentField('knob', 'PositionComponent?', 'null'),
+      FlameComponentField('background', 'PositionComponent?', 'null'),
+      FlameComponentField(
+          'margin', 'EdgeInsets?', 'null', ['HudMarginComponent']),
+      FlameComponentField('position', 'Vector2?', 'null',
+          ['HudMarginComponent', 'PositionComponent']),
+      FlameComponentField('size', 'double?', 'null'),
+      FlameComponentField('knobRadius', 'double?', 'null'),
+      FlameComponentField('anchor', 'Anchor?', 'Anchor.center',
+          ['HudMarginComponent', 'PositionComponent']),
+      FlameComponentField('children', 'dynamic', 'null',
+          ['HudMarginComponent', 'PositionComponent']),
+      FlameComponentField('priority', 'dynamic', 'null',
+          ['HudMarginComponent', 'PositionComponent']),
+      FlameComponentField(
+          'key', 'dynamic', 'null', ['HudMarginComponent', 'PositionComponent'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
     name: 'KeyboardListenerComponent',
     type: 'Component',
     parameters: [
@@ -167,6 +428,69 @@ final builtInComponents = [
           'keyUp', 'Map<LogicalKeyboardKey, KeyHandlerCallback>', 'const {}'),
       FlameComponentField(
           'keyDown', 'Map<LogicalKeyboardKey, KeyHandlerCallback>', 'const {}')
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'MaxViewport',
+    type: 'Viewport',
+    parameters: [
+      FlameComponentField('children', 'dynamic', 'null', ['Viewport'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'MoveAlongPathEffect',
+    type: 'MoveEffect',
+    parameters: [
+      FlameComponentField('path', 'Path', 'null'),
+      FlameComponentField('controller', 'EffectController', 'null'),
+      FlameComponentField('absolute', 'bool', 'false'),
+      FlameComponentField('oriented', 'bool', 'false'),
+      FlameComponentField('target', 'PositionProvider?', 'null'),
+      FlameComponentField('onComplete', 'void Function()?', 'null')
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'MoveByEffect',
+    type: 'MoveEffect',
+    parameters: [
+      FlameComponentField('offset', 'Vector2', 'null'),
+      FlameComponentField('controller', 'EffectController', 'null'),
+      FlameComponentField('target', 'PositionProvider?', 'null'),
+      FlameComponentField('onComplete', 'void Function()?', 'null')
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'MoveEffect',
+    type: 'Effect',
+    parameters: [
+      FlameComponentField('controller', 'EffectController', 'null', ['Effect']),
+      FlameComponentField('target', 'PositionProvider?', 'null'),
+      FlameComponentField('onComplete', 'void Function()?', 'null', ['Effect'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'MoveToEffect',
+    type: 'MoveEffect',
+    parameters: [
+      FlameComponentField('destination', 'Vector2', 'null'),
+      FlameComponentField('controller', 'EffectController', 'null'),
+      FlameComponentField('target', 'PositionProvider?', 'null'),
+      FlameComponentField('onComplete', 'void Function()?', 'null')
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -186,6 +510,25 @@ final builtInComponents = [
       FlameComponentField('children', 'dynamic', 'null', ['PositionComponent']),
       FlameComponentField('priority', 'dynamic', 'null', ['PositionComponent']),
       FlameComponentField('key', 'dynamic', 'null', ['PositionComponent'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'OpacityEffect',
+    type: 'Effect',
+    parameters: [],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'OverlayRoute',
+    type: 'Route',
+    parameters: [
+      FlameComponentField('builder', 'OverlayBuilder', 'null'),
+      FlameComponentField('transparent', 'bool', 'true', ['Route'])
     ],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -229,36 +572,6 @@ final builtInComponents = [
     },
   ),
   FlameComponentObject(
-    name: 'PolygonComponent',
-    type: 'ShapeComponent',
-    parameters: [
-      FlameComponentField('_vertices', 'dynamic', 'null'),
-      FlameComponentField('position', 'Vector2?', 'null',
-          ['ShapeComponent', 'PositionComponent']),
-      FlameComponentField(
-          'size', 'Vector2?', 'null', ['ShapeComponent', 'PositionComponent']),
-      FlameComponentField(
-          'scale', 'Vector2?', 'null', ['ShapeComponent', 'PositionComponent']),
-      FlameComponentField(
-          'angle', 'double?', 'null', ['ShapeComponent', 'PositionComponent']),
-      FlameComponentField(
-          'anchor', 'Anchor?', 'null', ['ShapeComponent', 'PositionComponent']),
-      FlameComponentField('children', 'dynamic', 'null',
-          ['ShapeComponent', 'PositionComponent']),
-      FlameComponentField('priority', 'dynamic', 'null',
-          ['ShapeComponent', 'PositionComponent']),
-      FlameComponentField('paint', 'Paint?', 'null', ['ShapeComponent']),
-      FlameComponentField(
-          'paintLayers', 'List<Paint>?', 'null', ['ShapeComponent']),
-      FlameComponentField(
-          'key', 'dynamic', 'null', ['ShapeComponent', 'PositionComponent']),
-      FlameComponentField('shrinkToBounds', 'bool?', 'null')
-    ],
-    data: {
-      /* This data is omitted and can be found at the flame-engine/flame repository */
-    },
-  ),
-  FlameComponentObject(
     name: 'PositionComponent',
     type: 'Component',
     parameters: [
@@ -277,30 +590,55 @@ final builtInComponents = [
     },
   ),
   FlameComponentObject(
-    name: 'RectangleComponent',
-    type: 'PolygonComponent',
+    name: 'RemoveEffect',
+    type: 'ComponentEffect',
     parameters: [
-      FlameComponentField('position', 'Vector2?', 'null',
-          ['PolygonComponent', 'ShapeComponent', 'PositionComponent']),
-      FlameComponentField('size', 'Vector2?', 'null',
-          ['PolygonComponent', 'ShapeComponent', 'PositionComponent']),
-      FlameComponentField('scale', 'Vector2?', 'null',
-          ['PolygonComponent', 'ShapeComponent', 'PositionComponent']),
-      FlameComponentField('angle', 'double?', 'null',
-          ['PolygonComponent', 'ShapeComponent', 'PositionComponent']),
-      FlameComponentField('anchor', 'Anchor?', 'null',
-          ['PolygonComponent', 'ShapeComponent', 'PositionComponent']),
-      FlameComponentField('children', 'dynamic', 'null',
-          ['PolygonComponent', 'ShapeComponent', 'PositionComponent']),
-      FlameComponentField('priority', 'dynamic', 'null',
-          ['PolygonComponent', 'ShapeComponent', 'PositionComponent']),
-      FlameComponentField(
-          'paint', 'Paint?', 'null', ['PolygonComponent', 'ShapeComponent']),
-      FlameComponentField('paintLayers', 'List<Paint>?', 'null',
-          ['PolygonComponent', 'ShapeComponent']),
-      FlameComponentField('key', 'dynamic', 'null',
-          ['PolygonComponent', 'ShapeComponent', 'PositionComponent'])
+      FlameComponentField('delay', 'double', '0.0'),
+      FlameComponentField('onComplete', 'void Function()?', 'null')
     ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'RotateEffect',
+    type: 'Effect',
+    parameters: [],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'Route',
+    type: 'PositionComponent',
+    parameters: [
+      FlameComponentField('builder', 'Component Function()?', 'null'),
+      FlameComponentField('transparent', 'bool', 'false'),
+      FlameComponentField('maintainState', 'bool', 'true')
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'RouterComponent',
+    type: 'Component',
+    parameters: [
+      FlameComponentField('initialRoute', 'String', 'null'),
+      FlameComponentField('routes', 'Map<String, Route>', 'null'),
+      FlameComponentField(
+          'routeFactories', 'Map<String, RouteFactory>?', 'null'),
+      FlameComponentField('onUnknownRoute', 'RouteFactory?', 'null'),
+      FlameComponentField('key', 'dynamic', 'null')
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'ScaleEffect',
+    type: 'Effect',
+    parameters: [],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
     },
@@ -308,6 +646,14 @@ final builtInComponents = [
   FlameComponentObject(
     name: 'ScreenHitbox',
     type: 'PositionComponent',
+    parameters: [],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'SequenceEffect',
+    type: 'Effect',
     parameters: [],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
@@ -329,6 +675,14 @@ final builtInComponents = [
       FlameComponentField('paint', 'Paint?', 'null'),
       FlameComponentField('paintLayers', 'List<Paint>?', 'null')
     ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'SizeEffect',
+    type: 'Effect',
+    parameters: [],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
     },
@@ -541,6 +895,33 @@ final builtInComponents = [
       FlameComponentField('onTick', 'VoidCallback?', 'null'),
       FlameComponentField('key', 'dynamic', 'null')
     ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'ValueRoute',
+    type: 'Route',
+    parameters: [
+      FlameComponentField('value', 'T', 'null'),
+      FlameComponentField('transparent', 'bool', 'null', ['Route'])
+    ],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'Viewfinder',
+    type: 'Component',
+    parameters: [],
+    data: {
+      /* This data is omitted and can be found at the flame-engine/flame repository */
+    },
+  ),
+  FlameComponentObject(
+    name: 'Viewport',
+    type: 'Component',
+    parameters: [FlameComponentField('children', 'dynamic', 'null')],
     data: {
       /* This data is omitted and can be found at the flame-engine/flame repository */
     },
