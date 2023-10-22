@@ -27,12 +27,19 @@ typedef SceneResult = (
 class ProjectIndexer {
   const ProjectIndexer._();
 
-  static Future<ProjectIndexResult> indexProject(Directory libDir) async {
+  static Future<ProjectIndexResult> indexProject(
+    Directory libDir, [
+    Iterable<String>? includeOnly,
+  ]) async {
+    // ignore: avoid_print
+    print('Indexing project at ${libDir.path} including only $includeOnly');
     final ProjectIndexResult files = <(IndexedUnit, CompilationUnit)>[];
 
     await for (final file in libDir
         .list(recursive: true)
         .where((f) => f is File && path.extension(f.path) == '.dart')) {
+      if (includeOnly != null && !includeOnly.contains(file.path)) continue;
+
       final parsed = parseFile(
         path: file.path,
         featureSet: FeatureSet.latestLanguageVersion(),

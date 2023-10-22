@@ -76,7 +76,18 @@ class _WorkbenchViewState extends State<WorkbenchView> {
     _filesSubscription = widget.project.location
         .watch(recursive: true)
         .listen((FileSystemEvent event) {
-      indexProject();
+      // print(event);
+      switch (event.type) {
+        case FileSystemEvent.create:
+        case FileSystemEvent.modify:
+        case FileSystemEvent.move:
+          indexProject(includeOnly: [event.path]);
+          break;
+        case FileSystemEvent.delete:
+          setState(
+              () => indexed?.removeWhere((e) => e.$1['source'] == event.path));
+          break;
+      }
     });
     indexProject();
 
@@ -85,10 +96,25 @@ class _WorkbenchViewState extends State<WorkbenchView> {
     });
   }
 
-  void indexProject() async {
-    indexed = null;
+  void indexProject({
+    Iterable<String>? includeOnly,
+    bool onlyParse = false,
+  }) async {
     if (mounted) setState(() {});
-    indexed = await widget.project.index();
+    if (!onlyParse) {
+      final result = await ProjectIndexer.indexProject(
+        widget.project.location,
+        includeOnly,
+      );
+      indexed ??= [];
+      if (includeOnly != null && includeOnly.isNotEmpty) {
+        indexed!.removeWhere((e) => includeOnly.contains(e.$1['source']));
+        indexed!.addAll(result);
+      } else {
+        indexed!.clear();
+        indexed!.addAll(result);
+      }
+    }
     components
       ..clear()
       ..addAll(ProjectIndexer.components(indexed!));

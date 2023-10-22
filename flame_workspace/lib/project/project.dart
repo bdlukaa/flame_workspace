@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flame_workspace/parser/parser.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:yaml/yaml.dart';
@@ -97,8 +96,6 @@ class FlameProject {
   Iterable<File> get assets => Directory(path.join(location.path, 'assets'))
       .listSync(recursive: true)
       .whereType<File>();
-
-  Future<ProjectIndexResult> index() => ProjectIndexer.indexProject(location);
 }
 
 /// Creates a new Flame project.
