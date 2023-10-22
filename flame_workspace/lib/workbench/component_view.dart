@@ -435,8 +435,9 @@ class _FieldState extends State<_Field> {
         padding: const EdgeInsetsDirectional.symmetric(vertical: 5.0),
         child: InkWell(
           onTap: widget.editable
-              ? () {
-                  showDialog(
+              ? () async {
+                  Color? newColor;
+                  await showDialog(
                     context: context,
                     builder: (context) {
                       return SimpleDialog(
@@ -447,14 +448,13 @@ class _FieldState extends State<_Field> {
                             paletteType: PaletteType.hsv,
                             labelTypes: const [ColorLabelType.rgb],
                             portraitOnly: true,
-                            onColorChanged: (color) {
-                              debugPrint(color.toString());
-                            },
+                            onColorChanged: (color) => newColor = color,
                           ),
                         ],
                       );
                     },
                   );
+                  widget.onChanged?.call(newColor.toString());
                 }
               : null,
           child: Container(color: color),

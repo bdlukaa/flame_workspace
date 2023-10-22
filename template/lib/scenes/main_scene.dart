@@ -11,7 +11,7 @@ class Scene1 extends FlameScene with TapCallbacks {
 
   MyCircle circle = MyCircle(
     radius: 120.0,
-    color: const Color(0x00FF00F0),
+    color: const Color(0xffc621c0),
     position: Vector2(100, 100),
     flag: false,
   );
