@@ -26,19 +26,19 @@ class ValuesParser {
   /// Parses the default value of a declared parameter.
   static dynamic parseValue(
     FlameComponentObject component,
-    MapEntry<String, String> namedExpression,
+    (String name, String value) namedExpression,
   ) {
     final parameter = component.parameters.firstWhere(
-      (p) => p.name == namedExpression.key,
+      (p) => p.name == namedExpression.$1,
     );
 
     final result = switch (parameter.nonNullableType) {
-      'Color' => parseColor(namedExpression.value),
-      'int' => int.tryParse(namedExpression.value),
-      'double' => double.tryParse(namedExpression.value),
-      _ => namedExpression.value,
+      'Color' => parseColor(namedExpression.$2),
+      'int' => int.tryParse(namedExpression.$2),
+      'double' => double.tryParse(namedExpression.$2),
+      _ => namedExpression.$2,
     };
 
-    return result ?? namedExpression.value;
+    return result ?? namedExpression.$2;
   }
 }

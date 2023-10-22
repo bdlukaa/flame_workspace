@@ -1,5 +1,5 @@
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:flame_workspace/parser/parameters.dart';
+import 'package:flame_workspace/parser/component.dart';
 import 'package:flame_workspace/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -81,20 +81,24 @@ class ComponentView extends StatelessWidget {
                 String? value;
                 if (initArgs != null) {
                   final expression = initArgs.firstWhereOrNull((a) {
-                    return a.key == parameter.name;
+                    return a.$1 == parameter.name;
                   });
                   if (expression != null) {
                     value = ValuesParser.parseValue(
                       component,
-                      expression,
+                      (expression.$1, expression.$2),
                     ).toString();
                   }
                 }
                 value ??= parameter.defaultValue;
+
                 return _Field(
                   name: parameter.name,
                   value: '$value',
                   type: parameter.type,
+                  onChanged: (value) {
+                    componentHelper.writeArgument(parameter.name, value);
+                  },
                 );
               }),
           ],

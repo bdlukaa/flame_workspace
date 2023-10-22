@@ -42,7 +42,7 @@ class CompilationUnitHelper {
   /// Returns the name of the constructor and a map of the named arguments.
   (
     String constructorName,
-    Iterable<MapEntry<String, String>> named,
+    Iterable<(String name, String expression, NamedExpression argument)> named,
   )? parseExpression(Expression expression) {
     expression = expression.unParenthesized;
 
@@ -64,9 +64,10 @@ class CompilationUnitHelper {
       return (
         name.name,
         arguments.map((argument) {
-          return MapEntry(
+          return (
             argument.name.label.name,
             argument.expression.toSource(),
+            argument,
           );
         })
       );

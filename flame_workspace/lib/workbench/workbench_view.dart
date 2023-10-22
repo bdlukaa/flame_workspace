@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../project/game_objects.dart';
@@ -60,6 +63,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   var mode = WorkbenchViewMode.design;
 
   late final runner = FlameProjectRunner(widget.project);
+  late final StreamSubscription<FileSystemEvent> _filesSubscription;
 
   ProjectIndexResult? indexed;
 
@@ -69,6 +73,11 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   @override
   void initState() {
     super.initState();
+    _filesSubscription = widget.project.location
+        .watch(recursive: true)
+        .listen((FileSystemEvent event) {
+      indexProject();
+    });
     indexProject();
 
     runner.addListener(() {
@@ -92,6 +101,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   @override
   void dispose() {
     runner.dispose();
+    _filesSubscription.cancel();
     super.dispose();
   }
 

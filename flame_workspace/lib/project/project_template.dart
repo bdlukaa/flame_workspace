@@ -6,10 +6,10 @@ library project_files;
 
 import 'project.dart';
 
-extension on FlameProject {
-  String get appName => '${name.replaceAll('_', '')}App';
-  String get gameName => '${name.replaceAll('_', '')}Game';
-}
+// extension on FlameProject {
+//   String get appName => '${name.replaceAll('_', '')}App';
+//   String get gameName => '${name.replaceAll('_', '')}Game';
+// }
 
 extension ProjectFiles on FlameProject {
   String get flameConfigFile =>
