@@ -13,13 +13,21 @@ import '../project/built_in_components.dart';
 import '../project/game_objects.dart';
 
 typedef ProjectIndexResult = List<(IndexedUnit, CompilationUnit)>;
+typedef ComponentResult = (
+  FlameComponentObject component,
+  IndexedUnit indexedUnit,
+  CompilationUnit unit
+);
+typedef SceneResult = (
+  FlameSceneObject scene,
+  IndexedUnit indexedUnit,
+  CompilationUnit unit
+);
 
 class ProjectIndexer {
   const ProjectIndexer._();
 
-  static Future<ProjectIndexResult> indexProject(
-    Directory libDir,
-  ) async {
+  static Future<ProjectIndexResult> indexProject(Directory libDir) async {
     final ProjectIndexResult files = <(IndexedUnit, CompilationUnit)>[];
 
     await for (final file in libDir
@@ -42,14 +50,16 @@ class ProjectIndexer {
   ///
   /// `components` represents all the components in the project. If null, the
   /// components will be searched for.
-  static Iterable<FlameSceneObject> scenes(
-    Iterable<IndexedUnit> indexed, [
-    Iterable<FlameComponentObject>? components,
+  static Iterable<SceneResult> scenes(
+    ProjectIndexResult indexed, [
+    Iterable<ComponentResult>? components,
   ]) {
     components ??= ProjectIndexer.components(indexed);
 
-    final scenes = <FlameSceneObject>[];
-    for (final file in indexed) {
+    final scenes = <SceneResult>[];
+    for (final index in indexed) {
+      final file = index.$1;
+      final unit = index.$2;
       if (file['declarations'] == null) continue;
       final declarations = (file['declarations'] as List)
           .cast<Map>()
@@ -63,9 +73,16 @@ class ProjectIndexer {
 
         final fields = members.where((m) => m['kind'] == 'field');
 
-        return FlameSceneObject(
-          name: className,
-          components: _componentsFromClassFields(components!, fields),
+        return (
+          FlameSceneObject(
+            name: className,
+            components: _componentsFromClassFields(
+              components!.map((e) => e.$1),
+              fields,
+            ),
+          ),
+          file,
+          unit,
         );
       }));
     }
@@ -107,17 +124,15 @@ class ProjectIndexer {
     }).toList();
   }
 
-  /// Returns all the components in the project.
-  // TODO: this should return the class declaration and the IndexedUnit
-  // To be used by the IDE to match the default values, if initialized
-  static Iterable<FlameComponentObject> components(
-    Iterable<IndexedUnit> indexed,
-  ) {
-    final components = <FlameComponentObject>[];
+  /// Returns all the components in the project and its compilation unit.
+  static Iterable<ComponentResult> components(ProjectIndexResult indexed) {
+    final components = <ComponentResult>[];
 
-    for (final file in indexed) {
-      if (file['declarations'] == null) continue;
-      final declarations = (file['declarations'] as List)
+    for (final index in indexed) {
+      final indexedUnit = index.$1;
+      final unit = index.$2;
+      if (indexedUnit['declarations'] == null) continue;
+      final declarations = (indexedUnit['declarations'] as List)
           .cast<Map>()
           .map((e) => e as IndexedUnit);
       components.addAll(declarations.where((d) {
@@ -157,7 +172,7 @@ class ProjectIndexer {
                       'Cannot use super. without a superclass',
                     );
                     superComponent = [
-                      ...components,
+                      ...components.map((e) => e.$1),
                       ...builtInComponents,
                     ].firstWhereOrNull((c) => c.name == superclass);
 
@@ -204,17 +219,21 @@ class ProjectIndexer {
           }
         }
 
-        return FlameComponentObject(
-          name: d['name'],
-          type: d['extends'],
-          parameters: componentParameters,
-          data: d,
+        return (
+          FlameComponentObject(
+            name: d['name'],
+            type: d['extends'],
+            parameters: componentParameters,
+            data: d,
+          ),
+          indexedUnit,
+          unit,
         );
       }));
     }
 
     // Populates the components with their children recursively.
-    void populateComponents(List<FlameComponentObject> components) {
+    void populateComponents(Iterable<FlameComponentObject> components) {
       for (final parent in components) {
         if (parent.data['members'] == null) continue;
         final fields = (parent.data['members'] as List)
@@ -244,7 +263,7 @@ class ProjectIndexer {
       }
     }
 
-    populateComponents(components);
+    populateComponents(components.map((e) => e.$1));
 
     return components;
   }

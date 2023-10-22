@@ -1,5 +1,6 @@
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:flame_workspace/compilation_unit_helper.dart';
+import 'package:flame_workspace/parser/parameters.dart';
+import 'package:flame_workspace/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
@@ -17,66 +18,18 @@ class ComponentView extends StatelessWidget {
     final workbench = Workbench.of(context);
     final design = Design.of(context);
 
+    final scene = design.currentScene;
     final component = design.currentSelectedComponent;
-    if (component == null) {
-      final scene = design.currentScene;
-      return Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Scene', style: theme.textTheme.labelLarge),
-          ComponentSectionCard(
-            title: 'General',
-            children: [
-              _Field(
-                name: 'Name',
-                value: scene.name,
-                type: '$String',
-                editable: false,
-              ),
-              _Field(
-                name: 'Color',
-                description: 'Background color',
-                value: 'Color(0xFF000000)',
-                type: '$Color',
-              ),
-            ],
-          ),
-          ComponentSectionCard(
-            title: 'Components',
-            trailing: '${scene.components.length}',
-            children: [
-              for (final component in scene.components)
-                SizedBox(
-                  height: kFieldHeight,
-                  child: Row(children: [
-                    Expanded(
-                      flex: 2,
-                      child: AutoSizeText(
-                        component.name,
-                        maxLines: 1,
-                        minFontSize: 8.0,
-                        style: theme.textTheme.labelMedium!,
-                      ),
-                    ),
-                    const VerticalDivider(),
-                    Expanded(
-                      child: Text(
-                        component.declarationName!,
-                        style: theme.textTheme.bodySmall!,
-                      ),
-                    ),
-                  ]),
-                ),
-            ],
-          ),
-        ]),
-      );
-    }
+    if (component == null) return const ScenePropertiesView();
 
-    // final unit = CompilationUnitHelper(
-    //   indexed: workbench.indexed.map((e) => e.$1),
-    //   unit: workbench.indexed.map((e) => e.$2),
-    // );
+    final componentHelper = ComponentHelper(
+      component: component,
+      scene: scene,
+      scenes: workbench.scenes,
+      components: workbench.components,
+    );
+
+    final initArgs = componentHelper.initializerArguments;
 
     final transformParameters = component.name == 'PositionComponent'
         ? component.parameters
@@ -124,11 +77,26 @@ class ComponentView extends StatelessWidget {
           trailing: '${scriptParameters.length}',
           children: [
             for (final parameter in scriptParameters)
-              _Field(
-                name: parameter.name,
-                value: '${parameter.defaultValue}',
-                type: parameter.type,
-              ),
+              Builder(builder: (context) {
+                String? value;
+                if (initArgs != null) {
+                  final expression = initArgs.firstWhereOrNull((a) {
+                    return a.key == parameter.name;
+                  });
+                  if (expression != null) {
+                    value = ValuesParser.parseValue(
+                      component,
+                      expression,
+                    ).toString();
+                  }
+                }
+                value ??= parameter.defaultValue;
+                return _Field(
+                  name: parameter.name,
+                  value: '$value',
+                  type: parameter.type,
+                );
+              }),
           ],
         ),
         if (transformParameters.isNotEmpty)
@@ -170,6 +138,69 @@ class ComponentView extends StatelessWidget {
               ),
             ],
           ),
+      ]),
+    );
+  }
+}
+
+class ScenePropertiesView extends StatelessWidget {
+  const ScenePropertiesView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final design = Design.of(context);
+    final scene = design.currentScene;
+
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Scene', style: theme.textTheme.labelLarge),
+        ComponentSectionCard(
+          title: 'General',
+          children: [
+            _Field(
+              name: 'Name',
+              value: scene.name,
+              type: '$String',
+              editable: false,
+            ),
+            _Field(
+              name: 'Color',
+              description: 'Background color',
+              value: 'Color(0xFF000000)',
+              type: '$Color',
+            ),
+          ],
+        ),
+        ComponentSectionCard(
+          title: 'Components',
+          trailing: '${scene.components.length}',
+          children: [
+            for (final component in scene.components)
+              SizedBox(
+                height: kFieldHeight,
+                child: Row(children: [
+                  Expanded(
+                    flex: 2,
+                    child: AutoSizeText(
+                      component.name,
+                      maxLines: 1,
+                      minFontSize: 8.0,
+                      style: theme.textTheme.labelMedium!,
+                    ),
+                  ),
+                  const VerticalDivider(),
+                  Expanded(
+                    child: Text(
+                      component.declarationName!,
+                      style: theme.textTheme.bodySmall!,
+                    ),
+                  ),
+                ]),
+              ),
+          ],
+        ),
       ]),
     );
   }

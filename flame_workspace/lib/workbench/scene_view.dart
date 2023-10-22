@@ -258,7 +258,7 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
 
     projectComponents = componentsFor(
       types: builtInComponents.map((e) => e.type),
-      components: components,
+      components: components.map((e) => e.$1),
     ).toList()
       ..sort(sorter);
   }

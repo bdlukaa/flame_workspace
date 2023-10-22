@@ -18,8 +18,8 @@ class Workbench extends InheritedWidget {
   final FlameProjectRunner runner;
 
   final ProjectIndexResult indexed;
-  final List<FlameSceneObject> scenes;
-  final List<FlameComponentObject> components;
+  final List<SceneResult> scenes;
+  final List<ComponentResult> components;
 
   const Workbench({
     super.key,
@@ -63,8 +63,8 @@ class _WorkbenchViewState extends State<WorkbenchView> {
 
   ProjectIndexResult? indexed;
 
-  final scenes = <FlameSceneObject>[];
-  final components = <FlameComponentObject>[];
+  final scenes = <SceneResult>[];
+  final components = <ComponentResult>[];
 
   @override
   void initState() {
@@ -82,10 +82,10 @@ class _WorkbenchViewState extends State<WorkbenchView> {
     indexed = await widget.project.index();
     components
       ..clear()
-      ..addAll(ProjectIndexer.components(indexed!.map((e) => e.$1)));
+      ..addAll(ProjectIndexer.components(indexed!));
     scenes
       ..clear()
-      ..addAll(ProjectIndexer.scenes(indexed!.map((e) => e.$1)));
+      ..addAll(ProjectIndexer.scenes(indexed!));
     if (mounted) setState(() {});
   }
 
@@ -248,10 +248,10 @@ class _DesignViewState extends State<DesignView> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final workbench = Workbench.of(context);
-    _currentScene ??= workbench.scenes.firstWhere(
-      (scene) => scene.name == workbench.project.initialScene,
-      orElse: () => workbench.scenes.first,
-    );
+    _currentScene ??= workbench.scenes.map((e) => e.$1).firstWhere(
+          (scene) => scene.name == workbench.project.initialScene,
+          orElse: () => workbench.scenes.first.$1,
+        );
   }
 
   @override

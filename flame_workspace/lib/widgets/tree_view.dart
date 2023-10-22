@@ -53,7 +53,6 @@ class _TreeNode extends StatefulWidget {
   final bool initiallyExpanded;
 
   const _TreeNode({
-    super.key,
     required this.node,
     required this.initiallyExpanded,
   });

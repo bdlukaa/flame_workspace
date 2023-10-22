@@ -42,7 +42,7 @@ Future<void> getAll() async {
 
   if (response.statusCode == 200) {
     final files = (jsonDecode(response.body) as List).cast<Map>();
-    List<Map<String, dynamic>> indexed = [];
+    ProjectIndexResult indexed = [];
     await Future.wait([
       for (final file in files)
         () async {
@@ -60,7 +60,8 @@ Future<void> getAll() async {
     ]);
 
     // First, get all the components
-    var components = ProjectIndexer.components(indexed).toList();
+    var components =
+        ProjectIndexer.components(indexed).map((e) => e.$1).toList();
 
     // Remove duplicates
     for (final component in List<FlameComponentObject>.from(components)) {
@@ -105,7 +106,7 @@ final builtInComponents = <FlameComponentObject>[
   }
 }
 
-Future<List<Map<String, dynamic>>> forFile(String path) async {
+Future<ProjectIndexResult> forFile(String path) async {
   print('Getting for file $path');
   final response = await http.get(
     Uri.parse(
@@ -128,7 +129,7 @@ Future<List<Map<String, dynamic>>> forFile(String path) async {
 
     // paths.removeRange(5, paths.length - 1);
 
-    List<Map<String, dynamic>> indexed = [];
+    ProjectIndexResult indexed = [];
 
     // Get all the files in the /components lib
 
@@ -151,10 +152,10 @@ Future<List<Map<String, dynamic>>> forFile(String path) async {
                     .join('\n'),
                 featureSet: FeatureSet.latestLanguageVersion(),
               );
-              final unit = dartdoc.serializeCompilationUnit(parsed.unit);
-              unit['source'] = path;
+              final serialized = dartdoc.serializeCompilationUnit(parsed.unit);
+              serialized['source'] = path;
 
-              indexed.add(unit);
+              indexed.add((serialized, parsed.unit));
             } catch (e, s) {
               print('$path failed to parse with error:\n $e\n$s');
             }

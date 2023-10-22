@@ -22,6 +22,10 @@ class FlameComponentObject {
   /// The object declaration data
   final Map<String, dynamic> data;
 
+  /// The parent of this component.
+  ///
+  /// This is used when the component is declared inline under another component.
+  /// This may be null for Scene level components.
   FlameComponentObject? parent;
 
   /// When the component is declared inline:
@@ -95,4 +99,6 @@ class FlameComponentField {
       ")";
 
   bool get isNullable => type == 'dynamic' || type.endsWith('?');
+
+  String get nonNullableType => type.replaceAll('?', '');
 }

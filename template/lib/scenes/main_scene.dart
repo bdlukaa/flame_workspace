@@ -55,7 +55,7 @@ class MyCircle extends PositionComponent with FlameComponent {
 
   final Paint _paint;
 
-  MySquare innerCircle = MySquare();
+  MySquare innerCircle = MySquare(radius: 50.0);
 
   @override
   void render(Canvas canvas) {

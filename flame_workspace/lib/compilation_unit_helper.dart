@@ -9,20 +9,23 @@ class CompilationUnitHelper {
 
   const CompilationUnitHelper({required this.unit, required this.indexed});
 
-  ClassDeclaration? findClass(String className) {
+  ClassDeclaration? findClass(String? className) {
     return unit.declarations.whereType<ClassDeclaration>().firstWhereOrNull(
           (c) => c.name.lexeme == className,
         );
   }
 
-  MethodDeclaration? findMethod(ClassDeclaration cls, String methodName) {
-    return cls.members.whereType<MethodDeclaration>().firstWhereOrNull(
+  MethodDeclaration? findMethod(ClassDeclaration? cls, String methodName) {
+    return cls?.members.whereType<MethodDeclaration>().firstWhereOrNull(
           (m) => m.name.lexeme == methodName,
         );
   }
 
-  VariableDeclaration? findProperty(ClassDeclaration cls, String propertyName) {
-    final field = cls.members.whereType<FieldDeclaration>().firstWhereOrNull(
+  VariableDeclaration? findProperty(
+    ClassDeclaration? cls,
+    String propertyName,
+  ) {
+    final field = cls?.members.whereType<FieldDeclaration>().firstWhereOrNull(
           (m) => m.fields.variables.any((v) => v.name.lexeme == propertyName),
         );
 
@@ -67,8 +70,6 @@ class CompilationUnitHelper {
           );
         })
       );
-
-      // return (name.name, args.arguments.map((e) {:}));
     } else {
       return null;
     }
