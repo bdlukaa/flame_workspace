@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../project/game_objects.dart';
-import '../project/parser.dart';
+import '../parser/parser.dart';
 import '../project/project.dart';
 import '../project/runner.dart';
 import '../widgets/inked_icon_button.dart';
@@ -17,7 +17,7 @@ class Workbench extends InheritedWidget {
   final FlameProject project;
   final FlameProjectRunner runner;
 
-  final List<Map<String, dynamic>> indexed;
+  final ProjectIndexResult indexed;
   final List<FlameSceneObject> scenes;
   final List<FlameComponentObject> components;
 
@@ -61,7 +61,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
 
   late final runner = FlameProjectRunner(widget.project);
 
-  List<Map<String, dynamic>>? indexed;
+  ProjectIndexResult? indexed;
 
   final scenes = <FlameSceneObject>[];
   final components = <FlameComponentObject>[];
@@ -82,10 +82,10 @@ class _WorkbenchViewState extends State<WorkbenchView> {
     indexed = await widget.project.index();
     components
       ..clear()
-      ..addAll(ProjectIndexer.components(indexed!));
+      ..addAll(ProjectIndexer.components(indexed!.map((e) => e.$1)));
     scenes
       ..clear()
-      ..addAll(ProjectIndexer.scenes(indexed!));
+      ..addAll(ProjectIndexer.scenes(indexed!.map((e) => e.$1)));
     if (mounted) setState(() {});
   }
 

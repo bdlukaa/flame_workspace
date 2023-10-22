@@ -1,8 +1,9 @@
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flame_workspace/compilation_unit_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
-import '../project/parser_values.dart';
+import '../parser/parser_values.dart';
 import 'workbench_view.dart';
 
 const kFieldHeight = 28.0;
@@ -13,13 +14,10 @@ class ComponentView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    // final workbench = Workbench.of(context);
-
+    final workbench = Workbench.of(context);
     final design = Design.of(context);
 
     final component = design.currentSelectedComponent;
-
     if (component == null) {
       final scene = design.currentScene;
       return Padding(
@@ -74,6 +72,11 @@ class ComponentView extends StatelessWidget {
         ]),
       );
     }
+
+    // final unit = CompilationUnitHelper(
+    //   indexed: workbench.indexed.map((e) => e.$1),
+    //   unit: workbench.indexed.map((e) => e.$2),
+    // );
 
     final transformParameters = component.name == 'PositionComponent'
         ? component.parameters

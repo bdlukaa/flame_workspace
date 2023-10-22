@@ -8,16 +8,19 @@ import 'package:path/path.dart' as path;
 
 import 'package:flame_workspace/utils.dart';
 
-import 'built_in_components.dart';
-import 'game_objects.dart';
+import '../compilation_unit_helper.dart';
+import '../project/built_in_components.dart';
+import '../project/game_objects.dart';
+
+typedef ProjectIndexResult = List<(IndexedUnit, CompilationUnit)>;
 
 class ProjectIndexer {
   const ProjectIndexer._();
 
-  static Future<List<(Map<String, dynamic>, CompilationUnit)>> indexProject(
+  static Future<ProjectIndexResult> indexProject(
     Directory libDir,
   ) async {
-    final files = <(Map<String, dynamic>, CompilationUnit)>[];
+    final ProjectIndexResult files = <(IndexedUnit, CompilationUnit)>[];
 
     await for (final file in libDir
         .list(recursive: true)
@@ -40,7 +43,7 @@ class ProjectIndexer {
   /// `components` represents all the components in the project. If null, the
   /// components will be searched for.
   static Iterable<FlameSceneObject> scenes(
-    List<Map<String, dynamic>> indexed, [
+    Iterable<IndexedUnit> indexed, [
     Iterable<FlameComponentObject>? components,
   ]) {
     components ??= ProjectIndexer.components(indexed);
@@ -50,7 +53,7 @@ class ProjectIndexer {
       if (file['declarations'] == null) continue;
       final declarations = (file['declarations'] as List)
           .cast<Map>()
-          .map((e) => e as Map<String, dynamic>);
+          .map((e) => e as IndexedUnit);
       scenes.addAll(declarations.where((d) {
         return d['kind'] == 'class' && d['extends'] == 'FlameScene';
       }).map((d) {
@@ -105,8 +108,10 @@ class ProjectIndexer {
   }
 
   /// Returns all the components in the project.
+  // TODO: this should return the class declaration and the IndexedUnit
+  // To be used by the IDE to match the default values, if initialized
   static Iterable<FlameComponentObject> components(
-    List<Map<String, dynamic>> indexed,
+    Iterable<IndexedUnit> indexed,
   ) {
     final components = <FlameComponentObject>[];
 
@@ -114,7 +119,7 @@ class ProjectIndexer {
       if (file['declarations'] == null) continue;
       final declarations = (file['declarations'] as List)
           .cast<Map>()
-          .map((e) => e as Map<String, dynamic>);
+          .map((e) => e as IndexedUnit);
       components.addAll(declarations.where((d) {
         final w = d['with'] as List?;
         final e = d['extends'] as String?;

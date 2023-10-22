@@ -13,7 +13,7 @@ import 'dart:io';
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:flame_workspace/project/game_objects.dart';
-import 'package:flame_workspace/project/parser.dart';
+import 'package:flame_workspace/parser/parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:dartdoc_json/dartdoc_json.dart' as dartdoc;
 
@@ -53,7 +53,7 @@ Future<void> getAll() async {
               final i = await forFile(name);
               indexed.addAll(i);
             } catch (e, s) {
-              // print('Failed to get for file $name: \n$e\n$s');
+              print('Failed to get for file $name: \n$e\n$s');
             }
           }
         }()

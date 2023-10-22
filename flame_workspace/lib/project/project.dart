@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flame_workspace/project/parser.dart';
+import 'package:flame_workspace/parser/parser.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:yaml/yaml.dart';
@@ -98,8 +98,7 @@ class FlameProject {
       .listSync(recursive: true)
       .whereType<File>();
 
-  Future<List<Map<String, dynamic>>> index() async =>
-      (await ProjectIndexer.indexProject(location)).map((e) => e.$1).toList();
+  Future<ProjectIndexResult> index() => ProjectIndexer.indexProject(location);
 }
 
 /// Creates a new Flame project.
