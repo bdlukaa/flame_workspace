@@ -180,6 +180,11 @@ class _WorkbenchViewState extends State<WorkbenchView> {
             ),
             Expanded(
               child: switch (mode) {
+                // TODO: Add a window that shows the project components, scenes and constants.
+                //       This will enable the developer to change the values of
+                //       these game properties from the workspace itself. This
+                //       will also enable the developer to add new components,
+                //       scenes and constants to the project.
                 WorkbenchViewMode.design => const DesignView(),
                 WorkbenchViewMode.assets => const AssetsView(),
                 WorkbenchViewMode.configuration => const ConfigurationView(),

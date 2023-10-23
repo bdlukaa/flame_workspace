@@ -115,13 +115,16 @@ class ComponentView extends StatelessWidget {
         ),
         if (transformParameters.isNotEmpty)
           Builder(builder: (context) {
+            bool isPositionSuper = false;
             (double x, double y)? position;
+            bool isSizeSuper = false;
             (double x, double y)? size;
+            bool isScaleSuper = false;
             (double x, double y)? scale;
+            bool isAngleSuper = false;
             double? angle;
 
             if (initArgs != null) {
-              ;
               for (final value in transformParameters.map((parameter) {
                 final transformArguments = initArgs.firstWhereOrNull(
                   (arg) => arg.$1 == parameter.name,
@@ -131,20 +134,29 @@ class ComponentView extends StatelessWidget {
               })) {
                 final param = value.$1;
                 final arg = value.$2;
+
                 switch (param.name) {
                   case 'position':
+                    isPositionSuper = param.superComponents != null &&
+                        param.superComponents!.isNotEmpty;
                     position = ValuesParser.parseVector2(
                         arg?.$2 ?? param.defaultValue);
                     break;
                   case 'size':
+                    isSizeSuper = param.superComponents != null &&
+                        param.superComponents!.isNotEmpty;
                     size = ValuesParser.parseVector2(
                         arg?.$2 ?? param.defaultValue);
                     break;
                   case 'scale':
+                    isScaleSuper = param.superComponents != null &&
+                        param.superComponents!.isNotEmpty;
                     scale = ValuesParser.parseVector2(
                         arg?.$2 ?? param.defaultValue);
                     break;
                   case 'angle':
+                    isAngleSuper = param.superComponents != null &&
+                        param.superComponents!.isNotEmpty;
                     angle =
                         double.tryParse(arg?.$2 ?? param.defaultValue ?? '');
                     break;
@@ -156,39 +168,43 @@ class ComponentView extends StatelessWidget {
               title: 'Transform',
               trailing: '${transformParameters.length}',
               children: [
-                _Field.vector2(
-                  position,
-                  first: 'x',
-                  second: 'y',
-                  onChanged: (value) {
-                    componentHelper.writeArgument('position', value);
-                  },
-                ),
-                _Field.vector2(
-                  size,
-                  first: 'width',
-                  second: 'height',
-                  onChanged: (value) {
-                    componentHelper.writeArgument('size', value);
-                  },
-                ),
-                _Field(
-                  name: 'ratation',
-                  description: 'rotation angle',
-                  value: '$angle',
-                  type: 'double',
-                  onChanged: (value) {
-                    componentHelper.writeArgument('angle', value);
-                  },
-                ),
-                _Field.vector2(
-                  scale,
-                  first: 'scale | x',
-                  second: 'scale | y',
-                  onChanged: (value) {
-                    componentHelper.writeArgument('scale', value);
-                  },
-                ),
+                if (isPositionSuper)
+                  _Field.vector2(
+                    position,
+                    first: 'x',
+                    second: 'y',
+                    onChanged: (value) {
+                      componentHelper.writeArgument('position', value);
+                    },
+                  ),
+                if (isSizeSuper)
+                  _Field.vector2(
+                    size,
+                    first: 'width',
+                    second: 'height',
+                    onChanged: (value) {
+                      componentHelper.writeArgument('size', value);
+                    },
+                  ),
+                if (isAngleSuper)
+                  _Field(
+                    name: 'rotation',
+                    description: 'rotation angle',
+                    value: '$angle',
+                    type: 'double',
+                    onChanged: (value) {
+                      componentHelper.writeArgument('angle', value);
+                    },
+                  ),
+                if (isScaleSuper)
+                  _Field.vector2(
+                    scale,
+                    first: 'scale | x',
+                    second: 'scale | y',
+                    onChanged: (value) {
+                      componentHelper.writeArgument('scale', value);
+                    },
+                  ),
               ],
             );
           }),
