@@ -23,6 +23,23 @@ class ValuesParser {
     );
   }
 
+  /// Parses a vector2 from a string.
+  ///
+  /// The string must be in the format `const Vector2(0, 0)`.
+  static (double x, double y)? parseVector2(String? vector2) {
+    if (vector2 == null || vector2 == 'null') return null;
+
+    final values = vector2
+        .replaceAll('const', '')
+        .trim()
+        .replaceAll('Vector2(', '')
+        .replaceAll(')', '')
+        .trim()
+        .split(',');
+
+    return (double.parse(values[0]), double.parse(values[1]));
+  }
+
   /// Parses the default value of a declared parameter.
   static dynamic parseValue(
     FlameComponentObject component,

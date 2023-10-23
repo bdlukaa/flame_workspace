@@ -70,6 +70,8 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   final scenes = <SceneResult>[];
   final components = <ComponentResult>[];
 
+  bool isIndexing = false;
+
   @override
   void initState() {
     super.initState();
@@ -100,6 +102,10 @@ class _WorkbenchViewState extends State<WorkbenchView> {
     Iterable<String>? includeOnly,
     bool onlyParse = false,
   }) async {
+    isIndexing = true;
+    if (includeOnly == null || includeOnly.isEmpty) {
+      indexed = null;
+    }
     if (mounted) setState(() {});
     if (!onlyParse) {
       final result = await ProjectIndexer.indexProject(
@@ -121,6 +127,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
     scenes
       ..clear()
       ..addAll(ProjectIndexer.scenes(indexed!));
+    isIndexing = false;
     if (mounted) setState(() {});
   }
 
@@ -152,31 +159,34 @@ class _WorkbenchViewState extends State<WorkbenchView> {
       );
     }
 
-    return Workbench(
-      project: widget.project,
-      runner: runner,
-      indexed: indexed!,
-      scenes: scenes,
-      components: components,
-      child: Scaffold(
-        body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Card(
-            margin: EdgeInsets.zero,
-            shape: const RoundedRectangleBorder(),
-            child: Container(
-              height: 38.0,
-              padding: const EdgeInsetsDirectional.all(4.0),
-              child: _buildToolbar(),
+    return AbsorbPointer(
+      absorbing: isIndexing,
+      child: Workbench(
+        project: widget.project,
+        runner: runner,
+        indexed: indexed!,
+        scenes: scenes,
+        components: components,
+        child: Scaffold(
+          body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Card(
+              margin: EdgeInsets.zero,
+              shape: const RoundedRectangleBorder(),
+              child: Container(
+                height: 38.0,
+                padding: const EdgeInsetsDirectional.all(4.0),
+                child: _buildToolbar(),
+              ),
             ),
-          ),
-          Expanded(
-            child: switch (mode) {
-              WorkbenchViewMode.design => const DesignView(),
-              WorkbenchViewMode.assets => const AssetsView(),
-              WorkbenchViewMode.configuration => const ConfigurationView(),
-            },
-          )
-        ]),
+            Expanded(
+              child: switch (mode) {
+                WorkbenchViewMode.design => const DesignView(),
+                WorkbenchViewMode.assets => const AssetsView(),
+                WorkbenchViewMode.configuration => const ConfigurationView(),
+              },
+            )
+          ]),
+        ),
       ),
     );
   }

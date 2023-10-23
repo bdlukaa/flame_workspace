@@ -92,56 +92,106 @@ class ComponentView extends StatelessWidget {
                 }
                 value ??= parameter.defaultValue;
 
-                return _Field(
-                  name: parameter.name,
-                  value: '$value',
-                  type: parameter.type,
-                  onChanged: (value) {
-                    componentHelper.writeArgument(parameter.name, value);
-                  },
-                );
+                return switch (parameter.nonNullableType) {
+                  'Vector2' => _Field.vector2(
+                      ValuesParser.parseVector2(value),
+                      first: '${parameter.name} | a',
+                      second: '${parameter.name} | b',
+                      onChanged: (value) {
+                        componentHelper.writeArgument(parameter.name, value);
+                      },
+                    ),
+                  _ => _Field(
+                      name: parameter.name,
+                      value: '$value',
+                      type: parameter.type,
+                      onChanged: (value) {
+                        componentHelper.writeArgument(parameter.name, value);
+                      },
+                    ),
+                };
               }),
           ],
         ),
         if (transformParameters.isNotEmpty)
-          ComponentSectionCard(
-            title: 'Transform',
-            trailing: '${transformParameters.length}',
-            children: const [
-              _Field(
-                name: 'x',
-                description: 'x axis',
-                value: '1.0',
-                type: 'double',
-              ),
-              _Field(
-                name: 'y',
-                value: '1.0',
-                type: 'double',
-              ),
-              _Field(
-                name: 'width',
-                value: '30.0',
-                type: 'double',
-              ),
-              _Field(
-                name: 'height',
-                value: '30.0',
-                type: 'double',
-              ),
-              _Field(
-                name: 'ratation',
-                description: 'rotation angle',
-                value: '0.0',
-                type: 'double',
-              ),
-              _Field(
-                name: 'scale',
-                value: '1.0',
-                type: 'double',
-              ),
-            ],
-          ),
+          Builder(builder: (context) {
+            (double x, double y)? position;
+            (double x, double y)? size;
+            (double x, double y)? scale;
+            double? angle;
+
+            if (initArgs != null) {
+              ;
+              for (final value in transformParameters.map((parameter) {
+                final transformArguments = initArgs.firstWhereOrNull(
+                  (arg) => arg.$1 == parameter.name,
+                );
+
+                return (parameter, transformArguments);
+              })) {
+                final param = value.$1;
+                final arg = value.$2;
+                switch (param.name) {
+                  case 'position':
+                    position = ValuesParser.parseVector2(
+                        arg?.$2 ?? param.defaultValue);
+                    break;
+                  case 'size':
+                    size = ValuesParser.parseVector2(
+                        arg?.$2 ?? param.defaultValue);
+                    break;
+                  case 'scale':
+                    scale = ValuesParser.parseVector2(
+                        arg?.$2 ?? param.defaultValue);
+                    break;
+                  case 'angle':
+                    angle =
+                        double.tryParse(arg?.$2 ?? param.defaultValue ?? '');
+                    break;
+                  default:
+                }
+              }
+            }
+            return ComponentSectionCard(
+              title: 'Transform',
+              trailing: '${transformParameters.length}',
+              children: [
+                _Field.vector2(
+                  position,
+                  first: 'x',
+                  second: 'y',
+                  onChanged: (value) {
+                    componentHelper.writeArgument('position', value);
+                  },
+                ),
+                _Field.vector2(
+                  size,
+                  first: 'width',
+                  second: 'height',
+                  onChanged: (value) {
+                    componentHelper.writeArgument('size', value);
+                  },
+                ),
+                _Field(
+                  name: 'ratation',
+                  description: 'rotation angle',
+                  value: '$angle',
+                  type: 'double',
+                  onChanged: (value) {
+                    componentHelper.writeArgument('angle', value);
+                  },
+                ),
+                _Field.vector2(
+                  scale,
+                  first: 'scale | x',
+                  second: 'scale | y',
+                  onChanged: (value) {
+                    componentHelper.writeArgument('scale', value);
+                  },
+                ),
+              ],
+            );
+          }),
       ]),
     );
   }
@@ -276,6 +326,35 @@ class _Field extends StatefulWidget {
     this.editable = true,
   });
 
+  static Widget vector2(
+    (double x, double y)? vector2, {
+    String first = 'a',
+    String second = 'b',
+    void Function(String value)? onChanged,
+  }) {
+    // If one of the parameters is null, it defaults it to this value. This is
+    // done because [Vector2] doesn't accept null values.
+    const defaultSecondaryValue = '0.0';
+    return Column(children: [
+      _Field(
+        name: first,
+        value: '${vector2?.$1}',
+        type: 'double',
+        onChanged: (value) => onChanged?.call(
+          'Vector2($value, ${vector2?.$2 ?? defaultSecondaryValue})',
+        ),
+      ),
+      _Field(
+        name: second,
+        value: '${vector2?.$2}',
+        type: 'double',
+        onChanged: (value) => onChanged?.call(
+          'Vector2(${vector2?.$1 ?? defaultSecondaryValue}, $value)',
+        ),
+      ),
+    ]);
+  }
+
   @override
   State<_Field> createState() => _FieldState();
 }
@@ -390,6 +469,7 @@ class _FieldState extends State<_Field> {
   Widget buildEditable() {
     return Builder(builder: (context) {
       final theme = Theme.of(context);
+      final value = double.tryParse(controller.text);
       return Row(children: [
         Expanded(
           child: EditableText(
@@ -415,11 +495,23 @@ class _FieldState extends State<_Field> {
         if (isNumbericField && _isHovering)
           Column(mainAxisSize: MainAxisSize.min, children: [
             InkWell(
-              onTap: () {},
+              onTap: () {
+                if (value != null) {
+                  widget.onChanged?.call('${value + 1}');
+                } else {
+                  widget.onChanged?.call('0');
+                }
+              },
               child: const Icon(Icons.keyboard_arrow_up, size: 12.0),
             ),
             InkWell(
-              onTap: () {},
+              onTap: () {
+                if (value != null) {
+                  widget.onChanged?.call('${value - 1}');
+                } else {
+                  widget.onChanged?.call('0');
+                }
+              },
               child: const Icon(Icons.keyboard_arrow_down, size: 12.0),
             ),
           ]),

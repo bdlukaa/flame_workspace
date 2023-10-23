@@ -12,8 +12,11 @@ class Scene1 extends FlameScene with TapCallbacks {
   MyCircle circle = MyCircle(
     radius: 120.0,
     color: const Color(0xffc621c0),
-    position: Vector2(100, 100),
+    position: Vector2(99.0, 103.0),
     flag: false,
+    size: Vector2(0, 0.0),
+    scale: Vector2(3.0, 0.0),
+    angle: 16.0,
   );
   RectangleComponent rectangle = RectangleComponent();
 
@@ -52,9 +55,12 @@ class MyCircle extends PositionComponent with FlameComponent {
     Color color = const Color(0xFFFF0000),
     super.position,
     bool flag = false,
+    Vector2? size,
+    super.angle,
+    super.scale,
   })  : _paint = Paint()..color = const Color(0xFF80C080),
         super(
-          size: Vector2.all(2 * radius),
+          size: size ?? Vector2.all(2 * radius),
           anchor: Anchor.center,
         );
 
