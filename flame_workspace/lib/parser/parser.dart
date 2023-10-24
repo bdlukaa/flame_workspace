@@ -111,13 +111,11 @@ class ProjectIndexer {
     Iterable<FlameComponentObject> components,
     Iterable<Map> fields,
   ) {
-    components = [...components, ...builtInComponents];
-    return components.where((component) {
-      return fields.any((field) {
-        return field['type'] == component.name;
-      });
-    }).map((component) {
-      final field = fields.firstWhere((field) {
+    components = [...builtInComponents, ...components];
+    return fields.where((field) {
+      return components.any((component) => field['type'] == component.name);
+    }).map((field) {
+      final component = components.firstWhere((component) {
         return field['type'] == component.name;
       });
 

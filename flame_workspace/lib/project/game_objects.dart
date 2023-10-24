@@ -1,7 +1,7 @@
 class FlameSceneObject {
   final String name;
 
-  final List<FlameComponentObject> components;
+  final Iterable<FlameComponentObject> components;
 
   final List<String> modifiers;
 
