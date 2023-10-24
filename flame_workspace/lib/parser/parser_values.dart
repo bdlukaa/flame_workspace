@@ -53,6 +53,8 @@ class ValuesParser {
       'Color' => parseColor(namedExpression.$2),
       'int' => int.tryParse(namedExpression.$2),
       'double' => double.tryParse(namedExpression.$2),
+      'String' => // The string without the quotes (', ")
+        namedExpression.$2.substring(1, namedExpression.$2.length - 1),
       _ => namedExpression.$2,
     };
 

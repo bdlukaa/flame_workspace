@@ -11,12 +11,12 @@ class Scene1 extends FlameScene with TapCallbacks {
 
   TextComponent text = TextComponent(
     position: Vector2(100.0, 100.0),
-    text: 'Hello World!',
+    text: 'Hello, World!',
   );
   MyOtherCircle otherCircle = MyOtherCircle();
   MyCircle circle = MyCircle(
     radius: 120.0,
-    color: Color(0xc53e1d3d),
+    color: const Color(0xff3e1d3d),
     position: Vector2(99.0, 103.0),
     flag: false,
     size: Vector2(0, 0.0),

@@ -102,9 +102,10 @@ class ComponentView extends StatelessWidget {
                       },
                     ),
                   _ => _Field(
+                      key: ValueKey(value),
                       name: parameter.name,
                       value: '$value',
-                      type: parameter.type,
+                      type: parameter.nonNullableType,
                       onChanged: (value) {
                         componentHelper.writeArgument(parameter.name, value);
                       },
@@ -333,6 +334,7 @@ class _Field extends StatefulWidget {
   final bool editable;
 
   const _Field({
+    super.key,
     required this.name,
     required this.value,
     required this.type,
@@ -355,7 +357,7 @@ class _Field extends StatefulWidget {
       _Field(
         name: first,
         value: '${vector2?.$1}',
-        type: 'double',
+        type: '$double',
         onChanged: (value) => onChanged?.call(
           'Vector2($value, ${vector2?.$2 ?? defaultSecondaryValue})',
         ),
@@ -363,7 +365,7 @@ class _Field extends StatefulWidget {
       _Field(
         name: second,
         value: '${vector2?.$2}',
-        type: 'double',
+        type: '$double',
         onChanged: (value) => onChanged?.call(
           'Vector2(${vector2?.$1 ?? defaultSecondaryValue}, $value)',
         ),
@@ -399,7 +401,7 @@ class _FieldState extends State<_Field> {
             controller.text = double.parse(controller.text).toString();
           }
         }
-        widget.onChanged?.call(controller.text);
+        widget.onChanged?.call("'${controller.text}'");
       }
     });
   }
@@ -473,7 +475,7 @@ class _FieldState extends State<_Field> {
                 'String' || 'int' || 'double' => buildEditable(),
                 'Color' => buildColorPicker(),
                 'bool' => buildFlagSwitch(),
-                _ => Container(),
+                _ => const Placeholder(),
               },
             ),
           ]),
@@ -485,7 +487,6 @@ class _FieldState extends State<_Field> {
   Widget buildEditable() {
     return Builder(builder: (context) {
       final theme = Theme.of(context);
-      final value = double.tryParse(controller.text);
       return Row(children: [
         Expanded(
           child: EditableText(
@@ -509,28 +510,31 @@ class _FieldState extends State<_Field> {
           ),
         ),
         if (isNumbericField && _isHovering)
-          Column(mainAxisSize: MainAxisSize.min, children: [
-            InkWell(
-              onTap: () {
-                if (value != null) {
-                  widget.onChanged?.call('${value + 1}');
-                } else {
-                  widget.onChanged?.call('0');
-                }
-              },
-              child: const Icon(Icons.keyboard_arrow_up, size: 12.0),
-            ),
-            InkWell(
-              onTap: () {
-                if (value != null) {
-                  widget.onChanged?.call('${value - 1}');
-                } else {
-                  widget.onChanged?.call('0');
-                }
-              },
-              child: const Icon(Icons.keyboard_arrow_down, size: 12.0),
-            ),
-          ]),
+          Builder(builder: (context) {
+            final value = double.tryParse(controller.text);
+            return Column(mainAxisSize: MainAxisSize.min, children: [
+              InkWell(
+                onTap: () {
+                  if (value != null) {
+                    widget.onChanged?.call('${value + 1}');
+                  } else {
+                    widget.onChanged?.call('0');
+                  }
+                },
+                child: const Icon(Icons.keyboard_arrow_up, size: 12.0),
+              ),
+              InkWell(
+                onTap: () {
+                  if (value != null) {
+                    widget.onChanged?.call('${value - 1}');
+                  } else {
+                    widget.onChanged?.call('0');
+                  }
+                },
+                child: const Icon(Icons.keyboard_arrow_down, size: 12.0),
+              ),
+            ]);
+          }),
       ]);
     });
   }
@@ -562,7 +566,7 @@ class _FieldState extends State<_Field> {
                       );
                     },
                   );
-                  widget.onChanged?.call(newColor.toString());
+                  widget.onChanged?.call('const $newColor');
                 }
               : null,
           child: Container(color: color),
