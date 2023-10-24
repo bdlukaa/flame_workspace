@@ -57,6 +57,15 @@ class ComponentView extends StatelessWidget {
               name: 'Name',
               value: '${component.declarationName}',
               type: '$String',
+              forceSingleLine: true,
+              onChanged: (text) async {
+                if (text.contains(' ') || text.contains('-')) return;
+
+                await componentHelper.renameDeclaration(
+                  // substring because the format of the text is "'text'"
+                  text.substring(1, text.length - 1),
+                );
+              },
             ),
             _Field(
               name: 'Type',
@@ -332,6 +341,7 @@ class _Field extends StatefulWidget {
   final double? labelWidth;
 
   final bool editable;
+  final bool forceSingleLine;
 
   const _Field({
     super.key,
@@ -342,6 +352,7 @@ class _Field extends StatefulWidget {
     this.onChanged,
     this.labelWidth,
     this.editable = true,
+    this.forceSingleLine = false,
   });
 
   static Widget vector2(
@@ -387,22 +398,7 @@ class _FieldState extends State<_Field> {
   void initState() {
     super.initState();
     focusNode.addListener(() {
-      if (!focusNode.hasFocus) {
-        if (isNumbericField) {
-          if (controller.text.isEmpty) {
-            controller.text = '0.0';
-          } else if (controller.text.endsWith('.')) {
-            controller.text = '${controller.text}0';
-          } else if (controller.text.startsWith('.')) {
-            controller.text = '0${controller.text}';
-          } else if (double.tryParse(controller.text) == null) {
-            controller.text = '0.0';
-          } else {
-            controller.text = double.parse(controller.text).toString();
-          }
-        }
-        widget.onChanged?.call("'${controller.text}'");
-      }
+      if (!focusNode.hasFocus) onSubmit();
     });
   }
 
@@ -417,6 +413,23 @@ class _FieldState extends State<_Field> {
     controller.dispose();
     focusNode.dispose();
     super.dispose();
+  }
+
+  void onSubmit() {
+    if (isNumbericField) {
+      if (controller.text.isEmpty) {
+        controller.text = '0.0';
+      } else if (controller.text.endsWith('.')) {
+        controller.text = '${controller.text}0';
+      } else if (controller.text.startsWith('.')) {
+        controller.text = '0${controller.text}';
+      } else if (double.tryParse(controller.text) == null) {
+        controller.text = '0.0';
+      } else {
+        controller.text = double.parse(controller.text).toString();
+      }
+    }
+    widget.onChanged?.call("'${controller.text}'");
   }
 
   bool get isNumbericField => widget.type == 'double' || widget.type == 'int';
@@ -447,10 +460,10 @@ class _FieldState extends State<_Field> {
           style: theme.textTheme.labelSmall,
           textAlign: TextAlign.center,
         );
-        return SizedBox(
-          height: kFieldHeight,
-          child: Row(children: [
+        return IntrinsicHeight(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SizedBox(
+              height: kFieldHeight,
               width: widget.labelWidth ?? (constraints.maxWidth / 2),
               child: Row(children: [
                 SizedBox(
@@ -485,58 +498,68 @@ class _FieldState extends State<_Field> {
   }
 
   Widget buildEditable() {
-    return Builder(builder: (context) {
-      final theme = Theme.of(context);
-      return Row(children: [
-        Expanded(
-          child: EditableText(
-            controller: controller,
-            focusNode: focusNode,
-            style: theme.textTheme.bodySmall!,
-            cursorColor: theme.indicatorColor,
-            cursorHeight: 16.0,
-            readOnly: !widget.editable,
-            backgroundCursorColor: Colors.transparent,
-            selectionColor: theme.colorScheme.primary.withOpacity(0.3),
-            maxLines: 1,
-            keyboardType: isNumbericField ? TextInputType.number : null,
-            textInputAction: TextInputAction.done,
-            onChanged: (text) {
-              final abcdRegex = RegExp(r'^[A-B\.]+$', caseSensitive: false);
-              if (text.contains(abcdRegex)) {
-                controller.text = text.replaceAll(abcdRegex, '');
-              }
-            },
-          ),
-        ),
-        if (isNumbericField && _isHovering)
-          Builder(builder: (context) {
-            final value = double.tryParse(controller.text);
-            return Column(mainAxisSize: MainAxisSize.min, children: [
-              InkWell(
-                onTap: () {
-                  if (value != null) {
-                    widget.onChanged?.call('${value + 1}');
-                  } else {
-                    widget.onChanged?.call('0');
+    final isExpanded =
+        widget.editable && !isNumbericField && !widget.forceSingleLine;
+    return SizedBox(
+      height: isExpanded ? kFieldHeight * 3 : kFieldHeight,
+      child: Builder(builder: (context) {
+        final theme = Theme.of(context);
+        return Row(
+          crossAxisAlignment:
+              isExpanded ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: EditableText(
+                controller: controller,
+                focusNode: focusNode,
+                style: theme.textTheme.bodySmall!,
+                cursorColor: theme.indicatorColor,
+                cursorHeight: 16.0,
+                readOnly: !widget.editable,
+                backgroundCursorColor: Colors.transparent,
+                selectionColor: theme.colorScheme.primary.withOpacity(0.3),
+                maxLines: isExpanded ? null : 1,
+                keyboardType: isNumbericField ? TextInputType.number : null,
+                textInputAction: TextInputAction.done,
+                onChanged: (text) {
+                  final abcdRegex = RegExp(r'^[A-B\.]+$', caseSensitive: false);
+                  if (text.contains(abcdRegex)) {
+                    controller.text = text.replaceAll(abcdRegex, '');
                   }
                 },
-                child: const Icon(Icons.keyboard_arrow_up, size: 12.0),
+                onSubmitted: (text) => onSubmit(),
               ),
-              InkWell(
-                onTap: () {
-                  if (value != null) {
-                    widget.onChanged?.call('${value - 1}');
-                  } else {
-                    widget.onChanged?.call('0');
-                  }
-                },
-                child: const Icon(Icons.keyboard_arrow_down, size: 12.0),
-              ),
-            ]);
-          }),
-      ]);
-    });
+            ),
+            if (isNumbericField && _isHovering)
+              Builder(builder: (context) {
+                final value = double.tryParse(controller.text);
+                return Column(mainAxisSize: MainAxisSize.min, children: [
+                  InkWell(
+                    onTap: () {
+                      if (value != null) {
+                        widget.onChanged?.call('${value + 1}');
+                      } else {
+                        widget.onChanged?.call('0');
+                      }
+                    },
+                    child: const Icon(Icons.keyboard_arrow_up, size: 12.0),
+                  ),
+                  InkWell(
+                    onTap: () {
+                      if (value != null) {
+                        widget.onChanged?.call('${value - 1}');
+                      } else {
+                        widget.onChanged?.call('0');
+                      }
+                    },
+                    child: const Icon(Icons.keyboard_arrow_down, size: 12.0),
+                  ),
+                ]);
+              }),
+          ],
+        );
+      }),
+    );
   }
 
   Widget buildColorPicker() {

@@ -98,6 +98,12 @@ class _WorkbenchViewState extends State<WorkbenchView> {
     });
   }
 
+  /// Indexes the current project.
+  ///
+  /// If [includeOnly] is not null, only the files that are in the list will be
+  /// indexed.
+  ///
+  /// If [onlyParse] is true, the project will not be indexed, only parsed.
   void indexProject({
     Iterable<String>? includeOnly,
     bool onlyParse = false,
@@ -114,19 +120,22 @@ class _WorkbenchViewState extends State<WorkbenchView> {
       );
       indexed ??= [];
       if (includeOnly != null && includeOnly.isNotEmpty) {
-        indexed!.removeWhere((e) => includeOnly.contains(e.$1['source']));
-        indexed!.addAll(result);
+        indexed!
+          ..removeWhere((e) => includeOnly.contains(e.$1['source']))
+          ..addAll(result);
       } else {
         indexed!.clear();
         indexed!.addAll(result);
       }
     }
-    components
-      ..clear()
-      ..addAll(ProjectIndexer.components(indexed!));
-    scenes
-      ..clear()
-      ..addAll(ProjectIndexer.scenes(indexed!));
+    if (indexed != null) {
+      components
+        ..clear()
+        ..addAll(ProjectIndexer.components(indexed!));
+      scenes
+        ..clear()
+        ..addAll(ProjectIndexer.scenes(indexed!));
+    }
     isIndexing = false;
     if (mounted) setState(() {});
   }

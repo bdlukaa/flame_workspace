@@ -28,14 +28,37 @@ class ComponentHelper {
         }),
       );
 
+  Future<void> renameDeclaration(String newName) async {
+    final parent = parentUnit;
+    if (parent == null) return;
+
+    final helper = CompilationUnitHelper(indexed: parent.$2, unit: parent.$3);
+    final parentClass = helper.findClass(component.parent?.name ?? scene.name);
+    final declaration =
+        helper.findProperty(parentClass, component.declarationName!);
+
+    if (declaration == null) return;
+
+    final source = parent.$2['source'];
+    final file = File(source);
+    final content = await file.readAsString();
+
+    final start = declaration.name.offset;
+    final end = declaration.name.end;
+
+    final before = content.substring(0, start);
+    final after = content.substring(end);
+
+    final newContent = '$before$newName$after';
+
+    await file.writeAsString(newContent);
+  }
+
   Iterable<(String name, String expression, NamedExpression argument)>?
       get initializerArguments {
     final parent = parentUnit;
     if (parent == null) return null;
-    final helper = CompilationUnitHelper(
-      indexed: parent.$2,
-      unit: parent.$3,
-    );
+    final helper = CompilationUnitHelper(indexed: parent.$2, unit: parent.$3);
     final parentClass = helper.findClass(component.parent?.name ?? scene.name);
     final initializer = helper
         .findProperty(parentClass, component.declarationName!)
