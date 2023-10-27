@@ -21,12 +21,10 @@
               "named": 2
             }
           },
+          { "kind": "field", "name": "textie", "type": "TextComponent" },
+          { "kind": "field", "name": "otherCircle", "type": "MyOtherCircle" },
           { "kind": "field", "name": "circle", "type": "MyCircle" },
-          {
-            "kind": "field",
-            "name": "rectangle",
-            "type": "RectangleComponent"
-          },
+          { "kind": "field", "name": "firstCircle", "type": "MyCircle" },
           {
             "kind": "method",
             "name": "onLoad",
@@ -61,9 +59,11 @@
                   "default": "const Color(0xFFFF0000)"
                 },
                 { "name": "super.position" },
-                { "name": "flag", "type": "bool", "default": "false" }
+                { "name": "flag", "type": "bool", "default": "false" },
+                { "name": "size", "type": "Vector2?" },
+                { "name": "super.scale" }
               ],
-              "named": 4
+              "named": 6
             }
           },
           { "kind": "field", "name": "innerCircle", "type": "MySquare" },

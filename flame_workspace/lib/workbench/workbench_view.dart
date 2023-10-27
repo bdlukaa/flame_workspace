@@ -13,6 +13,7 @@ import 'component_view.dart';
 import 'configuration_view.dart';
 import 'notifications_field.dart';
 import 'preview_view.dart';
+import 'project_view.dart';
 import 'scene_view.dart';
 import 'structure_view.dart';
 
@@ -46,6 +47,7 @@ class Workbench extends InheritedWidget {
 
 enum WorkbenchViewMode {
   design,
+  project,
   assets,
   configuration,
 }
@@ -195,6 +197,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
                 //       will also enable the developer to add new components,
                 //       scenes and constants to the project.
                 WorkbenchViewMode.design => const DesignView(),
+                WorkbenchViewMode.project => const ProjectView(),
                 WorkbenchViewMode.assets => const AssetsView(),
                 WorkbenchViewMode.configuration => const ConfigurationView(),
               },
@@ -228,6 +231,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
                   WorkbenchViewMode.values.map((m) => m == mode).toList(),
               children: const [
                 Icon(Icons.design_services),
+                Icon(Icons.apps),
                 Icon(Icons.web_stories),
                 Icon(Icons.settings),
               ],
