@@ -1,7 +1,6 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 
-import '../../parser/scene.dart';
 import '../component_view.dart';
 import '../workbench_view.dart';
 
@@ -12,14 +11,7 @@ class ScenePropertiesView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final design = Design.of(context);
-    final workbench = Workbench.of(context);
     final scene = design.currentScene;
-
-    final helper = SceneHelper(
-      scene: scene,
-      components: workbench.components,
-      scenes: workbench.scenes,
-    );
 
     return Padding(
       padding: const EdgeInsets.all(8.0),

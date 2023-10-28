@@ -68,16 +68,12 @@ class SceneHelper {
     // the last field declaration. If none, after the constructor declaration.
     // If none, after the class declaration.
 
-    int start;
     int end;
 
     final onLoadMethod = declaration.members.firstWhereOrNull(
         (e) => e is MethodDeclaration && e.name.lexeme == 'onLoad');
 
     if (onLoadMethod != null) {
-      // start = onLoadMethod.offset;
-      // end = onLoadMethod.end;
-      start = onLoadMethod.offset;
       end = onLoadMethod.offset;
     } else {
       final lastFieldDeclaration =
@@ -87,17 +83,14 @@ class SceneHelper {
         return false;
       });
       if (lastFieldDeclaration != null) {
-        start = lastFieldDeclaration.offset;
         end = lastFieldDeclaration.end;
       } else {
         final constructorDeclaration = declaration.members
             .firstWhereOrNull((e) => e is ConstructorDeclaration);
         if (constructorDeclaration != null) {
-          start = constructorDeclaration.offset;
           end = constructorDeclaration.end;
         } else {
-          start = declaration.offset;
-          end = declaration.end;
+          end = declaration.leftBracket.end;
         }
       }
     }

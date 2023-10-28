@@ -32,8 +32,6 @@ class WelcomeView extends StatelessWidget {
             onPressed: () async {
               final directory = await FilePicker.platform.getDirectoryPath(
                 dialogTitle: 'Open existing project',
-                // TODO: Get the default location from the user's preferences
-                // initialDirectory: ,
                 lockParentWindow: true,
               );
               if (directory != null && context.mounted) {
