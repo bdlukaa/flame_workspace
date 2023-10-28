@@ -60,6 +60,32 @@ class FlameComponentObject {
           p.superComponents!.last == superclass;
     });
   }
+
+  String toCode(String declarationName, Map<String, dynamic> params) {
+    final buffer = StringBuffer();
+
+    buffer.write('$name $declarationName = $name(');
+
+    for (final parameter in parameters) {
+      final isRequired = !parameter.isNullable &&
+          (parameter.defaultValue == null || parameter.defaultValue == 'null');
+
+      if (isRequired) {
+        buffer.write(
+          '${parameter.name}: ${params[parameter.name] ?? 'Object()'}, ',
+        );
+        continue;
+      }
+
+      final value = params[parameter.name] ?? parameter.defaultValue;
+      if (value == null || value == 'null') continue;
+      buffer.write('${parameter.name}: $value, ');
+    }
+
+    buffer.write(');');
+
+    return buffer.toString();
+  }
 }
 
 class FlameComponentField {
@@ -101,4 +127,18 @@ class FlameComponentField {
   bool get isNullable => type == 'dynamic' || type.endsWith('?');
 
   String get nonNullableType => type.replaceAll('?', '');
+
+  FlameComponentField copyWith({
+    String? name,
+    String? type,
+    String? defaultValue,
+    List<String>? superComponents,
+  }) {
+    return FlameComponentField(
+      name ?? this.name,
+      type ?? this.type,
+      defaultValue ?? this.defaultValue,
+      superComponents ?? this.superComponents,
+    );
+  }
 }

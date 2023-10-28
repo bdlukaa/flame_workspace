@@ -1,10 +1,10 @@
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flame_workspace/parser/component.dart';
 import 'package:flame_workspace/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 import '../parser/parser_values.dart';
+import 'scene_view.dart';
 import 'workbench_view.dart';
 
 const kFieldHeight = 28.0;
@@ -53,7 +53,7 @@ class ComponentView extends StatelessWidget {
         ComponentSectionCard(
           title: 'General',
           children: [
-            _Field(
+            PropertyField(
               name: 'Name',
               value: '${component.declarationName}',
               type: '$String',
@@ -67,13 +67,13 @@ class ComponentView extends StatelessWidget {
                 );
               },
             ),
-            _Field(
+            PropertyField(
               name: 'Type',
               value: component.name,
               type: '$String',
               editable: false,
             ),
-            _Field(
+            PropertyField(
               name: 'Subtype',
               value: component.type,
               type: '$String',
@@ -102,7 +102,7 @@ class ComponentView extends StatelessWidget {
                 value ??= parameter.defaultValue;
 
                 return switch (parameter.nonNullableType) {
-                  'Vector2' => _Field.vector2(
+                  'Vector2' => PropertyField.vector2(
                       ValuesParser.parseVector2(value),
                       first: '${parameter.name} | a',
                       second: '${parameter.name} | b',
@@ -110,7 +110,7 @@ class ComponentView extends StatelessWidget {
                         componentHelper.writeArgument(parameter.name, value);
                       },
                     ),
-                  _ => _Field(
+                  _ => PropertyField(
                       key: ValueKey(value),
                       name: parameter.name,
                       value: '$value',
@@ -179,7 +179,7 @@ class ComponentView extends StatelessWidget {
               trailing: '${transformParameters.length}',
               children: [
                 if (isPositionSuper)
-                  _Field.vector2(
+                  PropertyField.vector2(
                     position,
                     first: 'x',
                     second: 'y',
@@ -188,7 +188,7 @@ class ComponentView extends StatelessWidget {
                     },
                   ),
                 if (isSizeSuper)
-                  _Field.vector2(
+                  PropertyField.vector2(
                     size,
                     first: 'width',
                     second: 'height',
@@ -197,7 +197,7 @@ class ComponentView extends StatelessWidget {
                     },
                   ),
                 if (isAngleSuper)
-                  _Field(
+                  PropertyField(
                     name: 'rotation',
                     description: 'rotation angle',
                     value: '$angle',
@@ -207,7 +207,7 @@ class ComponentView extends StatelessWidget {
                     },
                   ),
                 if (isScaleSuper)
-                  _Field.vector2(
+                  PropertyField.vector2(
                     scale,
                     first: 'scale | x',
                     second: 'scale | y',
@@ -218,69 +218,6 @@ class ComponentView extends StatelessWidget {
               ],
             );
           }),
-      ]),
-    );
-  }
-}
-
-class ScenePropertiesView extends StatelessWidget {
-  const ScenePropertiesView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final design = Design.of(context);
-    final scene = design.currentScene;
-
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Scene', style: theme.textTheme.labelLarge),
-        ComponentSectionCard(
-          title: 'General',
-          children: [
-            _Field(
-              name: 'Name',
-              value: scene.name,
-              type: '$String',
-              editable: false,
-            ),
-            _Field(
-              name: 'Color',
-              description: 'Background color',
-              value: 'Color(0xFF000000)',
-              type: '$Color',
-            ),
-          ],
-        ),
-        ComponentSectionCard(
-          title: 'Components',
-          trailing: '${scene.components.length}',
-          children: [
-            for (final component in scene.components)
-              SizedBox(
-                height: kFieldHeight,
-                child: Row(children: [
-                  Expanded(
-                    flex: 2,
-                    child: AutoSizeText(
-                      component.name,
-                      maxLines: 1,
-                      minFontSize: 8.0,
-                      style: theme.textTheme.labelMedium!,
-                    ),
-                  ),
-                  const VerticalDivider(),
-                  Expanded(
-                    child: Text(
-                      component.declarationName!,
-                      style: theme.textTheme.bodySmall!,
-                    ),
-                  ),
-                ]),
-              ),
-          ],
-        ),
       ]),
     );
   }
@@ -324,7 +261,7 @@ class ComponentSectionCard extends StatelessWidget {
   }
 }
 
-class _Field extends StatefulWidget {
+class PropertyField extends StatefulWidget {
   final String name;
   final String value;
   final String type;
@@ -343,7 +280,7 @@ class _Field extends StatefulWidget {
   final bool editable;
   final bool forceSingleLine;
 
-  const _Field({
+  const PropertyField({
     super.key,
     required this.name,
     required this.value,
@@ -365,7 +302,7 @@ class _Field extends StatefulWidget {
     // done because [Vector2] doesn't accept null values.
     const defaultSecondaryValue = '0.0';
     return Column(children: [
-      _Field(
+      PropertyField(
         name: first,
         value: '${vector2?.$1}',
         type: '$double',
@@ -373,7 +310,7 @@ class _Field extends StatefulWidget {
           'Vector2($value, ${vector2?.$2 ?? defaultSecondaryValue})',
         ),
       ),
-      _Field(
+      PropertyField(
         name: second,
         value: '${vector2?.$2}',
         type: '$double',
@@ -385,10 +322,10 @@ class _Field extends StatefulWidget {
   }
 
   @override
-  State<_Field> createState() => _FieldState();
+  State<PropertyField> createState() => PropertyFieldState();
 }
 
-class _FieldState extends State<_Field> {
+class PropertyFieldState extends State<PropertyField> {
   late final controller = TextEditingController(text: widget.value);
   final focusNode = FocusNode();
 
@@ -403,7 +340,7 @@ class _FieldState extends State<_Field> {
   }
 
   @override
-  void didUpdateWidget(covariant _Field oldWidget) {
+  void didUpdateWidget(covariant PropertyField oldWidget) {
     super.didUpdateWidget(oldWidget);
     controller.text = widget.value;
   }
@@ -488,7 +425,10 @@ class _FieldState extends State<_Field> {
                 'String' || 'int' || 'double' => buildEditable(),
                 'Color' => buildColorPicker(),
                 'bool' => buildFlagSwitch(),
-                _ => const Placeholder(),
+                _ => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Placeholder(),
+                  ),
               },
             ),
           ]),
