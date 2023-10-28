@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 import '../parser/parser_values.dart';
-import 'scene_view.dart';
+import 'scene/scene_properties.dart';
 import 'workbench_view.dart';
 
 const kFieldHeight = 28.0;

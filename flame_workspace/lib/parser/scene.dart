@@ -1,8 +1,13 @@
 import 'dart:io';
 
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:flame_workspace/compilation_unit_helper.dart';
 import 'package:flame_workspace/parser/parser.dart';
 import 'package:flame_workspace/project/game_objects.dart';
+import 'package:flame_workspace/utils.dart';
+
+import '../workbench/scene/add_component.dart';
+import 'writer.dart';
 
 class SceneHelper {
   final FlameSceneObject scene;
@@ -40,9 +45,10 @@ class SceneHelper {
     final newContent = '$before$newName$after';
 
     await file.writeAsString(newContent);
+    await Writer.formatFile(file.path);
   }
 
-  Future<void> addComponent(FlameComponentObject component) async {
+  Future<void> addComponent(AddComponentResult result) async {
     final helper = CompilationUnitHelper(
       indexed: sceneResult.$2,
       unit: sceneResult.$3,
@@ -51,18 +57,57 @@ class SceneHelper {
 
     if (declaration == null) return;
 
-    final start = declaration.offset;
-    final end = declaration.end;
-
     final source = sceneResult.$2['source'];
     final file = File(source);
     final content = await file.readAsString();
 
+    // final start = declaration.offset;
+    // final end = declaration.end;
+
+    // The start and end should be before the "onLoad" method. If none, after
+    // the last field declaration. If none, after the constructor declaration.
+    // If none, after the class declaration.
+
+    int start;
+    int end;
+
+    final onLoadMethod = declaration.members.firstWhereOrNull(
+        (e) => e is MethodDeclaration && e.name.lexeme == 'onLoad');
+
+    if (onLoadMethod != null) {
+      // start = onLoadMethod.offset;
+      // end = onLoadMethod.end;
+      start = onLoadMethod.offset;
+      end = onLoadMethod.offset;
+    } else {
+      final lastFieldDeclaration =
+          declaration.members.lastWhereOrNull((member) {
+        if (member is FieldDeclaration) return !member.isStatic;
+
+        return false;
+      });
+      if (lastFieldDeclaration != null) {
+        start = lastFieldDeclaration.offset;
+        end = lastFieldDeclaration.end;
+      } else {
+        final constructorDeclaration = declaration.members
+            .firstWhereOrNull((e) => e is ConstructorDeclaration);
+        if (constructorDeclaration != null) {
+          start = constructorDeclaration.offset;
+          end = constructorDeclaration.end;
+        } else {
+          start = declaration.offset;
+          end = declaration.end;
+        }
+      }
+    }
+
     final before = content.substring(0, end);
     final after = content.substring(end);
 
-    // final newContent =
-    //     '$before\n${component.toCode({'text': 'Hello!'})}\n$after';
-    // await file.writeAsString(newContent);
+    final newContent =
+        '$before\n${result.$1.toCode(result.$2, result.$3)}\n\n$after';
+    await file.writeAsString(newContent);
+    await Writer.formatFile(file.path);
   }
 }

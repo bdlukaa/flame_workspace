@@ -20,6 +20,7 @@ dependencies:
   code_builder: ^4.7.0
   source_gen: ^1.4.0
   http: ^1.1.0
+  recase: ^4.1.0
 
   # External functionality
   file_picker: ^5.5.0

@@ -11,6 +11,14 @@ class Writer {
 
   const Writer({required this.unit});
 
+  static Future<void> formatFile(String filePath) {
+    return Process.run(
+      'dart',
+      ['format', filePath],
+      runInShell: true,
+    );
+  }
+
   /// Adds a mixin to a class.
   Future<void> addMixinToClass(
     String className,
@@ -40,5 +48,6 @@ class Writer {
       text = '$beforeOffset with $mixinName $afterOffset';
     }
     await file.writeAsString(text);
+    await Writer.formatFile(file.path);
   }
 }

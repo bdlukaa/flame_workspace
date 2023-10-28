@@ -12,6 +12,7 @@ import 'dart:io';
 
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
+import 'package:flame_workspace/parser/writer.dart';
 import 'package:flame_workspace/project/game_objects.dart';
 import 'package:flame_workspace/parser/parser.dart';
 import 'package:http/http.dart' as http;
@@ -100,7 +101,7 @@ final builtInComponents = <FlameComponentObject>[
 ];
 ''');
 
-    await Process.run('dart', ['format', file.path]);
+    await Writer.formatFile(file.path);
   } else {
     print('Failed to get the file.');
   }

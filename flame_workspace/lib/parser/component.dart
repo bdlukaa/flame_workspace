@@ -6,6 +6,8 @@ import 'package:flame_workspace/parser/parser.dart';
 import 'package:flame_workspace/project/game_objects.dart';
 import 'package:flame_workspace/utils.dart';
 
+import 'writer.dart';
+
 class ComponentHelper {
   final FlameComponentObject component;
   final FlameSceneObject scene;
@@ -52,6 +54,7 @@ class ComponentHelper {
     final newContent = '$before$newName$after';
 
     await file.writeAsString(newContent);
+    await Writer.formatFile(file.path);
   }
 
   Iterable<(String name, String expression, NamedExpression argument)>?
@@ -127,5 +130,6 @@ class ComponentHelper {
 
       await file.writeAsString(newContent);
     }
+    await Writer.formatFile(file.path);
   }
 }

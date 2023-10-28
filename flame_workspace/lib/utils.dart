@@ -7,4 +7,13 @@ extension ListExtension<T> on Iterable<T> {
     }
     return null;
   }
+
+  T? lastWhereOrNull(bool Function(T) test) {
+    for (final element in toList().reversed) {
+      if (test(element)) {
+        return element;
+      }
+    }
+    return null;
+  }
 }

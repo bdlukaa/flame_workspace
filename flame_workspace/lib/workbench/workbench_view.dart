@@ -14,7 +14,7 @@ import 'configuration_view.dart';
 import 'notifications_field.dart';
 import 'preview_view.dart';
 import 'project_view.dart';
-import 'scene_view.dart';
+import 'scene/scene_view.dart';
 import 'structure_view.dart';
 
 class Workbench extends InheritedWidget {
