@@ -89,7 +89,7 @@ class _ProjectStructureViewState extends State<ProjectStructureView> {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
-        padding: const EdgeInsetsDirectional.all(12.0),
+        padding: const EdgeInsetsDirectional.symmetric(horizontal: 12.0),
         child: Text(
           'Project Structure',
           style: theme.textTheme.labelMedium,
@@ -97,6 +97,7 @@ class _ProjectStructureViewState extends State<ProjectStructureView> {
       ),
       Expanded(
         child: SingleChildScrollView(
+          padding: const EdgeInsetsDirectional.symmetric(horizontal: 12.0),
           child: TreeView(
             nodes: _files.map((entity) {
               if (entity is Directory) {

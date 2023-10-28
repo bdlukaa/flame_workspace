@@ -312,7 +312,7 @@ class _DesignViewState extends State<DesignView> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final workbench = Workbench.of(context);
-    _currentScene ??= workbench.scenes.map((e) => e.$1).firstWhere(
+    _currentScene = workbench.scenes.map((e) => e.$1).firstWhere(
           (scene) => scene.name == workbench.project.initialScene,
           orElse: () => workbench.scenes.first.$1,
         );
