@@ -1,6 +1,10 @@
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
 
+/// A key that can be used to identify a component.
+///
+/// The [name] needs to be the same as the declaration of the component. This
+/// allows the IDE to properly track the component and its initial properties.
 @immutable
 class FlameKey extends ComponentKey {
   final String name;

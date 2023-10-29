@@ -3,7 +3,7 @@ import 'package:flame/game.dart';
 import 'package:flame/palette.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'scenes/main_scene.dart';
+import 'scenes/scene_one.dart';
 
 class MyGame extends FlameGame with SingleGameInstance, WindowListener {
   MyGame() : super();

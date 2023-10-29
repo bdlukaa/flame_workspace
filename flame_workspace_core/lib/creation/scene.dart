@@ -16,6 +16,8 @@ class FlameScene extends World with FlameComponent {
     required this.backgroundColor,
     super.children,
   });
+
+  void addAllComponents() {}
 }
 
 extension FlameComponentExtension on Component {

@@ -29,15 +29,18 @@ class Scene1 extends FlameScene with TapCallbacks {
     scale: Vector2(2.0, 2.0),
   );
 
+  TextComponent textComponent = TextComponent(
+    key: FlameKey('textComponent'),
+    text: 'ruo',
+    position: Vector2(200.0, 200.0),
+  );
+
   @override
   Future<void> onLoad() async {
     // Load all the assets that are needed in this world
     // and add components etc.
 
-    addAll([
-      textie,
-      circle,
-    ]);
+    addAllComponents();
 
     return super.onLoad();
   }
@@ -59,6 +62,13 @@ class Scene1 extends FlameScene with TapCallbacks {
     } else {
       circle.radius -= 0.001;
     }
+  }
+
+  @override
+  void addAllComponents() {
+    add(textie);
+    add(circle);
+    add(textComponent);
   }
 }
 
