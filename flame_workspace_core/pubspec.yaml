@@ -3,6 +3,8 @@ description: Necessary code to make a Flame app work with the IDE
 version: 0.0.1
 homepage:
 
+publish_to: "none"
+
 environment:
   sdk: '>=3.2.0-41.0.dev <4.0.0'
   flutter: ">=1.17.0"
@@ -10,11 +12,19 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flame_workspace:
+    path: ../flame_workspace
 
+  # Flame
   flame: 1.9.1
   flame_audio: 2.1.1
   flame_forge2d: 0.15.0+1
   flame_isolate: 0.5.0+1
+
+  # Connection
+  web_socket_channel: ^2.4.0
+  shelf: ^1.4.1
+  shelf_web_socket: ^1.0.4
 
 dev_dependencies:
   flutter_test:

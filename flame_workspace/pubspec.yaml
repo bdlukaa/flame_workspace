@@ -38,6 +38,11 @@ dependencies:
   flutter_colorpicker: ^1.0.3
   auto_size_text: ^3.0.0
 
+  # Connection
+  flame_workspace_core:
+    path: ../flame_workspace_core
+  web_socket_channel: ^2.4.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

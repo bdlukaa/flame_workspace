@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_view/flutter_native_view.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:win32/win32.dart';
 
 import 'project.dart';
@@ -41,6 +42,8 @@ class FlameProjectRunner with ChangeNotifier {
   StreamSubscription<String>? _outputSubscription;
   StreamSubscription<String>? _errorSubscription;
 
+  IOWebSocketChannel? _channel;
+
   bool get isReady => isRunning && _runProcess != null;
 
   void emitLog(String log, String prefix) {
@@ -72,23 +75,31 @@ class FlameProjectRunner with ChangeNotifier {
     );
 
     _outputSubscription =
-        _runProcess!.stdout.transform(utf8.decoder).listen((String line) {
-      if (line.trim().startsWith('Flutter run key commands.')) {
+        _runProcess!.stdout.transform(utf8.decoder).listen((line) async {
+      emitLog(line, kPreviewLogPrefix);
+
+      if (line.trim().contains('Flutter run key commands.')) {
         _viewController = NativeViewController(
           handle: FindWindow(nullptr, project.name.toNativeUtf16()),
           hitTestBehavior: HitTestBehavior.translucent,
         );
-      }
+      } else if (line.trim().contains('flutter: Serving at ')) {
+        final url = line.trim().replaceAll('flutter: Serving at ', '').trim();
+        debugPrint('Connecting to $url');
+        final channel = IOWebSocketChannel.connect(url);
+        await channel.ready;
+        _channel = channel;
 
-      emitLog(line, kPreviewLogPrefix);
+        notifyListeners();
+      }
     });
 
     _errorSubscription =
-        _runProcess!.stderr.transform(utf8.decoder).listen((String line) {
+        _runProcess!.stderr.transform(utf8.decoder).listen((line) {
       emitLog(line, kPreviewLogPrefix);
     });
 
-    _runProcess!.exitCode.then((int exitCode) {
+    _runProcess!.exitCode.then((exitCode) {
       emitLog(
         '${project.name} exited with exit code $exitCode',
         kPreviewLogPrefix,
@@ -116,6 +127,8 @@ class FlameProjectRunner with ChangeNotifier {
     _errorSubscription?.cancel();
     _errorSubscription = null;
 
+    _channel?.sink.close();
+
     notifyListeners();
   }
 
@@ -141,6 +154,15 @@ class FlameProjectRunner with ChangeNotifier {
         height: constraints.maxHeight,
       );
     }));
+  }
+
+  void send(String id, Map data) {
+    if (isReady) {
+      _channel!.sink.add({
+        'id': id,
+        ...data,
+      });
+    }
   }
 
   @override

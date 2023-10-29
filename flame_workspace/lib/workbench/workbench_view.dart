@@ -80,6 +80,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
     _filesSubscription = widget.project.location
         .watch(recursive: true)
         .listen((FileSystemEvent event) {
+      if (!event.path.endsWith('.dart')) return;
       // print(event);
       switch (event.type) {
         case FileSystemEvent.create:

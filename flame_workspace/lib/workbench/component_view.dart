@@ -1,5 +1,6 @@
 import 'package:flame_workspace/parser/component.dart';
 import 'package:flame_workspace/utils.dart';
+import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
@@ -117,6 +118,11 @@ class ComponentView extends StatelessWidget {
                       type: parameter.nonNullableType,
                       onChanged: (value) {
                         componentHelper.writeArgument(parameter.name, value);
+                        workbench.runner.send(kPropertyChanged, {
+                          'component': component.declarationName!,
+                          'property': parameter.name,
+                          'value': value,
+                        });
                       },
                     ),
                 };
