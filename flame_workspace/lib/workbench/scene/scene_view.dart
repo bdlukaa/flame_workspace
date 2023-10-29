@@ -76,6 +76,8 @@ class SceneView extends StatefulWidget {
 }
 
 class _SceneViewState extends State<SceneView> {
+  bool choosingScene = false;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -99,8 +101,19 @@ class _SceneViewState extends State<SceneView> {
           FocusScope.of(context).unfocus();
         },
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text(scene.name, style: theme.textTheme.labelMedium),
+          Row(children: [
+            Expanded(
+              child: InkWell(
+                onTap: () => setState(() => choosingScene = !choosingScene),
+                child: Row(children: [
+                  const SizedBox(
+                    width: toggleBoxWidth,
+                    child: Icon(Icons.keyboard_arrow_down, size: 12.0),
+                  ),
+                  Text(scene.name, style: theme.textTheme.labelMedium),
+                ]),
+              ),
+            ),
             Tooltip(
               message: 'Add component',
               child: InkWell(
@@ -112,29 +125,72 @@ class _SceneViewState extends State<SceneView> {
               ),
             ),
           ]),
-          TreeView(
-            nodes: design.currentScene.components.map((component) {
-              TreeNode buildNode(FlameComponentObject component) {
-                final isSelected = design.currentSelectedComponent == component;
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 125),
+              child: Builder(
+                key: ValueKey(choosingScene),
+                builder: (context) {
+                  if (choosingScene) {
+                    return Column(children: [
+                      ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: workbench.scenes.length,
+                        itemBuilder: (context, index) {
+                          final sceneResult = workbench.scenes[index];
+                          final scene = sceneResult.$1;
+                          return ListTile(
+                            title: Text(scene.name),
+                            trailing: const Icon(Icons.select_all),
+                            dense: true,
+                            contentPadding: const EdgeInsetsDirectional.only(
+                              start: toggleBoxWidth,
+                            ),
+                            onTap: () {
+                              // design.onSceneSelected(scene);
+                              setState(() => choosingScene = false);
+                            },
+                          );
+                        },
+                      ),
+                      ListTile(
+                        title: const Text('Create scene'),
+                        trailing: const Icon(Icons.add),
+                        contentPadding: const EdgeInsetsDirectional.only(
+                          start: toggleBoxWidth,
+                        ),
+                        onTap: () {},
+                      ),
+                    ]);
+                  }
+                  return TreeView(
+                    nodes: design.currentScene.components.map((component) {
+                      TreeNode buildNode(FlameComponentObject component) {
+                        final isSelected =
+                            design.currentSelectedComponent == component;
 
-                return TreeNode(
-                  value: component,
-                  icon: iconForComponent(component.name) ??
-                      iconForComponent(component.type) ??
-                      Icons.square,
-                  text: component.declarationName ?? component.name,
-                  isSelected: isSelected,
-                  onTap: () {
-                    design.onComponentSelected(component);
-                  },
-                  children: component.components.isEmpty
-                      ? null
-                      : component.components.map(buildNode).toList(),
-                );
-              }
+                        return TreeNode(
+                          value: component,
+                          icon: iconForComponent(component.name) ??
+                              iconForComponent(component.type) ??
+                              Icons.square,
+                          text: component.declarationName ?? component.name,
+                          isSelected: isSelected,
+                          onTap: () {
+                            design.onComponentSelected(component);
+                          },
+                          children: component.components.isEmpty
+                              ? null
+                              : component.components.map(buildNode).toList(),
+                        );
+                      }
 
-              return buildNode(component);
-            }).toList(),
+                      return buildNode(component);
+                    }).toList(),
+                  );
+                },
+              ),
+            ),
           ),
         ]),
       ),

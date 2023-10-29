@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 
+const toggleBoxWidth = 20.0;
+
 class TreeNode<T> {
   final T? value;
 
@@ -85,8 +87,6 @@ class __TreeNodeState extends State<_TreeNode> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    const toggleBoxWidth = 20.0;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       InkWell(
