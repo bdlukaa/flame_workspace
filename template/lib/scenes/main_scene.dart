@@ -10,7 +10,7 @@ class Scene1 extends FlameScene with TapCallbacks {
   });
 
   TextComponent textie = TextComponent(
-    position: Vector2(100.0, 100.0),
+    // position: Vector2(100.0, 100.0),
     text:
         'Hello, World! My name is bruno. \n Nice to see all of you here! Hope to continue to work on this awesome project!!',
   );
@@ -29,7 +29,15 @@ class Scene1 extends FlameScene with TapCallbacks {
   Future<void> onLoad() async {
     // Load all the assets that are needed in this world
     // and add components etc.
-    add(circle);
+
+    addAll([
+      circle,
+      firstCircle,
+      otherCircle,
+      textie,
+    ]);
+
+    return super.onLoad();
   }
 
   bool _upping = false;
