@@ -2,30 +2,35 @@ library flame_workspace_core;
 
 export 'package:flame_workspace_core/creation/scene.dart'
     show FlameComponentExtension;
+export 'package:flame_workspace_core/creation/key.dart';
 
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 
 import 'creation/scene.dart';
 import 'debug_server.dart';
 
 class FlameWorkspaceCore {
-  static FlameWorkspaceCore instance = FlameWorkspaceCore();
+  static late FlameWorkspaceCore instance;
 
-  FlameWorkspaceCore();
+  final FlameGame game;
+
+  FlameWorkspaceCore(this.game);
 
   late final HttpServer _server;
 
   /// Initializes the package server.
-  Future<void> ensureInitialized() async {
+  static Future<void> ensureInitialized(FlameGame game) async {
+    FlameWorkspaceCore.instance = FlameWorkspaceCore(game);
     if (kDebugMode) {
       assert(!kIsWeb, 'Can not run in web mode');
       debugPrint('Initializing Flame Workspace Core');
-      _server = await createServer();
+      instance._server = await createServer();
 
-      _server.listen((request) {
+      instance._server.listen((request) {
         request.response.write('Hello, world!');
       });
     }

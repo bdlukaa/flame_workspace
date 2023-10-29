@@ -65,6 +65,7 @@ class FlameComponentObject {
     final buffer = StringBuffer();
 
     buffer.write('$name $declarationName = $name(');
+    buffer.write('key: FlameKey(\'$declarationName\'),');
 
     for (final parameter in parameters) {
       final isRequired = !parameter.isNullable &&

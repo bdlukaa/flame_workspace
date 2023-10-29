@@ -1,6 +1,8 @@
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
+import 'package:flame/palette.dart';
 import 'package:flame_workspace_core/creation/scene.dart';
+import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart';
 
 class Scene1 extends FlameScene with TapCallbacks {
@@ -10,20 +12,22 @@ class Scene1 extends FlameScene with TapCallbacks {
   });
 
   TextComponent textie = TextComponent(
-    // position: Vector2(100.0, 100.0),
-    text:
-        'Hello, World! My name is bruno. \n Nice to see all of you here! Hope to continue to work on this awesome project!!',
+    key: FlameKey('textie'),
+    text: 'Hello, World! My name is bruno.\n'
+        'Nice to see all of you here! Hope to continue to work on this awesome project!!',
+    textRenderer: TextPaint(
+      style: TextStyle(
+        fontSize: 14.0,
+        color: BasicPalette.white.color,
+      ),
+    ),
+    position: Vector2(25.0, 25.0),
   );
-  MyOtherCircle otherCircle = MyOtherCircle(position: Vector2(2.0, 0.0));
   MyCircle circle = MyCircle(
-    radius: 120.0,
-    color: const Color(0xff3e1d3d),
-    position: Vector2(99.0, 103.0),
-    flag: false,
-    size: Vector2(0, 0.0),
-    scale: Vector2(3.0, 0.0),
+    key: FlameKey('circle'),
+    position: Vector2(100.0, 100.0),
+    scale: Vector2(2.0, 2.0),
   );
-  MyCircle firstCircle = MyCircle();
 
   @override
   Future<void> onLoad() async {
@@ -31,10 +35,8 @@ class Scene1 extends FlameScene with TapCallbacks {
     // and add components etc.
 
     addAll([
-      circle,
-      firstCircle,
-      otherCircle,
       textie,
+      circle,
     ]);
 
     return super.onLoad();
@@ -64,6 +66,7 @@ class MyCircle extends PositionComponent with FlameComponent {
   double radius;
 
   MyCircle({
+    super.key,
     this.radius = 20.0,
     Color color = const Color(0xFFFF0000),
     super.position,
