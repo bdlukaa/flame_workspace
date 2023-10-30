@@ -1,3 +1,4 @@
+import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
 
 import 'workbench_view.dart';
@@ -68,12 +69,7 @@ class _GamePreviewViewState extends State<GamePreviewView> {
                           IconButton(
                             icon: const Icon(Icons.send),
                             tooltip: 'Test data',
-                            onPressed: () {
-                              workbench.runner.send(
-                                'test',
-                                {'data': 'test'},
-                              );
-                            },
+                            onPressed: () {},
                           ),
                         ],
                       ),

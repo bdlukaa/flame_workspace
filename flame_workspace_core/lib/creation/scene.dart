@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 
 /// A scene is a represents screen of your game. It can be a level, a world map,
 /// or anything the user can interact with and has components.
-class FlameScene extends World with FlameComponent {
+class FlameScene extends World {
   /// The name of the scene.
   final String sceneName;
 
@@ -52,45 +52,11 @@ extension FlameComponentExtension on Component {
       });
     }
 
-    if (this is FlameComponent) {
-      final component = this as FlameComponent;
-      data.addAll({
-        'properties': component.properties,
-      });
-    }
-
     data.addAll({
       'type': runtimeType.toString(),
       'children': children.map((e) => e.serialized).toList(),
     });
 
     return data;
-  }
-}
-
-mixin FlameComponent on Component {
-  final List<MapEntry<String, dynamic>> properties = [];
-
-  @override
-  @mustCallSuper
-  void add(Component component) {
-    debugPrint('added $component');
-    super.add(component);
-  }
-
-  @override
-  @mustCallSuper
-  void remove(Component component) {
-    super.remove(component);
-  }
-
-  /// Registers a property to be serialized.
-  ///
-  /// This is usually used on components that are not built into the engine.
-  void registerProperty(MapEntry<String, dynamic> entry) {
-    if (properties.any((e) => e.key == entry.key)) {
-      throw Exception('Property already registered');
-    }
-    properties.add(entry);
   }
 }

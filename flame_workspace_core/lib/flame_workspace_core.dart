@@ -1,5 +1,6 @@
 library flame_workspace_core;
 
+export 'package:flame_workspace_core/creation/flame_component.dart';
 export 'package:flame_workspace_core/creation/scene.dart'
     show FlameComponentExtension;
 export 'package:flame_workspace_core/creation/key.dart';
@@ -8,6 +9,7 @@ export 'package:flame_workspace_core/messages.dart';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 
@@ -19,9 +21,9 @@ class FlameWorkspaceCore {
 
   final FlameGame game;
 
-  FlameWorkspaceCore(this.game);
-
   HttpServer? _server;
+
+  FlameWorkspaceCore(this.game);
 
   /// Initializes the package server.
   static Future<void> ensureInitialized(FlameGame game) async {
@@ -32,6 +34,10 @@ class FlameWorkspaceCore {
       instance._server = await ds.createServer();
     }
   }
+
+  String? currentSelectedComponentKey = 'circle';
+  Component? get currentSelectedComponent =>
+      game.findByKeyName(currentSelectedComponentKey ?? '__none__');
 
   final FlameScene currentScene = FlameScene(
     sceneName: 'Scene 1',
