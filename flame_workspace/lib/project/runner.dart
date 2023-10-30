@@ -158,10 +158,10 @@ class FlameProjectRunner with ChangeNotifier {
 
   void send(String id, Map data) {
     if (isReady) {
-      _channel!.sink.add({
+      _channel!.sink.add(json.encode({
         'id': id,
         ...data,
-      });
+      }));
     }
   }
 

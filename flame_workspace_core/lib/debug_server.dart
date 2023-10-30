@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flame/components.dart';
@@ -41,8 +42,13 @@ void send(dynamic data) {
 }
 
 void listen(WebSocketChannel channel, dynamic message) {
-  assert(message is Map);
   print('Received message $message');
+
+  if (message is String) {
+    message = json.decode(message);
+  }
+
+  assert(message is Map);
 
   final data = message as Map<String, dynamic>;
   final id = data['id'] as String;

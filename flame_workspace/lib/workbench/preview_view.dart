@@ -56,12 +56,27 @@ class _GamePreviewViewState extends State<GamePreviewView> {
                         ),
                       ),
                     ),
-                    const Padding(
+                    Padding(
                       padding: EdgeInsetsDirectional.symmetric(
                         horizontal: 16.0,
                         vertical: 8.0,
                       ),
-                      child: Text('Output'),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Output'),
+                          IconButton(
+                            icon: const Icon(Icons.send),
+                            tooltip: 'Test data',
+                            onPressed: () {
+                              workbench.runner.send(
+                                'test',
+                                {'data': 'test'},
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
