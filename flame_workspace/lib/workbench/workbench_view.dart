@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
 
 import '../project/game_objects.dart';
@@ -316,10 +317,18 @@ class _DesignViewState extends State<DesignView> {
 
   @override
   Widget build(BuildContext context) {
+    final workbench = Workbench.of(context);
+
     return Design(
       currentScene: currentScene,
       currentSelectedComponent: _currentSelectedComponent,
       onComponentSelected: (component) {
+        workbench.runner.send(
+          component == null ? kComponentUnselected : kComponentSelected,
+          {
+            'component': component?.declarationName,
+          },
+        );
         setState(() => _currentSelectedComponent = component);
       },
       child: const Row(children: [

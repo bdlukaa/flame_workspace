@@ -35,7 +35,7 @@ class FlameWorkspaceCore {
     }
   }
 
-  String? currentSelectedComponentKey = 'circle';
+  String? currentSelectedComponentKey;
   Component? get currentSelectedComponent =>
       game.findByKeyName(currentSelectedComponentKey ?? '__none__');
 

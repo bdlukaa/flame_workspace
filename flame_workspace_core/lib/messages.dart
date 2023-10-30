@@ -16,7 +16,4 @@ const kPropertyChanged = 'PropertyChanged';
 const kComponentSelected = 'ComponentSelected';
 
 /// The message key that represents when a component has been unselected.
-///
-/// The value of this message is a map with the following keys:
-///   - `component`: The key of the component that has been unselected.
 const kComponentUnselected = 'ComponentUnselected';

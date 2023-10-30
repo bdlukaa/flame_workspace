@@ -98,6 +98,23 @@ void listen(WebSocketChannel channel, dynamic message) {
       }
 
       break;
+    case kComponentSelected:
+      final declarationName = data['component'] as String;
+
+      final component = FlameWorkspaceCore.instance.game.findByKeyName(
+        declarationName,
+      );
+
+      if (component == null) {
+        print('Could not find component $declarationName');
+        return;
+      }
+
+      FlameWorkspaceCore.instance.currentSelectedComponentKey = declarationName;
+      break;
+    case kComponentUnselected:
+      FlameWorkspaceCore.instance.currentSelectedComponentKey = null;
+
     default:
       break;
   }
