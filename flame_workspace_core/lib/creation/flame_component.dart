@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flame/components.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/foundation.dart';
@@ -11,7 +13,20 @@ import 'package:flutter/widgets.dart';
 ///
 /// Components created directly from the IDE will automatically use this mixin.
 mixin FlameComponent on PositionComponent {
+  static Component wrap(Component component) {
+    if (component is FlameComponent || component is _FlameComponentWrapper) {
+      return component;
+    }
+
+    return _FlameComponentWrapper(component);
+  }
+
   final FlameSelectionComponent _selectionHighlight = FlameSelectionComponent();
+  Component get targetComponent {
+    return this is _FlameComponentWrapper
+        ? (this as _FlameComponentWrapper).component
+        : this;
+  }
 
   @override
   @mustCallSuper
@@ -23,6 +38,7 @@ mixin FlameComponent on PositionComponent {
   @override
   @mustCallSuper
   void remove(Component component) {
+    debugPrint('removed $component');
     super.remove(component);
   }
 
@@ -31,7 +47,8 @@ mixin FlameComponent on PositionComponent {
   void update(double t) {
     super.update(t);
 
-    if (FlameWorkspaceCore.instance.currentSelectedComponent == this) {
+    if (FlameWorkspaceCore.instance.currentSelectedComponent ==
+        targetComponent) {
       _selectionHighlight
         ..position = position
         ..size = size;
@@ -43,7 +60,8 @@ mixin FlameComponent on PositionComponent {
   void render(Canvas canvas) {
     super.render(canvas);
 
-    if (FlameWorkspaceCore.instance.currentSelectedComponent == this) {
+    if (FlameWorkspaceCore.instance.currentSelectedComponent ==
+        targetComponent) {
       _selectionHighlight.render(canvas);
     }
   }
@@ -78,5 +96,35 @@ class FlameSelectionComponent extends PositionComponent {
   void render(Canvas canvas) {
     super.render(canvas);
     canvas.drawRect(size.toRect(), _paint);
+  }
+}
+
+class _FlameComponentWrapper extends PositionComponent with FlameComponent {
+  _FlameComponentWrapper(this.component) : super(children: [component]);
+
+  final Component component;
+
+  @override
+  void update(double t) {
+    super.update(t);
+
+    if (component is PositionComponent) {
+      position = (component as PositionComponent).position;
+      size = (component as PositionComponent).size;
+      anchor = (component as PositionComponent).anchor;
+      angle = (component as PositionComponent).angle;
+      scale = (component as PositionComponent).scale;
+      nativeAngle = (component as PositionComponent).nativeAngle;
+    }
+  }
+
+  @override
+  getProperty(String property) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void setProperty(String property, value) {
+    throw UnimplementedError();
   }
 }

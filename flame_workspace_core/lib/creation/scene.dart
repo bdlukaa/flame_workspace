@@ -1,6 +1,8 @@
 import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
 
+import 'flame_component.dart';
+
 /// A scene is a represents screen of your game. It can be a level, a world map,
 /// or anything the user can interact with and has components.
 class FlameScene extends World {
@@ -16,6 +18,11 @@ class FlameScene extends World {
   });
 
   void addAllComponents() {}
+
+  @override
+  void add(Component component) {
+    super.add(FlameComponent.wrap(component));
+  }
 }
 
 extension FlameComponentExtension on Component {

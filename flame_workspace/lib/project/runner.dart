@@ -84,7 +84,7 @@ class FlameProjectRunner with ChangeNotifier {
           hitTestBehavior: HitTestBehavior.translucent,
         );
       } else if (line.trim().contains('flutter: Serving at ')) {
-        final url = line.trim().replaceAll('flutter: Serving at ', '').trim();
+        final url = line.trim().split('flutter: Serving at').last.trim();
         debugPrint('Connecting to $url');
         final channel = IOWebSocketChannel.connect(url);
         await channel.ready;
