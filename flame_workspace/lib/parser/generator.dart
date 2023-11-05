@@ -114,6 +114,7 @@ class PropertiesGenerator {
   ) async {
     final buffer = StringBuffer();
     buffer.writeln(generatedFileNotice);
+    buffer.writeln('// ignore_for_file: unused_import');
     buffer.writeln(defaultImports);
 
     Set<String> imports = {};
