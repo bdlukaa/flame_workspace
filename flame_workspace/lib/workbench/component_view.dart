@@ -371,8 +371,10 @@ class PropertyFieldState extends State<PropertyField> {
       } else {
         controller.text = double.parse(controller.text).toString();
       }
+      widget.onChanged?.call(controller.text);
+    } else {
+      widget.onChanged?.call("'${controller.text}'");
     }
-    widget.onChanged?.call("'${controller.text}'");
   }
 
   bool get isNumbericField => widget.type == 'double' || widget.type == 'int';

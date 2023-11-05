@@ -25,7 +25,7 @@ class Scene1 extends FlameScene with TapCallbacks {
   );
   MyCircle circle = MyCircle(
     key: FlameKey('circle'),
-    position: Vector2(50.0, 100.0),
+    position: Vector2(0.0, 100.0),
     scale: Vector2(2.0, 2.0),
   );
 
