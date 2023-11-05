@@ -3,7 +3,7 @@
 ### Packages
 
 * flame_workspace
-  The main package. It contains the `Workspace` class, which is the entry point of the IDE.
+  The main package.
 
 * template
   A template used when creating a new Flame project.
@@ -18,41 +18,12 @@
   ```
 
 * flame_workspace_core
-  A package every Flame Project must depend on. It contains the necessary code to make the game work with the IDE. Game Preview and Code generation are some of the features provided by this package.
-
-  It is resposible to interpret the code to make their properties visible in the IDE in forms of Scenes and Components. Read more about it in the [flame_workspace_core](./flame_workspace_core/README.md)
+  The core package, in which every Flame project must depend on. It contains the necessary code that makes the interaction between the IDE and the game itself possible.
 
 ### Under the hood
 
-The Dart Analyzer is used to parse all the source code of the project. The parsed code is then interpreted by the `flame_workspace_core` package to generate the IDE features.
+The Dart Analyzer is used to parse the entire code of the game. The IDE uses this info to display the available components, scenes and other information about the project.
 
-- All components are parsed into a `FlameComponentObject`, which contains data about the component `name`, `type` and parameters. 
-- All scenes are parsed into a `FlameSceneObject`, which contains data about the scene `name`, `type`, `components` and parameters.
+The `flame_workspace_core`, in which the game depend on, creates a local server that enables the communication between the IDE and the game. This makes it possible to edit the components properties from the IDE itself, without the need to edit the code. See [this](flame_workspace_core/README.md) for more info on how it works.
 
-On the project code side, the code is described below:
-
-```dart
-class Scene1 extends FlameScene {
-  Scene1({
-    super.sceneName = 'Scene 1',
-  });
-
-  /// All components are declared as fields of the class. Their type
-  /// MUST be explicit
-  CircleComponent circle = CircleComponent(radius: 20.0);
-  SquareComponent square = SquareComponent(size: 20.0);
-
-  @override
-  Future<void> onLoad() async {
-    add(circle);
-    add(square);
-  }
-
-  @override
-  void update(dt) async {
-    super.update(dt);
-
-    
-  }
-}
-```
+The Game Preview is embedded using [flutter_native_view](https://pub.dev/packages/flutter_native_view), since Flutter doesn't support Platform Views on Desktop yet (by 11/05/23).
