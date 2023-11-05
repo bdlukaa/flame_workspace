@@ -1,7 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/palette.dart';
-import 'package:flame_workspace_core/creation/scene.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart';
 
@@ -135,10 +134,13 @@ class MyOtherCircle extends MyCircle {
 class MySquare extends PositionComponent with FlameComponent {
   double radius;
 
+  final String finalProp;
+
   MySquare({
     this.radius = 20.0,
     Color color = const Color(0xFF80C080),
     super.position,
+    this.finalProp = 'hahaha',
   })  : _paint = Paint()..color = color,
         super(
           size: Vector2.all(2 * radius),

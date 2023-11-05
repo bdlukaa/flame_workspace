@@ -37,11 +37,14 @@ class FlameComponentObject {
 
   final List<String> modifiers;
 
+  final String? filePath;
+
   FlameComponentObject({
     required this.name,
     required this.type,
     required this.parameters,
     required this.data,
+    this.filePath,
     this.declarationName,
     this.modifiers = const [],
   });
@@ -110,19 +113,37 @@ class FlameComponentField {
   /// is the origin class.
   final List<String>? superComponents;
 
+  /// Whether this field is initialized with `this.`.
+  ///
+  /// ```dart
+  /// final Color color;
+  ///
+  /// const MyComponent({
+  ///   required this.color,
+  /// });
+  /// ```
+  final bool isLocalField;
+
+  /// Whether this field can not be reassigned.
+  final bool isFinalField;
+
   FlameComponentField(
     this.name,
     this.type, [
     this.defaultValue,
     this.superComponents,
+    this.isLocalField = false,
+    this.isFinalField = false,
   ]);
 
   @override
   String toString() => "FlameComponentField("
       "'$name', "
       "'$type', "
-      "'$defaultValue'"
-      "${superComponents == null ? '' : ", [${superComponents!.map((e) => "'$e'").join(', ')}]"}"
+      "'$defaultValue', "
+      "${superComponents == null ? 'null, ' : "[${superComponents!.map((e) => "'$e'").join(', ')}], "}"
+      "$isLocalField, "
+      "$isFinalField"
       ")";
 
   bool get isNullable => type == 'dynamic' || type.endsWith('?');

@@ -169,6 +169,8 @@ class ProjectIndexer {
                 FlameComponentObject? superComponent;
                 FlameComponentField? superParameter;
 
+                bool isFinal = true;
+
                 if (type == null) {
                   if (name.startsWith('super.')) {
                     final superclass = d['extends'] as String?;
@@ -188,6 +190,7 @@ class ProjectIndexer {
                       },
                     );
                     type = superParameter?.type;
+                    isFinal = superParameter?.isFinalField ?? isFinal;
 
                     name = name.replaceAll('super.', '');
                   } else {
@@ -203,6 +206,8 @@ class ProjectIndexer {
                     );
                     final fieldType = field?['type'] as String?;
                     type = fieldType;
+
+                    isFinal = field?['final'] == true;
                   }
                 }
                 type ??= 'dynamic';
@@ -218,6 +223,8 @@ class ProjectIndexer {
                           if (superParameter?.superComponents != null)
                             ...superParameter!.superComponents!,
                         ],
+                  name.startsWith('this.'),
+                  isFinal,
                 ));
               }
             }
@@ -230,6 +237,7 @@ class ProjectIndexer {
             type: d['extends'],
             parameters: componentParameters,
             data: d,
+            filePath: indexedUnit['source'],
           ),
           indexedUnit,
           unit,

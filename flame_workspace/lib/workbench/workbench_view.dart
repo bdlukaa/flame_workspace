@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flame_workspace/parser/generator.dart';
+import 'package:flame_workspace/project/built_in_components.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
 
@@ -140,6 +142,14 @@ class _WorkbenchViewState extends State<WorkbenchView> {
         ..clear()
         ..addAll(ProjectIndexer.scenes(indexed!));
     }
+
+    if ((includeOnly == null || includeOnly.isEmpty) && !onlyParse) {
+      await PropertiesGenerator.writeForComponents(
+        [...components.map((e) => e.$1), ...builtInComponents],
+        widget.project,
+      );
+    }
+
     isIndexing = false;
     if (mounted) setState(() {});
   }

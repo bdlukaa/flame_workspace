@@ -30,6 +30,17 @@ class ComponentHelper {
         }),
       );
 
+  ClassDeclaration get classDeclaration {
+    final parent = parentUnit;
+    if (parent == null) throw Exception('Parent not found');
+
+    final helper = CompilationUnitHelper(indexed: parent.$2, unit: parent.$3);
+    final declaration = helper.findClass(component.name);
+    if (declaration == null) throw Exception('Declaration not found');
+
+    return declaration;
+  }
+
   Future<void> renameDeclaration(String newName) async {
     final parent = parentUnit;
     if (parent == null) return;

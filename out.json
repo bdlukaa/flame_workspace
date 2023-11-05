@@ -22,9 +22,8 @@
             }
           },
           { "kind": "field", "name": "textie", "type": "TextComponent" },
-          { "kind": "field", "name": "otherCircle", "type": "MyOtherCircle" },
           { "kind": "field", "name": "circle", "type": "MyCircle" },
-          { "kind": "field", "name": "firstCircle", "type": "MyCircle" },
+          { "kind": "field", "name": "textComponent", "type": "TextComponent" },
           {
             "kind": "method",
             "name": "onLoad",
@@ -37,6 +36,12 @@
             "parameters": { "all": [{ "name": "dt" }] },
             "returns": "void",
             "annotations": [{ "name": "@override" }]
+          },
+          {
+            "kind": "method",
+            "name": "addAllComponents",
+            "returns": "void",
+            "annotations": [{ "name": "@override" }]
           }
         ]
       },
@@ -46,13 +51,19 @@
         "extends": "PositionComponent",
         "with": ["FlameComponent"],
         "members": [
-          { "kind": "field", "name": "radius", "type": "double" },
+          { "kind": "getter", "name": "radius", "returns": "double" },
+          {
+            "kind": "setter",
+            "name": "radius",
+            "parameters": { "all": [{ "name": "value", "type": "double" }] }
+          },
           {
             "kind": "constructor",
             "name": "MyCircle",
             "parameters": {
               "all": [
-                { "name": "this.radius", "default": "20.0" },
+                { "name": "super.key" },
+                { "name": "radius", "type": "double", "default": "20.0" },
                 {
                   "name": "color",
                   "type": "Color",
@@ -60,7 +71,6 @@
                 },
                 { "name": "super.position" },
                 { "name": "flag", "type": "bool", "default": "false" },
-                { "name": "size", "type": "Vector2?" },
                 { "name": "super.scale" }
               ],
               "named": 6
@@ -73,6 +83,24 @@
             "parameters": { "all": [{ "name": "canvas", "type": "Canvas" }] },
             "returns": "void",
             "annotations": [{ "name": "@override" }]
+          },
+          {
+            "kind": "method",
+            "name": "getProperty",
+            "parameters": { "all": [{ "name": "property", "type": "String" }] },
+            "annotations": [{ "name": "@override" }]
+          },
+          {
+            "kind": "method",
+            "name": "setProperty",
+            "parameters": {
+              "all": [
+                { "name": "property", "type": "String" },
+                { "name": "value" }
+              ]
+            },
+            "returns": "void",
+            "annotations": [{ "name": "@override" }]
           }
         ]
       },
@@ -80,7 +108,6 @@
         "kind": "class",
         "name": "MyOtherCircle",
         "extends": "MyCircle",
-        "with": ["FlameComponent"],
         "members": [
           {
             "kind": "constructor",
@@ -105,6 +132,12 @@
         "members": [
           { "kind": "field", "name": "radius", "type": "double" },
           {
+            "kind": "field",
+            "name": "finalProp",
+            "type": "String",
+            "final": true
+          },
+          {
             "kind": "constructor",
             "name": "MySquare",
             "parameters": {
@@ -115,9 +148,10 @@
                   "type": "Color",
                   "default": "const Color(0xFF80C080)"
                 },
-                { "name": "super.position" }
+                { "name": "super.position" },
+                { "name": "this.finalProp", "default": "'hahaha'" }
               ],
-              "named": 3
+              "named": 4
             }
           },
           {
@@ -131,6 +165,24 @@
             "parameters": { "all": [{ "name": "canvas", "type": "Canvas" }] },
             "returns": "void",
             "annotations": [{ "name": "@override" }]
+          },
+          {
+            "kind": "method",
+            "name": "getProperty",
+            "parameters": { "all": [{ "name": "property", "type": "String" }] },
+            "annotations": [{ "name": "@override" }]
+          },
+          {
+            "kind": "method",
+            "name": "setProperty",
+            "parameters": {
+              "all": [
+                { "name": "property", "type": "String" },
+                { "name": "value" }
+              ]
+            },
+            "returns": "void",
+            "annotations": [{ "name": "@override" }]
           }
         ]
       }
@@ -138,12 +190,13 @@
     "directives": [
       { "kind": "import", "uri": "package:flame/components.dart" },
       { "kind": "import", "uri": "package:flame/events.dart" },
+      { "kind": "import", "uri": "package:flame/palette.dart" },
       {
         "kind": "import",
-        "uri": "package:flame_workspace_core/creation/scene.dart"
+        "uri": "package:flame_workspace_core/flame_workspace_core.dart"
       },
       { "kind": "import", "uri": "package:flutter/widgets.dart" }
     ],
-    "source": "template\\lib\\scenes\\main_scene.dart"
+    "source": "template\\lib\\scenes\\scene_one.dart"
   }
 ]

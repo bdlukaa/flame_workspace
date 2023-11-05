@@ -1,8 +1,7 @@
 library flame_workspace_core;
 
 export 'package:flame_workspace_core/creation/flame_component.dart';
-export 'package:flame_workspace_core/creation/scene.dart'
-    show FlameComponentExtension;
+export 'package:flame_workspace_core/creation/scene.dart';
 export 'package:flame_workspace_core/creation/key.dart';
 export 'package:flame_workspace_core/messages.dart';
 
