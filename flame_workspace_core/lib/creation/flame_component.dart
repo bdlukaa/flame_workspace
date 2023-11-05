@@ -95,7 +95,10 @@ class FlameSelectionComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    canvas.drawRect(size.toRect(), _paint);
+    canvas.drawRect(
+      Rect.fromLTWH(position.x, position.y, width, height),
+      _paint,
+    );
   }
 }
 

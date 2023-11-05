@@ -25,7 +25,7 @@ class Scene1 extends FlameScene with TapCallbacks {
   );
   MyCircle circle = MyCircle(
     key: FlameKey('circle'),
-    position: Vector2(100.0, 100.0),
+    position: Vector2(50.0, 100.0),
     scale: Vector2(2.0, 2.0),
   );
 
@@ -101,7 +101,11 @@ class MyCircle extends PositionComponent with FlameComponent {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    canvas.drawCircle(Offset(radius, radius), radius, _paint);
+    canvas.drawCircle(
+      position.toOffset() + Offset(radius, radius),
+      radius,
+      _paint,
+    );
   }
 
   @override
