@@ -47,7 +47,12 @@ class FlameProjectRunner with ChangeNotifier {
   bool get isReady => isRunning && _runProcess != null;
 
   void emitLog(String log, String prefix) {
-    logs.add(prefix + log);
+    final lines = log.split('\n').where((line) => line.trim().isNotEmpty);
+    if (lines.length > 1) logs.add('');
+    for (final line in lines) {
+      logs.add(prefix + line);
+    }
+    if (lines.length > 1) logs.add('');
     notifyListeners();
   }
 
@@ -76,6 +81,8 @@ class FlameProjectRunner with ChangeNotifier {
 
     _outputSubscription =
         _runProcess!.stdout.transform(utf8.decoder).listen((line) async {
+      if (line.trim().isEmpty) return;
+
       emitLog(line, kPreviewLogPrefix);
 
       if (line.trim().contains('Flutter run key commands.')) {
