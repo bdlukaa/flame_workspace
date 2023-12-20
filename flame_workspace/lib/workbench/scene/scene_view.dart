@@ -114,29 +114,38 @@ class _SceneViewState extends State<SceneView> {
                 ]),
               ),
             ),
-            Tooltip(
-              message: 'Add component',
-              child: InkWell(
-                child: const Icon(Icons.add),
-                onTap: () async {
-                  final result = await showAddComponentDialog(context);
-                  if (result != null && mounted) {
-                    if (!helper.hasComponent(result.$2)) {
-                      helper.addComponent(result);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Could not add ${result.$2} to ${scene.name} '
-                            'because the element already exists',
+            if (choosingScene)
+              Tooltip(
+                message: 'Create scene',
+                child: InkWell(
+                  child: const Icon(Icons.add),
+                  onTap: () {},
+                ),
+              )
+            else
+              Tooltip(
+                message: 'Add component',
+                child: InkWell(
+                  child: const Icon(Icons.add),
+                  onTap: () async {
+                    final result = await showAddComponentDialog(context);
+                    if (result != null && mounted) {
+                      if (!helper.hasComponent(result.$2)) {
+                        helper.addComponent(result);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Could not add ${result.$2} to ${scene.name} '
+                              'because the element already exists',
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      }
                     }
-                  }
-                },
+                  },
+                ),
               ),
-            ),
           ]),
           Expanded(
             child: AnimatedSwitcher(
@@ -145,36 +154,25 @@ class _SceneViewState extends State<SceneView> {
                 key: ValueKey(choosingScene),
                 builder: (context) {
                   if (choosingScene) {
-                    return Column(children: [
-                      ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: workbench.scenes.length,
-                        itemBuilder: (context, index) {
-                          final sceneResult = workbench.scenes[index];
-                          final scene = sceneResult.$1;
-                          return ListTile(
-                            title: Text(scene.name),
-                            trailing: const Icon(Icons.select_all),
-                            dense: true,
-                            contentPadding: const EdgeInsetsDirectional.only(
-                              start: toggleBoxWidth,
-                            ),
-                            onTap: () {
-                              // design.onSceneSelected(scene);
-                              setState(() => choosingScene = false);
-                            },
-                          );
-                        },
-                      ),
-                      ListTile(
-                        title: const Text('Create scene'),
-                        trailing: const Icon(Icons.add),
-                        contentPadding: const EdgeInsetsDirectional.only(
-                          start: toggleBoxWidth,
-                        ),
-                        onTap: () {},
-                      ),
-                    ]);
+                    return ListView.builder(
+                      itemCount: workbench.scenes.length,
+                      itemBuilder: (context, index) {
+                        final sceneResult = workbench.scenes[index];
+                        final scene = sceneResult.$1;
+                        return ListTile(
+                          title: Text(scene.name),
+                          trailing: const Icon(Icons.select_all),
+                          dense: true,
+                          contentPadding: const EdgeInsetsDirectional.only(
+                            start: toggleBoxWidth,
+                          ),
+                          onTap: () {
+                            // design.onSceneSelected(scene);
+                            setState(() => choosingScene = false);
+                          },
+                        );
+                      },
+                    );
                   }
                   return TreeView(
                     nodes: design.currentScene.components.map((component) {

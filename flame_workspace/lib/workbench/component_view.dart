@@ -31,8 +31,6 @@ class ComponentView extends StatelessWidget {
       components: workbench.components,
     );
 
-    PropertiesGenerator.generateForFlameComponent(component);
-
     final initArgs = componentHelper.initializerArguments;
 
     final transformParameters = component.name == 'PositionComponent'

@@ -37,8 +37,6 @@ class Scene1 extends FlameScene with TapCallbacks {
     // Load all the assets that are needed in this world
     // and add components etc.
 
-    addAllComponents();
-
     return super.onLoad();
   }
 
@@ -59,13 +57,6 @@ class Scene1 extends FlameScene with TapCallbacks {
     } else {
       circle.radius -= 0.001;
     }
-  }
-
-  @override
-  void addAllComponents() {
-    add(textie);
-    add(circle);
-    add(textComponent);
   }
 }
 
@@ -94,7 +85,10 @@ class MyCircle extends PositionComponent with FlameComponent {
   final Paint _paint;
 
   MySquare innerCircle = MySquare(
-      radius: 50.0, position: Vector2(0.0, 2.0), finalProp: 'oh my god');
+      radius: 50.0,
+      position: Vector2(0.0, 2.0),
+      finalProp: 'oh my god',
+      color: const Color(0xff19dc19));
 
   @override
   void render(Canvas canvas) {

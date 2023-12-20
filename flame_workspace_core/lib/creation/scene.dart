@@ -17,8 +17,6 @@ class FlameScene extends World {
     super.children,
   });
 
-  void addAllComponents() {}
-
   @override
   void add(Component component) {
     super.add(FlameComponent.wrap(component));
