@@ -13,7 +13,12 @@ import 'package:flame_workspace/utils.dart';
 import '../compilation_unit_helper.dart';
 import '../project/objects/built_in_components.dart';
 
-typedef ProjectIndexResult = List<(IndexedUnit, CompilationUnit)>;
+// TODO: make these a class
+typedef ProjectIndexResult = List<
+    (
+      IndexedUnit indexedUnit,
+      CompilationUnit unit,
+    )>;
 typedef ComponentResult = (
   FlameComponentObject component,
   IndexedUnit indexedUnit,
@@ -28,6 +33,7 @@ typedef SceneResult = (
 class ProjectIndexer {
   const ProjectIndexer._();
 
+  /// Indexes a project at the given [libDir]
   static Future<ProjectIndexResult> indexProject(
     Directory libDir, [
     Iterable<String>? includeOnly,
@@ -35,6 +41,8 @@ class ProjectIndexer {
     // ignore: avoid_print
     print('Indexing project at ${libDir.path} including only $includeOnly');
     final ProjectIndexResult files = <(IndexedUnit, CompilationUnit)>[];
+
+    libDir = Directory(path.join(libDir.path, 'lib'));
 
     await for (final file in libDir
         .list(recursive: true)
@@ -280,5 +288,29 @@ class ProjectIndexer {
     populateComponents(components.map((e) => e.$1));
 
     return components;
+  }
+
+  /// Returns all the top level constants and variables.
+  static List<(Map<String, dynamic>, IndexedUnit, CompilationUnit)> topLevel(
+    ProjectIndexResult indexed,
+  ) {
+    final result = <(Map<String, dynamic>, IndexedUnit, CompilationUnit)>[];
+
+    for (final index in indexed) {
+      final indexedUnit = index.$1;
+      final unit = index.$2;
+      if (indexedUnit['declarations'] == null) continue;
+
+      final declarations = (indexedUnit['declarations'] as List)
+          .cast<Map>()
+          .map((e) => e as IndexedUnit);
+
+      final variables = declarations.where((d) => d['kind'] == 'variable');
+      for (final variable in variables) {
+        result.add((variable, indexedUnit, unit));
+      }
+    }
+
+    return result;
   }
 }

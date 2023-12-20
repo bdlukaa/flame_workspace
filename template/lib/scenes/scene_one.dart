@@ -4,6 +4,8 @@ import 'package:flame/palette.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart';
 
+const topLevelConstant = Color(0xFF00FF00);
+
 class Scene1 extends FlameScene with TapCallbacks {
   Scene1({
     super.sceneName = 'Scene 1',
@@ -23,14 +25,14 @@ class Scene1 extends FlameScene with TapCallbacks {
     position: Vector2(20.0, 25.0),
   );
   MyCircle circle = MyCircle(
-    key: FlameKey('circle'),
-    position: Vector2(0.0, 100.0),
-    scale: Vector2(2.0, 2.0),
-  );
+      key: FlameKey('circle'),
+      position: Vector2(0.0, 100.0),
+      scale: Vector2(2.0, 2.0),
+      color: const Color(0xff7f2b2b));
 
   TextComponent textComponent = TextComponent(
     key: FlameKey('textComponent'),
-    text: 'ruo',
+    text: 'slayy',
     position: Vector2(200.0, 200.0),
   );
 

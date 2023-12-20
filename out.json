@@ -1,6 +1,7 @@
 [
   {
     "declarations": [
+      { "kind": "variable", "name": "topLevelConstant", "const": true },
       {
         "kind": "class",
         "name": "Scene1",

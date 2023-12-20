@@ -35,6 +35,12 @@ class CompilationUnitHelper {
     );
   }
 
+  VariableDeclaration? findTopLevelVariable(String name) {
+    return unit.declarations
+        .whereType<VariableDeclaration>()
+        .firstWhereOrNull((v) => v.name.lexeme == name);
+  }
+
   /// Tries to parse a value from an expression.
   ///
   /// Returns null if the expression is not a valid constructor call.
