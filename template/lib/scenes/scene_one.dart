@@ -26,7 +26,7 @@ class Scene1 extends FlameScene with TapCallbacks {
       color: const Color(0xff7f2b2b),
       flag: true);
 
-  TextComponent textComponent = TextComponent(
+  TextComponent title = TextComponent(
     key: FlameKey('textComponent'),
     text: 'slayy',
     position: Vector2(200.0, 200.0),

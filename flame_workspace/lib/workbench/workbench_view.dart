@@ -239,11 +239,32 @@ class _WorkbenchViewState extends State<WorkbenchView> {
               isSelected:
                   WorkbenchViewMode.values.map((m) => m == mode).toList(),
               children: const [
-                Icon(Icons.design_services),
-                Icon(Icons.apps),
-                Icon(Icons.web_stories),
-                Icon(Icons.settings),
-              ],
+                (Icon(Icons.design_services), 'DESIGN'),
+                (Icon(Icons.apps), 'PROJECT'),
+                (Icon(Icons.web_stories), 'ASSETS'),
+                (Icon(Icons.settings), 'CONFIG'),
+              ].indexed.map((e) {
+                final isSelected = WorkbenchViewMode.values.indexed
+                        .firstWhere((mode) => mode.$1 == e.$1)
+                        .$2 ==
+                    mode;
+
+                return AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  child: isSelected
+                      ? Padding(
+                          padding: const EdgeInsetsDirectional.symmetric(
+                            horizontal: 12.0,
+                          ),
+                          child: Row(children: [
+                            e.$2.$1,
+                            const SizedBox(width: 8.0),
+                            Text(e.$2.$2, style: theme.textTheme.labelMedium),
+                          ]),
+                        )
+                      : e.$2.$1,
+                );
+              }).toList(),
               onPressed: (index) => setState(() {
                 mode = WorkbenchViewMode.values[index];
               }),
