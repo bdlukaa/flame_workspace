@@ -3,7 +3,7 @@
 ### Packages
 
 * flame_workspace
-  The main package.
+  The app itself. It is resposible to create, edit and connect to the server
 
 * template
   A template used when creating a new Flame project.

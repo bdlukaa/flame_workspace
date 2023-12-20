@@ -1,7 +1,7 @@
 import 'package:flame_workspace/parser/scene.dart';
 import 'package:flutter/material.dart';
 
-import '../../project/game_objects.dart';
+import '../../project/objects/component.dart';
 import '../../widgets/tree_view.dart';
 import '../workbench_view.dart';
 import 'add_component.dart';

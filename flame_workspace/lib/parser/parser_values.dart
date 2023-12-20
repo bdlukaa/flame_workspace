@@ -1,9 +1,7 @@
-import 'package:flame_workspace/project/game_objects.dart';
+import 'package:flame_workspace/project/objects/component.dart';
 import 'package:flutter/widgets.dart';
 
 /// A class that parse values of parameters and components into an actual class.
-///
-/// Usually used to convert text to [Color] and other types.
 class ValuesParser {
   const ValuesParser._();
 

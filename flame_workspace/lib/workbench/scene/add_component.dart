@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:recase/recase.dart';
 
 import '../../parser/parser_values.dart';
-import '../../project/built_in_components.dart';
-import '../../project/game_objects.dart';
+import '../../project/objects/built_in_components.dart';
+import '../../project/objects/component.dart';
 import '../../widgets/tree_view.dart';
 import '../component_view.dart';
 import '../workbench_view.dart';

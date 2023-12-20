@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:flame_workspace/parser/imports.dart';
 import 'package:flame_workspace/parser/writer.dart';
-import 'package:flame_workspace/project/game_objects.dart';
+import 'package:flame_workspace/project/objects/component.dart';
 import 'package:flame_workspace/project/project.dart';
 import 'package:path/path.dart' as path;
 
@@ -24,7 +24,6 @@ import 'package:path/path.dart' as path;
 /// With this class, the output function would be:
 ///
 /// ```dart
-///
 /// void setPropertyMyClass(MyClass classReference, String propertyName, dynamic value) {
 ///   switch (propertyName) {
 ///     case 'name':

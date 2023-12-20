@@ -75,6 +75,7 @@ class FlameProject {
   /// The dependencies of the project.
   ///
   /// See also:
+  ///
   ///   * [DartDependency.defaultDependencies], which contains the default
   ///     dependencies.
   final List<DartDependency> dependencies;

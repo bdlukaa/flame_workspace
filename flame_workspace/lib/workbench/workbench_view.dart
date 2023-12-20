@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flame_workspace/parser/generator.dart';
-import 'package:flame_workspace/project/built_in_components.dart';
-import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
 
-import '../project/game_objects.dart';
+import 'package:flame_workspace/parser/generator.dart';
+import 'package:flame_workspace/project/objects/built_in_components.dart';
+import 'package:flame_workspace_core/flame_workspace_core.dart';
+
 import '../parser/parser.dart';
+import '../project/objects/component.dart';
+import '../project/objects/scene.dart';
 import '../project/project.dart';
 import '../project/runner.dart';
 import '../widgets/inked_icon_button.dart';

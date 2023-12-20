@@ -13,7 +13,7 @@ import 'dart:io';
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:flame_workspace/parser/writer.dart';
-import 'package:flame_workspace/project/game_objects.dart';
+import 'package:flame_workspace/project/objects/component.dart';
 import 'package:flame_workspace/parser/parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:dartdoc_json/dartdoc_json.dart' as dartdoc;
