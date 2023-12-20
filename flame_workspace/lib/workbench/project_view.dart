@@ -1,10 +1,8 @@
-import 'package:flame_workspace/compilation_unit_helper.dart';
 import 'package:flame_workspace/parser/parser.dart';
 import 'package:flame_workspace/project/objects/built_in_components.dart';
 import 'package:flame_workspace/workbench/scene/scene_view.dart';
 import 'package:flame_workspace/workbench/workbench_view.dart';
 import 'package:flutter/material.dart';
-import 'package:window_manager/window_manager.dart';
 
 class ProjectView extends StatelessWidget {
   const ProjectView({super.key});
@@ -12,7 +10,6 @@ class ProjectView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final workbench = Workbench.of(context);
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -131,6 +128,8 @@ class ScenesListView extends StatelessWidget {
   Widget build(BuildContext context) {
     final workbench = Workbench.of(context);
     final scenes = workbench.scenes;
+
+    assert(scenes.isNotEmpty, 'The project must have at least one scene.');
 
     return ListView.builder(
       itemCount: scenes.length,

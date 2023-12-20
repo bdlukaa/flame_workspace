@@ -119,8 +119,21 @@ class _SceneViewState extends State<SceneView> {
               child: InkWell(
                 child: const Icon(Icons.add),
                 onTap: () async {
-                  final component = await showAddComponentDialog(context);
-                  if (component != null) helper.addComponent(component);
+                  final result = await showAddComponentDialog(context);
+                  if (result != null && mounted) {
+                    if (!helper.hasComponent(result.$2)) {
+                      helper.addComponent(result);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Could not add ${result.$2} to ${scene.name} '
+                            'because the element already exists',
+                          ),
+                        ),
+                      );
+                    }
+                  }
                 },
               ),
             ),

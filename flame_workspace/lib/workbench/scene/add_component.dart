@@ -1,3 +1,4 @@
+import 'package:flame_workspace/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:recase/recase.dart';
 
@@ -192,6 +193,7 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
               ),
             1 => ComponentPropertiesPage(
                 selectedComponent: _selectedComponent!,
+                projectComponents: projectComponents,
                 onBack: () => setState(() => page = 0),
               ),
             _ => throw Exception('Invalid page: $page'),
@@ -336,11 +338,13 @@ class SelectComponentPage extends StatelessWidget {
 
 class ComponentPropertiesPage extends StatefulWidget {
   final FlameComponentObject selectedComponent;
+  final Iterable<TreeNode> projectComponents;
   final VoidCallback onBack;
 
   const ComponentPropertiesPage({
     super.key,
     required this.selectedComponent,
+    required this.projectComponents,
     required this.onBack,
   });
 
@@ -406,7 +410,7 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
           type: '$String',
           forceSingleLine: true,
           onChanged: (text) => setState(
-            () => declaredName = text.substring(1, text.length - 1),
+            () => declaredName = text.removeQuoteMarks(),
           ),
         ),
       ),

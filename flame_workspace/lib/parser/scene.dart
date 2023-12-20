@@ -48,6 +48,15 @@ class SceneHelper {
     await Writer.formatFile(file.path);
   }
 
+  bool hasComponent(String declarationName) {
+    final helper = CompilationUnitHelper(
+      indexed: sceneResult.$2,
+      unit: sceneResult.$3,
+    );
+    return helper.findProperty(helper.findClass(scene.name), declarationName) !=
+        null;
+  }
+
   Future<void> addComponent(AddComponentResult result) async {
     final helper = CompilationUnitHelper(
       indexed: sceneResult.$2,

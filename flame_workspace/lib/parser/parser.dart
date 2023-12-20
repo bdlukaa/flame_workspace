@@ -13,12 +13,7 @@ import 'package:flame_workspace/utils.dart';
 import '../compilation_unit_helper.dart';
 import '../project/objects/built_in_components.dart';
 
-// TODO: make these a class
-typedef ProjectIndexResult = List<
-    (
-      IndexedUnit indexedUnit,
-      CompilationUnit unit,
-    )>;
+typedef ProjectIndexResult = List<(IndexedUnit indexed, CompilationUnit unit)>;
 typedef ComponentResult = (
   FlameComponentObject component,
   IndexedUnit indexedUnit,
@@ -38,6 +33,7 @@ class ProjectIndexer {
     Directory libDir, [
     Iterable<String>? includeOnly,
   ]) async {
+    // avoiding print because we can not import flutter to use it on the /bin folder
     // ignore: avoid_print
     print('Indexing project at ${libDir.path} including only $includeOnly');
     final ProjectIndexResult files = <(IndexedUnit, CompilationUnit)>[];
