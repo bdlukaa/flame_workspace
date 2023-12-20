@@ -28,7 +28,8 @@ class Scene1 extends FlameScene with TapCallbacks {
       key: FlameKey('circle'),
       position: Vector2(0.0, 100.0),
       scale: Vector2(2.0, 2.0),
-      color: const Color(0xff7f2b2b));
+      color: const Color(0xff7f2b2b),
+      flag: true);
 
   TextComponent textComponent = TextComponent(
     key: FlameKey('textComponent'),

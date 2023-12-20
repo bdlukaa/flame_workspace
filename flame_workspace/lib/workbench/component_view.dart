@@ -273,12 +273,26 @@ class ComponentSectionCard extends StatelessWidget {
 class PropertyField extends StatefulWidget {
   final String name;
   final String value;
+
+  /// The type of the property.
+  ///
+  /// Any type is allowed, but some are handled specially:
+  ///
+  ///   * a `String` is handled as an editable text. [forceSingleLine] ensures
+  ///     it is a short text;
+  ///   * `num`, `int` and `double` are handled as a number and display a
+  ///     customized number editor;
+  ///   * `bool` is handled as a switch;
+  ///   * `Color` displays a color picker to easily change the color of the
+  ///     widget.
   final String type;
 
   /// The description of the field.
   ///
   /// If provided, a tooltip will be shown when hovering over the field name.
   final String? description;
+
+  /// Called when the valued of the field has changed.
   final ValueChanged<String>? onChanged;
 
   /// The width of the [name] label.
@@ -330,6 +344,8 @@ class PropertyField extends StatefulWidget {
     ]);
   }
 
+  String get nonNullableType => type.replaceAll('?', '');
+
   @override
   State<PropertyField> createState() => PropertyFieldState();
 }
@@ -380,14 +396,17 @@ class PropertyFieldState extends State<PropertyField> {
     }
   }
 
-  bool get isNumbericField => widget.type == 'double' || widget.type == 'int';
+  bool get isNumbericField => switch (widget.nonNullableType) {
+        'int' || 'double' || 'num' => true,
+        _ => false,
+      };
 
   bool get isNullable => widget.type.endsWith('?');
 
   (IconData icon, double size)? get icon {
-    return switch (widget.type.replaceAll('?', '')) {
+    return switch (widget.nonNullableType) {
       'String' => (Icons.abc, 24.0),
-      'int' || 'double' => (Icons.onetwothree_rounded, 24.0),
+      'int' || 'double' || 'num' => (Icons.onetwothree_rounded, 24.0),
       'bool' => (Icons.indeterminate_check_box_outlined, 18.0),
       'Color' => (Icons.format_paint, 18.0),
       _ => null,
@@ -432,8 +451,8 @@ class PropertyFieldState extends State<PropertyField> {
             const VerticalDivider(indent: 0.0, endIndent: 0.0),
             const SizedBox(width: 4.0),
             Expanded(
-              child: switch (widget.type) {
-                'String' || 'int' || 'double' => buildEditable(),
+              child: switch (widget.nonNullableType) {
+                'String' || 'int' || 'double' || 'num' => buildEditable(),
                 'Color' => buildColorPicker(),
                 'bool' => buildFlagSwitch(),
                 _ => const Padding(
@@ -550,27 +569,31 @@ class PropertyFieldState extends State<PropertyField> {
   }
 
   Widget buildFlagSwitch() {
-    return Builder(builder: (context) {
-      final theme = Theme.of(context);
-      return Row(children: [
-        SizedBox.fromSize(
-          size: const Size(16.0, 16.0),
-          child: Checkbox.adaptive(
-            value: bool.tryParse(widget.value, caseSensitive: false),
-            onChanged: widget.onChanged == null || !widget.editable
-                ? null
-                : (v) {
-                    if (v != null) {
-                      widget.onChanged!(v.toString());
-                    }
-                  },
+    return Center(
+      child: Builder(builder: (context) {
+        final theme = Theme.of(context);
+        return Row(children: [
+          SizedBox.fromSize(
+            size: const Size(14.0, 14.0),
+            child: Checkbox.adaptive(
+              value: bool.tryParse(widget.value, caseSensitive: false),
+              tristate: true,
+              onChanged: widget.onChanged == null || !widget.editable
+                  ? null
+                  : (v) {
+                      if (v != null) {
+                        widget.onChanged!(v.toString());
+                      }
+                    },
+              visualDensity: VisualDensity.compact,
+            ),
           ),
-        ),
-        const SizedBox(width: 6.0),
-        Flexible(
-          child: Text('Active', style: theme.textTheme.labelMedium),
-        ),
-      ]);
-    });
+          const SizedBox(width: 8.0),
+          Flexible(
+            child: Text('Active', style: theme.textTheme.labelMedium),
+          ),
+        ]);
+      }),
+    );
   }
 }
