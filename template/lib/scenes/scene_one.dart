@@ -32,12 +32,21 @@ class Scene1 extends FlameScene with TapCallbacks {
     position: Vector2(200.0, 200.0),
   );
 
+  TextComponent supertext = TextComponent(
+    key: FlameKey('supertext'),
+    text: 'text',
+  );
+
   @override
   Future<void> onLoad() async {
     // Load all the assets that are needed in this world
     // and add components etc.
 
-    return super.onLoad();
+    add(textie);
+    add(circle);
+    add(title);
+
+    add(supertext);
   }
 
   bool _upping = false;
