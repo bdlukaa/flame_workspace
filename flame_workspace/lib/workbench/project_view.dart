@@ -39,6 +39,7 @@ class ProjectView extends StatelessWidget {
               Expanded(
                 child: Column(children: [
                   Text('Scenes'),
+                  Expanded(child: ScenesListView()),
                 ]),
               ),
             ]),
@@ -111,6 +112,37 @@ class ComponentsView extends StatelessWidget {
           title: Text(component.name),
           subtitle: Text(
             (componentResult.$2['source'] as String)
+                .split(workbench.project.name)
+                .last,
+          ),
+          onTap: () {
+            // TODO: open in vscode
+          },
+        );
+      },
+    );
+  }
+}
+
+class ScenesListView extends StatelessWidget {
+  const ScenesListView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final workbench = Workbench.of(context);
+    final scenes = workbench.scenes;
+
+    return ListView.builder(
+      itemCount: scenes.length,
+      itemBuilder: (context, index) {
+        final sceneResult = scenes.elementAt(index);
+        final scene = sceneResult.$1;
+
+        return ListTile(
+          dense: true,
+          title: Text(scene.name),
+          subtitle: Text(
+            (sceneResult.$2['source'] as String)
                 .split(workbench.project.name)
                 .last,
           ),
