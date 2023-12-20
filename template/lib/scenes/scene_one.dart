@@ -13,17 +13,12 @@ class Scene1 extends FlameScene with TapCallbacks {
   });
 
   TextComponent textie = TextComponent(
-    key: FlameKey('textie'),
-    text: 'Hello, World! My name is bruno.\n'
-        'Nice to see all of you here! Hope to continue to work on this awesome project!!',
-    textRenderer: TextPaint(
-      style: TextStyle(
-        fontSize: 14.0,
-        color: BasicPalette.white.color,
-      ),
-    ),
-    position: Vector2(20.0, 25.0),
-  );
+      key: FlameKey('textie'),
+      text: 'Hello, World! My name is bruno.\n'
+          'Nice to see all of you here! Hope to continue to work on this awesome project!!',
+      textRenderer: null,
+      position: Vector2(20.0, 25.0),
+      size: Vector2(8.0, 0.0));
   MyCircle circle = MyCircle(
       key: FlameKey('circle'),
       position: Vector2(0.0, 100.0),
@@ -98,7 +93,8 @@ class MyCircle extends PositionComponent with FlameComponent {
 
   final Paint _paint;
 
-  MySquare innerCircle = MySquare(radius: 50.0, position: Vector2(0.0, 2.0));
+  MySquare innerCircle = MySquare(
+      radius: 50.0, position: Vector2(0.0, 2.0), finalProp: 'oh my god');
 
   @override
   void render(Canvas canvas) {

@@ -118,7 +118,7 @@ class ComponentView extends StatelessWidget {
                       key: ValueKey(value),
                       name: parameter.name,
                       value: '$value',
-                      type: parameter.nonNullableType,
+                      type: parameter.type,
                       onChanged: (value) {
                         componentHelper.writeArgument(parameter.name, value);
                         workbench.runner.send(kPropertyChanged, {
@@ -190,8 +190,8 @@ class ComponentView extends StatelessWidget {
                 if (isPositionSuper)
                   PropertyField.vector2(
                     position,
-                    first: 'x',
-                    second: 'y',
+                    first: 'pos | x',
+                    second: 'pos | y',
                     onChanged: (value) {
                       componentHelper.writeArgument('position', value);
                     },
@@ -199,8 +199,9 @@ class ComponentView extends StatelessWidget {
                 if (isSizeSuper)
                   PropertyField.vector2(
                     size,
-                    first: 'width',
-                    second: 'height',
+                    first: 's | width',
+                    second: 's | height',
+                    nullable: true,
                     onChanged: (value) {
                       componentHelper.writeArgument('size', value);
                     },
@@ -210,7 +211,7 @@ class ComponentView extends StatelessWidget {
                     name: 'rotation',
                     description: 'rotation angle',
                     value: '$angle',
-                    type: 'double',
+                    type: '$double?',
                     onChanged: (value) {
                       componentHelper.writeArgument('angle', value);
                     },
@@ -220,6 +221,7 @@ class ComponentView extends StatelessWidget {
                     scale,
                     first: 'scale | x',
                     second: 'scale | y',
+                    nullable: true,
                     onChanged: (value) {
                       componentHelper.writeArgument('scale', value);
                     },
@@ -319,6 +321,7 @@ class PropertyField extends StatefulWidget {
     (double x, double y)? vector2, {
     String first = 'a',
     String second = 'b',
+    bool nullable = false,
     void Function(String value)? onChanged,
   }) {
     // If one of the parameters is null, it defaults it to this value. This is
@@ -328,7 +331,7 @@ class PropertyField extends StatefulWidget {
       PropertyField(
         name: first,
         value: '${vector2?.$1}',
-        type: '$double',
+        type: nullable ? '$double?' : '$double',
         onChanged: (value) => onChanged?.call(
           'Vector2($value, ${vector2?.$2 ?? defaultSecondaryValue})',
         ),
@@ -392,7 +395,7 @@ class PropertyFieldState extends State<PropertyField> {
       }
       widget.onChanged?.call(controller.text);
     } else {
-      widget.onChanged?.call("'${controller.text}'");
+      widget.onChanged?.call("'${controller.text.removeQuoteMarks()}'");
     }
   }
 
@@ -401,7 +404,11 @@ class PropertyFieldState extends State<PropertyField> {
         _ => false,
       };
 
+  /// Whether the value of this field can be null.
   bool get isNullable => widget.type.endsWith('?');
+
+  /// Whether the value of this field is null.
+  bool get isNull => controller.text == 'null';
 
   (IconData icon, double size)? get icon {
     return switch (widget.nonNullableType) {
@@ -425,7 +432,7 @@ class PropertyFieldState extends State<PropertyField> {
         final label = Text(
           widget.name,
           style: theme.textTheme.labelSmall,
-          textAlign: TextAlign.center,
+          // textAlign: TextAlign.center,
         );
         return IntrinsicHeight(
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -439,13 +446,28 @@ class PropertyFieldState extends State<PropertyField> {
                 ),
                 const SizedBox(width: 6.0),
                 if (widget.description != null)
-                  Tooltip(
-                    verticalOffset: 16.0,
-                    message: widget.description,
-                    child: label,
+                  Expanded(
+                    child: Tooltip(
+                      verticalOffset: 16.0,
+                      message: widget.description,
+                      child: label,
+                    ),
                   )
                 else
-                  label,
+                  Expanded(child: label),
+                if (isNullable && !isNull)
+                  InkWell(
+                    onTap: () {
+                      widget.onChanged?.call('null');
+                    },
+                    child: const Tooltip(
+                      message: 'Make it null',
+                      child: Padding(
+                        padding: EdgeInsets.all(2.0),
+                        child: Icon(Icons.clear, size: 12.0),
+                      ),
+                    ),
+                  ),
               ]),
             ),
             const VerticalDivider(indent: 0.0, endIndent: 0.0),

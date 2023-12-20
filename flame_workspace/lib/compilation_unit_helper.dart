@@ -62,7 +62,7 @@ class CompilationUnitHelper {
 
       assert(
         args.arguments.every((e) => e is NamedExpression),
-        'Only named arguments are supported',
+        'Only named arguments are supported: ${args.arguments.map((e) => e.runtimeType)}',
       );
 
       final arguments = args.arguments.cast<NamedExpression>();
