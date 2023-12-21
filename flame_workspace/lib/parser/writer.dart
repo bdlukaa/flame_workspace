@@ -50,4 +50,21 @@ class Writer {
     await file.writeAsString(text);
     await Writer.formatFile(file.path);
   }
+
+  static Future<void> addImport(String importPath, String filePath) {
+    final file = File(filePath);
+    var text = file.readAsStringSync();
+
+    final import = "import '$importPath';";
+
+    // If there is already
+    if (text.contains(import)) return Future.value();
+
+    final firstImport = text.indexOf('import');
+    final beforeOffset = text.substring(0, firstImport);
+    final afterOffset = text.substring(firstImport);
+    text = '$beforeOffset$import\n$afterOffset';
+
+    return file.writeAsString(text);
+  }
 }

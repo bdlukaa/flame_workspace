@@ -1,3 +1,4 @@
+import 'package:template/generated/scene_scene1.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/palette.dart';
