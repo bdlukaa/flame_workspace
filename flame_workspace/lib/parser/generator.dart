@@ -297,12 +297,10 @@ class SceneGenerator {
 
     final writer = Writer(unit: scene.unit.$2);
     final mixinName = '${scene.name}Mixin';
-    if (writer.hasMixin(scene.name, mixinName)) {
-      await writer.addMixinToClass(
-        scene.name,
-        mixinName,
-        scene.filePath,
-      );
-    }
+    await writer.addMixinToClass(
+      scene.name,
+      mixinName,
+      scene.filePath,
+    );
   }
 }

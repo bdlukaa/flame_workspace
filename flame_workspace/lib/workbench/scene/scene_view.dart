@@ -209,6 +209,7 @@ class _SceneViewState extends State<SceneView> {
                                   child: const Text('Remove'),
                                   onTap: () {
                                     design.onComponentSelected(null);
+                                    // TODO: add workbench helper for these functions
                                     workbench.runner.send(
                                       WorkbenchMessages.componentRemoved,
                                       {'component': component.declarationName},

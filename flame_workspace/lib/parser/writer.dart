@@ -36,6 +36,9 @@ class Writer {
     String mixinName,
     String filePath,
   ) async {
+    if (hasMixin(className, mixinName)) {
+      return print('$className already has mixin $mixinName');
+    }
     // The class declaration of [className]
     final cls = unit.declarations
         .whereType<ClassDeclaration>()
