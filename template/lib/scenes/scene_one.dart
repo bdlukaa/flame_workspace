@@ -19,12 +19,12 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
           'Nice to see all of you here! Hope to continue to work on this awesome project!!',
       textRenderer: null,
       position: Vector2(20.0, 25.0),
-      size: Vector2(8.0, 0.0));
+      size: Vector2(0.0, 0.0));
   MyCircle circle = MyCircle(
       key: FlameKey('circle'),
       position: Vector2(0.0, 100.0),
       scale: Vector2(2.0, 2.0),
-      color: const Color(0xff7f2b2b),
+      color: const Color(0xff337f2b),
       flag: true);
 
   TextComponent title = TextComponent(
@@ -34,8 +34,19 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
   );
 
   TextComponent supertext = TextComponent(
-    key: FlameKey('supertext'),
-    text: 'text',
+      key: FlameKey('supertext'),
+      text: 'text',
+      position: Vector2(296.0, 100.0));
+
+  TextComponent notherComponent = TextComponent(
+    key: FlameKey('notherComponent'),
+    text: 'the most interesting of the texts',
+    position: Vector2(100.0, 0.0),
+  );
+
+  TextComponent ohBoy = TextComponent(
+    key: FlameKey('ohBoy'),
+    text: 'textieee',
   );
 
   @override
@@ -48,6 +59,10 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
     add(title);
 
     add(supertext);
+
+    add(notherComponent);
+
+    add(ohBoy);
   }
 
   bool _upping = false;
@@ -85,7 +100,7 @@ class MyCircle extends PositionComponent with FlameComponent {
     super.position,
     bool flag = false,
     super.scale,
-  })  : _paint = Paint()..color = const Color(0xFF80C080),
+  })  : _paint = Paint()..color = color,
         _radius = radius,
         super(
           size: Vector2.all(2 * radius),

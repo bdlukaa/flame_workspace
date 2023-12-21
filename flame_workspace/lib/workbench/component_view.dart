@@ -109,6 +109,12 @@ class ComponentView extends StatelessWidget {
                       second: '${parameter.name} | b',
                       onChanged: (value) {
                         componentHelper.writeArgument(parameter.name, value);
+                        workbench.runner
+                            .send(WorkbenchMessages.propertyChanged, {
+                          'component': component.declarationName!,
+                          'property': parameter.name,
+                          'value': value,
+                        });
                       },
                     ),
                   _ => PropertyField(
@@ -191,7 +197,13 @@ class ComponentView extends StatelessWidget {
                     first: 'pos | x',
                     second: 'pos | y',
                     onChanged: (value) {
-                      componentHelper.writeArgument('position', value);
+                      const parameter = 'position';
+                      componentHelper.writeArgument(parameter, value);
+                      workbench.runner.send(WorkbenchMessages.propertyChanged, {
+                        'component': component.declarationName!,
+                        'property': parameter,
+                        'value': value,
+                      });
                     },
                   ),
                 if (isSizeSuper)
@@ -201,7 +213,13 @@ class ComponentView extends StatelessWidget {
                     second: 's | height',
                     nullable: true,
                     onChanged: (value) {
+                      const parameter = 'size';
                       componentHelper.writeArgument('size', value);
+                      workbench.runner.send(WorkbenchMessages.propertyChanged, {
+                        'component': component.declarationName!,
+                        'property': parameter,
+                        'value': value,
+                      });
                     },
                   ),
                 if (isAngleSuper)
@@ -211,7 +229,13 @@ class ComponentView extends StatelessWidget {
                     value: '$angle',
                     type: '$double?',
                     onChanged: (value) {
+                      const parameter = 'angle';
                       componentHelper.writeArgument('angle', value);
+                      workbench.runner.send(WorkbenchMessages.propertyChanged, {
+                        'component': component.declarationName!,
+                        'property': parameter,
+                        'value': value,
+                      });
                     },
                   ),
                 if (isScaleSuper)
@@ -221,7 +245,13 @@ class ComponentView extends StatelessWidget {
                     second: 'scale | y',
                     nullable: true,
                     onChanged: (value) {
+                      const parameter = 'scale';
                       componentHelper.writeArgument('scale', value);
+                      workbench.runner.send(WorkbenchMessages.propertyChanged, {
+                        'component': component.declarationName!,
+                        'property': parameter,
+                        'value': value,
+                      });
                     },
                   ),
               ],

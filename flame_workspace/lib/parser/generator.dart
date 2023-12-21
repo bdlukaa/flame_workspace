@@ -292,10 +292,15 @@ class SceneGenerator {
     //   scene.filePath,
     // );
     await Writer.formatFile(file.path);
-    await Writer(unit: scene.unit.$2).addMixinToClass(
-      scene.name,
-      '${scene.name}Mixin',
-      scene.filePath,
-    );
+
+    final writer = Writer(unit: scene.unit.$2);
+    final mixinName = '${scene.name}Mixin';
+    if (writer.hasMixin(scene.name, mixinName)) {
+      await writer.addMixinToClass(
+        scene.name,
+        mixinName,
+        scene.filePath,
+      );
+    }
   }
 }

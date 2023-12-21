@@ -1,4 +1,5 @@
 import 'package:flame_workspace/parser/scene.dart';
+import 'package:flame_workspace_core/messages.dart';
 import 'package:flutter/material.dart';
 
 import '../../project/objects/component.dart';
@@ -119,7 +120,9 @@ class _SceneViewState extends State<SceneView> {
                 message: 'Create scene',
                 child: InkWell(
                   child: const Icon(Icons.add),
-                  onTap: () {},
+                  onTap: () {
+                    // TODO: create scene
+                  },
                 ),
               )
             else
@@ -132,6 +135,10 @@ class _SceneViewState extends State<SceneView> {
                     if (result != null && mounted) {
                       if (!helper.hasComponent(result.$2)) {
                         helper.addComponent(result);
+                        workbench.runner.send(
+                          WorkbenchMessages.componentAdded,
+                          {'component': result.$2},
+                        );
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(

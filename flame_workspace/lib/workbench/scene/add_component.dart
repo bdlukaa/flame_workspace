@@ -243,6 +243,7 @@ class SelectComponentPage extends StatelessWidget {
               flex: 2,
               child: TextField(
                 controller: searchController,
+                autofocus: true,
                 decoration: const InputDecoration(
                   hintText: 'Search',
                   border: OutlineInputBorder(gapPadding: 0.0),

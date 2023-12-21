@@ -19,6 +19,17 @@ class Writer {
     );
   }
 
+  /// Whether [className] has a mixin named [mixinName].
+  bool hasMixin(String className, String mixinName) {
+    final cls = unit.declarations
+        .whereType<ClassDeclaration>()
+        .firstWhere((c) => c.name.lexeme == className);
+
+    return cls.withClause?.mixinTypes
+            .any((mixin) => mixin.name2.lexeme == mixinName) ??
+        false;
+  }
+
   /// Adds a mixin to a class.
   Future<void> addMixinToClass(
     String className,
