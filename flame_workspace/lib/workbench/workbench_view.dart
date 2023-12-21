@@ -22,12 +22,32 @@ import 'project_view.dart';
 import 'scene/scene_view.dart';
 import 'structure_view.dart';
 
+/// The workbench is the main view of the editor.
+///
+/// This widget is an inherited widget that contains all the information about
+/// the current open project.
+///
+/// To use it, call:
+///
+/// ```dart
+/// final workbench = Workbench.of(context);
+/// ```
 class Workbench extends InheritedWidget {
+  /// The current project.
   final FlameProject project;
+
+  /// The current runner attached to the [project].
   final FlameProjectRunner runner;
 
+  /// The indexed [project].
+  ///
+  /// It contains data and metadata about the game code.
   final ProjectIndexResult indexed;
+
+  /// The scenes this project has.
   final List<SceneResult> scenes;
+
+  /// The components this project has.
   final List<ComponentResult> components;
 
   const Workbench({
@@ -51,10 +71,33 @@ class Workbench extends InheritedWidget {
 }
 
 enum WorkbenchViewMode {
+  /// The design view.
+  ///
+  /// See also:
+  ///
+  ///  * [DesignView]
   design,
+
+  /// The project view.
+  ///
+  /// See also:
+  ///
+  ///  * [ProjectView]
   project,
+
+  /// The assets view.
+  ///
+  /// See also:
+  ///
+  ///  * [AssetsView]
   assets,
-  configuration,
+
+  /// The configuration view.
+  ///
+  /// See also:
+  ///
+  ///  * [ConfigurationView]
+  configuration;
 }
 
 class WorkbenchView extends StatefulWidget {
@@ -150,6 +193,10 @@ class _WorkbenchViewState extends State<WorkbenchView> {
         [...components.map((e) => e.$1), ...builtInComponents],
         widget.project,
       );
+
+      for (final scene in scenes) {
+        await SceneGenerator.writeForScene(scene.$1, widget.project);
+      }
     }
 
     isIndexing = false;
@@ -357,7 +404,9 @@ class _DesignViewState extends State<DesignView> {
       currentSelectedComponent: _currentSelectedComponent,
       onComponentSelected: (component) {
         workbench.runner.send(
-          component == null ? kComponentUnselected : kComponentSelected,
+          component == null
+              ? WorkbenchMessages.componentUnselected
+              : WorkbenchMessages.componentSelected,
           {
             'component': component?.declarationName,
           },

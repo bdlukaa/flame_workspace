@@ -1,3 +1,6 @@
+import 'package:analyzer/dart/ast/ast.dart';
+import 'package:flame_workspace/compilation_unit_helper.dart';
+
 import 'component.dart';
 
 class FlameSceneObject {
@@ -7,9 +10,15 @@ class FlameSceneObject {
 
   final List<String> modifiers;
 
+  final String filePath;
+
+  final (IndexedUnit indexed, CompilationUnit unit) unit;
+
   FlameSceneObject({
     required this.name,
     required this.components,
+    required this.filePath,
+    required this.unit,
     this.modifiers = const [],
   });
 }

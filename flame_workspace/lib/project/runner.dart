@@ -4,6 +4,7 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:ffi/ffi.dart';
+import 'package:flame_workspace_core/messages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_view/flutter_native_view.dart';
 import 'package:web_socket_channel/io.dart';
@@ -163,10 +164,10 @@ class FlameProjectRunner with ChangeNotifier {
     }));
   }
 
-  void send(String id, Map data) {
+  void send(WorkbenchMessages id, Map data) {
     if (isReady) {
-      _channel!.sink.add(json.encode({
-        'id': id,
+      _channel!.sink.add(json.encode(<String, dynamic>{
+        'id': id.name,
         ...data,
       }));
     }

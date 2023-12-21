@@ -1,11 +1,14 @@
 import 'dart:io';
 
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:flame_workspace/compilation_unit_helper.dart';
 import 'package:flame_workspace/parser/imports.dart';
 import 'package:flame_workspace/parser/writer.dart';
 import 'package:flame_workspace/project/objects/component.dart';
+import 'package:flame_workspace/project/objects/scene.dart';
 import 'package:flame_workspace/project/project.dart';
 import 'package:path/path.dart' as path;
+import 'package:recase/recase.dart';
 
 /// This class generates a function that is able to set the properties of a
 /// class dynamically without the need to know the class at compile time.
@@ -37,6 +40,8 @@ import 'package:path/path.dart' as path;
 /// }
 /// ```
 class PropertiesGenerator {
+  PropertiesGenerator._();
+
   static String generateForClassDeclaration(ClassDeclaration declaration) {
     final className = declaration.name.lexeme;
     final properties = declaration.members.whereType<FieldDeclaration>();
@@ -142,5 +147,137 @@ class PropertiesGenerator {
 
     await file.writeAsString(buffer.toString().trim());
     Writer.formatFile(file.path);
+  }
+}
+
+/// This class generates a function that is able to manipulate a scene without
+/// the need to know the class at compile time.
+///
+/// For example, the following class:
+///
+/// ```dart
+/// class MyScene extends FlameScene {
+///
+///  TextComponent supertext = TextComponent(
+///    key: FlameKey('supertext'),
+///    text: 'text',
+///  );
+///
+/// }
+/// ```
+///
+/// generates the following functions:
+///
+/// ```dart
+///
+/// void addComponentMyScene(MyScene scene, String declarationName) {
+///
+///   switch (declarationName) {
+///     case 'supertext':
+///       scene.add(supertext);
+///       break;
+///     default:
+///       throw Exception('Component $declarationName not found');
+///   }
+///
+/// }
+///
+/// void removeComponentMyScene(MyScene scene, String declarationName) {
+///
+///   switch (declarationName) {
+///     case 'supertext':
+///       scene.remove(supertext);
+///       break;
+///     default:
+///       throw Exception('Component $declarationName not found');
+///
+/// }
+///
+/// ```
+class SceneGenerator {
+  SceneGenerator._();
+
+  static String generateForClassDeclaration(ClassDeclaration declaration) {
+    final className = declaration.name.lexeme;
+
+    final buffer = StringBuffer();
+
+    // add component function
+
+    buffer.writeln(
+        'void addComponent$className($className scene, String declarationName) {');
+    buffer.writeln('  switch (declarationName) {');
+    for (final field in declaration.members.whereType<FieldDeclaration>()) {
+      final name = field.fields.variables.first.name.lexeme;
+      if (name.startsWith('_')) continue;
+
+      buffer.writeln('    case \'$name\':');
+      buffer.writeln('      scene.add(scene.$name);');
+      buffer.writeln('      break;');
+    }
+    buffer.writeln('    default:');
+    buffer.writeln(
+        '      throw Exception(\'Component \$declarationName not found\');');
+    buffer.writeln('  }');
+    buffer.writeln('}');
+
+    // remove component function
+
+    buffer.writeln(
+        'void removeComponent$className($className scene, String declarationName) {');
+    buffer.writeln('  switch (declarationName) {');
+    for (final field in declaration.members.whereType<FieldDeclaration>()) {
+      final name = field.fields.variables.first.name.lexeme;
+      if (name.startsWith('_')) continue;
+
+      buffer.writeln('    case \'$name\':');
+      buffer.writeln('      scene.remove(scene.$name);');
+      buffer.writeln('      break;');
+    }
+    buffer.writeln('    default:');
+    buffer.writeln(
+        '      throw Exception(\'Component \$declarationName not found\');');
+    buffer.writeln('  }');
+    buffer.writeln('}');
+
+    return buffer.toString();
+  }
+
+  static Future<void> writeForScene(
+    FlameSceneObject scene,
+    FlameProject project,
+  ) async {
+    final buffer = StringBuffer();
+    buffer.writeln(generatedFileNotice);
+    buffer.writeln('// ignore_for_file: unused_import');
+    buffer.writeln(defaultImports);
+
+    // scene import
+    final sceneFilePath = scene.filePath;
+    final scenePath = sceneFilePath.split(path.join(project.name, 'lib')).last;
+    buffer.writeln(
+      "import 'package:${project.name}${scenePath.replaceAll(r'\', '/')}';",
+    );
+
+    final sceneHelper = CompilationUnitHelper(
+      indexed: scene.unit.$1,
+      unit: scene.unit.$2,
+    );
+    final classDeclaration = sceneHelper.findClass(scene.name)!;
+
+    buffer.writeln(generateForClassDeclaration(classDeclaration));
+
+    final file = File(
+      path.join(
+        project.location.path,
+        'lib',
+        'generated',
+        'scene_${scene.name.pathCase}.dart',
+      ),
+    );
+    if (!(await file.exists())) await file.create(recursive: true);
+
+    await file.writeAsString(buffer.toString().trim());
+    await Writer.formatFile(file.path);
   }
 }

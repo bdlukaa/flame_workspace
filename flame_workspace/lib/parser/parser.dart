@@ -92,6 +92,8 @@ class ProjectIndexer {
               components!.map((e) => e.$1),
               fields,
             ),
+            filePath: file['source'],
+            unit: (file, unit),
           ),
           file,
           unit,

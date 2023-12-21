@@ -118,7 +118,8 @@ class ComponentView extends StatelessWidget {
                       type: parameter.type,
                       onChanged: (value) {
                         componentHelper.writeArgument(parameter.name, value);
-                        workbench.runner.send(kPropertyChanged, {
+                        workbench.runner
+                            .send(WorkbenchMessages.propertyChanged, {
                           'component': component.declarationName!,
                           'property': parameter.name,
                           'value': value,

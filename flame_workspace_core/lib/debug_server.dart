@@ -53,8 +53,8 @@ void listen(WebSocketChannel channel, dynamic message) {
   final data = message as Map<String, dynamic>;
   final id = data['id'] as String;
 
-  switch (id) {
-    case kPropertyChanged:
+  switch (WorkbenchMessages.fromString(id)) {
+    case WorkbenchMessages.propertyChanged:
       final declarationName = data['component'] as String;
       final property = data['property'] as String;
       final value = data['value'] as String;
@@ -98,24 +98,44 @@ void listen(WebSocketChannel channel, dynamic message) {
       }
 
       break;
-    case kComponentSelected:
+    case WorkbenchMessages.componentSelected:
       final declarationName = data['component'] as String;
-
       final component = FlameWorkspaceCore.instance.game.findByKeyName(
         declarationName,
       );
-
-      if (component == null) {
-        print('Could not find component $declarationName');
-        return;
-      }
+      if (!_debugFoundComponent(component, declarationName)) return;
 
       FlameWorkspaceCore.instance.currentSelectedComponentKey = declarationName;
       break;
-    case kComponentUnselected:
+    case WorkbenchMessages.componentUnselected:
       FlameWorkspaceCore.instance.currentSelectedComponentKey = null;
 
-    default:
+    case WorkbenchMessages.componentAdded:
+      final declarationName = data['component'] as String;
+      final component = FlameWorkspaceCore.instance.game.findByKeyName(
+        declarationName,
+      );
+      if (!_debugFoundComponent(component, declarationName)) return;
+
+      FlameWorkspaceCore.instance.currentScene.add(component!);
+      break;
+
+    case WorkbenchMessages.componentRemoved:
+      final declarationName = data['component'] as String;
+      final component = FlameWorkspaceCore.instance.game.findByKeyName(
+        declarationName,
+      );
+      if (!_debugFoundComponent(component, declarationName)) return;
+
+      FlameWorkspaceCore.instance.currentScene.remove(component!);
       break;
   }
+}
+
+bool _debugFoundComponent(dynamic component, String declarationName) {
+  if (component == null) {
+    print('Could not find component $declarationName');
+    return false;
+  }
+  return true;
 }
