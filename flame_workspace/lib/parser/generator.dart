@@ -270,11 +270,11 @@ class SceneGenerator {
       "import 'package:${project.name}${scenePath.replaceAll(r'\', '/')}';",
     );
 
-    final sceneHelper = CompilationUnitHelper(
+    final unitHelper = CompilationUnitHelper(
       indexed: scene.unit.$1,
       unit: scene.unit.$2,
     );
-    final classDeclaration = sceneHelper.findClass(scene.name)!;
+    final classDeclaration = unitHelper.findClass(scene.name)!;
 
     buffer.writeln(generateForClassDeclaration(classDeclaration));
 

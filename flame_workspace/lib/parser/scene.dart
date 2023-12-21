@@ -4,7 +4,10 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:flame_workspace/compilation_unit_helper.dart';
 import 'package:flame_workspace/parser/parser.dart';
 import 'package:flame_workspace/project/objects/scene.dart';
+import 'package:flame_workspace/project/runner.dart';
 import 'package:flame_workspace/utils.dart';
+import 'package:flame_workspace/workbench/workbench_view.dart';
+import 'package:flame_workspace_core/messages.dart';
 
 import '../workbench/scene/add_component.dart';
 import 'writer.dart';
@@ -13,12 +16,26 @@ class SceneHelper {
   final FlameSceneObject scene;
   final List<SceneResult> scenes;
   final List<ComponentResult> components;
+  final FlameProjectRunner runner;
 
   const SceneHelper({
     required this.scene,
     required this.scenes,
     required this.components,
+    required this.runner,
   });
+
+  factory SceneHelper.fromWorkbench(
+    FlameSceneObject scene,
+    Workbench workbench,
+  ) {
+    return SceneHelper(
+      scene: scene,
+      scenes: workbench.scenes,
+      components: workbench.components,
+      runner: workbench.runner,
+    );
+  }
 
   SceneResult get sceneResult =>
       scenes.firstWhere((e) => e.$1.name == scene.name);
@@ -57,13 +74,11 @@ class SceneHelper {
         null;
   }
 
-  /// Adds a component to this scene.
+  /// Declare a component in the scene.
   ///
-  /// ¹ It inserts the component to the "onLoad" method ² It declares the widget
-  /// on the scene so that it is accessible to all the necessary scopes. ³ Then,
-  /// it adds the component to the current scene if the game preview project is
-  /// running.
-  Future<void> addComponent(AddComponentResult result) async {
+  /// This function will declare the component above the `onLoad` method and
+  /// add the component in the `onLoad` method.
+  Future<void> declareComponent(AddComponentResult result) async {
     final helper = CompilationUnitHelper(
       indexed: sceneResult.$2,
       unit: sceneResult.$3,
@@ -121,5 +136,101 @@ class SceneHelper {
 
     await file.writeAsString(newContent);
     await Writer.formatFile(file.path);
+  }
+
+  /// Adds a component to the scene.
+  ///
+  /// The component must be declared in the scene. You can use [declareComponent]
+  /// to declare a component.
+  Future<void> addComponent(String declarationName) async {
+    await runner.hotReload();
+    runner.send(
+      WorkbenchMessages.componentAdded,
+      {'component': declarationName},
+    );
+  }
+
+  /// Removes a component from the scene.
+  ///
+  /// The component must be declared in the scene. You can use [declareComponent]
+  /// to declare a component.
+  ///
+  /// This function removes the declaratiobn of the given component and removes
+  /// it from the `onLoad` method, if any.
+  Future<void> removeDeclaration(String declarationName) async {
+    final helper = CompilationUnitHelper(
+      indexed: sceneResult.$2,
+      unit: sceneResult.$3,
+    );
+    final classDeclaration = helper.findClass(scene.name);
+    if (classDeclaration == null) return Future.value();
+
+    final source = sceneResult.$2['source'];
+    final file = File(source);
+    final content = await file.readAsString();
+
+    final fieldDeclaration =
+        helper.findField(classDeclaration, declarationName);
+    if (fieldDeclaration == null) return Future.value();
+
+    String newContent = content;
+
+    final onLoadDeclaration = helper.findMethod(classDeclaration, 'onLoad');
+    if (onLoadDeclaration != null) {
+      final onLoadBody = onLoadDeclaration.body;
+      if (onLoadBody is BlockFunctionBody) {
+        final statements = onLoadBody.block.statements;
+        final addStatement = statements.firstWhereOrNull((e) {
+          if (e is ExpressionStatement) {
+            final expression = e.expression;
+            if (expression is MethodInvocation) {
+              // if the method is "add($declarationName);"
+              if (expression.methodName.name == 'add') {
+                final args = expression.argumentList.arguments;
+                if (args.length == 1) {
+                  final arg = args.first;
+                  if (arg is SimpleIdentifier) {
+                    return arg.name == declarationName;
+                  }
+                }
+              }
+            }
+          }
+
+          return false;
+        });
+
+        if (addStatement != null) {
+          final before = content.substring(0, addStatement.offset);
+          final after = content.substring(addStatement.end);
+
+          newContent = '$before\n$after';
+        }
+      }
+    }
+
+    final start = fieldDeclaration.offset;
+    final end = fieldDeclaration.end;
+
+    final before = newContent.substring(0, start);
+    final after = newContent.substring(end);
+
+    newContent = '$before\n\n$after';
+    await file.writeAsString(newContent);
+    await Writer.formatFile(file.path);
+  }
+
+  /// Removes a component from the scene.
+  ///
+  /// The component must be declared in the scene. You can use [declareComponent]
+  /// to declare a component.
+  ///
+  /// This function is usually used alongside [removeDeclaration]. Using this
+  /// function alone will not remove the declaration of the component.
+  void removeComponent(String declarationName) {
+    runner.send(
+      WorkbenchMessages.componentRemoved,
+      {'component': declarationName},
+    );
   }
 }

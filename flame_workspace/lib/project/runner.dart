@@ -99,6 +99,16 @@ class FlameProjectRunner with ChangeNotifier {
         _channel = channel;
 
         notifyListeners();
+      } else if (line.trim().contains('Reloaded ')) {
+        // TODO: this is error prone, we should find a better way to detect
+        //       when the project hot reloads.
+        _hotReloadCompleter?.complete();
+        _hotReloadCompleter = null;
+      } else if (line.trim().contains('Restarted application in ')) {
+        _hotRestartCompleter?.complete();
+        _hotRestartCompleter = null;
+      } else if (line.trim().contains('Exited ')) {
+        stop();
       }
     });
 
@@ -116,8 +126,19 @@ class FlameProjectRunner with ChangeNotifier {
     });
   }
 
-  void hotReload() => emitInput('r');
-  void hotRestart() => emitInput('R');
+  Completer? _hotReloadCompleter;
+  Future<void> hotReload() {
+    _hotReloadCompleter = Completer();
+    emitInput('r');
+    return _hotReloadCompleter!.future;
+  }
+
+  Completer? _hotRestartCompleter;
+  Future<void> hotRestart() {
+    _hotRestartCompleter = Completer();
+    emitInput('R');
+    return _hotRestartCompleter!.future;
+  }
 
   void stop() {
     if (_runProcess != null) {

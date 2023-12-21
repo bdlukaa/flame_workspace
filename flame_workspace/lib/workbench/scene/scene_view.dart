@@ -1,5 +1,4 @@
 import 'package:flame_workspace/parser/scene.dart';
-import 'package:flame_workspace_core/messages.dart';
 import 'package:flutter/material.dart';
 
 import '../../project/objects/component.dart';
@@ -86,12 +85,7 @@ class _SceneViewState extends State<SceneView> {
     final design = Design.of(context);
 
     final scene = design.currentScene;
-
-    final helper = SceneHelper(
-      scene: scene,
-      components: workbench.components,
-      scenes: workbench.scenes,
-    );
+    final sceneHelper = SceneHelper.fromWorkbench(scene, workbench);
 
     return Padding(
       padding: const EdgeInsetsDirectional.all(12.0),
@@ -133,12 +127,9 @@ class _SceneViewState extends State<SceneView> {
                   onTap: () async {
                     final result = await showAddComponentDialog(context);
                     if (result != null && mounted) {
-                      if (!helper.hasComponent(result.$2)) {
-                        helper.addComponent(result);
-                        workbench.runner.send(
-                          WorkbenchMessages.componentAdded,
-                          {'component': result.$2},
-                        );
+                      if (!sceneHelper.hasComponent(result.$2)) {
+                        await sceneHelper.declareComponent(result);
+                        sceneHelper.addComponent(result.$2);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -202,17 +193,18 @@ class _SceneViewState extends State<SceneView> {
                               context: context,
                               position: RelativeRect.fromRect(
                                 d.globalPosition & const Size(40, 40),
-                                Offset.zero & MediaQuery.of(context).size,
+                                Offset.zero & MediaQuery.sizeOf(context),
                               ),
                               items: [
                                 PopupMenuItem(
                                   child: const Text('Remove'),
-                                  onTap: () {
+                                  onTap: () async {
                                     design.onComponentSelected(null);
-                                    // TODO: add workbench helper for these functions
-                                    workbench.runner.send(
-                                      WorkbenchMessages.componentRemoved,
-                                      {'component': component.declarationName},
+                                    sceneHelper.removeComponent(
+                                      component.declarationName!,
+                                    );
+                                    await sceneHelper.removeDeclaration(
+                                      component.declarationName!,
                                     );
                                   },
                                 ),

@@ -122,7 +122,13 @@ void listen(WebSocketChannel channel, dynamic message) {
       );
       if (!_debugFoundComponent(component, declarationName)) return;
 
-      FlameWorkspaceCore.instance.currentScene.remove(component!);
+      FlameWorkspaceCore.instance.currentScene.remove(
+        // the component parent is removed because the components, when added,
+        // are wrapped in a FlameComponent using [FlameComponent.wrap]. This
+        // is the effective component that is added and it is the one that needs
+        // to be removed.
+        component!.parent!,
+      );
       break;
   }
 }

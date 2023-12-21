@@ -38,17 +38,6 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
       text: 'text',
       position: Vector2(296.0, 100.0));
 
-  TextComponent notherComponent = TextComponent(
-    key: FlameKey('notherComponent'),
-    text: 'the most interesting of the texts',
-    position: Vector2(100.0, 0.0),
-  );
-
-  TextComponent ohBoy = TextComponent(
-    key: FlameKey('ohBoy'),
-    text: 'textieee',
-  );
-
   @override
   Future<void> onLoad() async {
     super.onLoad();
@@ -60,10 +49,6 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
     add(title);
 
     add(supertext);
-
-    add(notherComponent);
-
-    add(ohBoy);
   }
 
   bool _upping = false;

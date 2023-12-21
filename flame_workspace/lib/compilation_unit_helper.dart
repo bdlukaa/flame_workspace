@@ -21,6 +21,12 @@ class CompilationUnitHelper {
         );
   }
 
+  FieldDeclaration? findField(ClassDeclaration? cls, String fieldName) {
+    return cls?.members.whereType<FieldDeclaration>().firstWhereOrNull(
+          (m) => m.fields.variables.any((v) => v.name.lexeme == fieldName),
+        );
+  }
+
   VariableDeclaration? findProperty(
     ClassDeclaration? cls,
     String propertyName,
