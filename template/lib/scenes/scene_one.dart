@@ -1,7 +1,7 @@
+import 'package:template/generated/properties.dart';
 import 'package:template/generated/scene_scene1.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
-import 'package:flame/palette.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart';
 
@@ -24,18 +24,19 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
       key: FlameKey('circle'),
       position: Vector2(0.0, 100.0),
       scale: Vector2(2.0, 2.0),
-      color: const Color(0xff337f2b),
-      flag: true);
+      color: const Color(0xff1c7a11),
+      flag: true,
+      radius: 22.0);
 
   TextComponent title = TextComponent(
     key: FlameKey('textComponent'),
-    text: 'slayy',
+    text: 'slayy less',
     position: Vector2(200.0, 200.0),
   );
 
   TextComponent supertext = TextComponent(
       key: FlameKey('supertext'),
-      text: 'text',
+      text: 'text rereedited',
       position: Vector2(296.0, 100.0));
 
   @override
@@ -77,6 +78,11 @@ class MyCircle extends PositionComponent with FlameComponent {
   set radius(double value) {
     _radius = value;
     size = Vector2.all(2 * radius);
+  }
+
+  Color get color => _paint.color;
+  set color(Color color) {
+    _paint.color = color;
   }
 
   MyCircle({

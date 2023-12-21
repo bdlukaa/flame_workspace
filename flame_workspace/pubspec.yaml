@@ -12,11 +12,11 @@ dependencies:
     sdk: flutter
 
   # Flame
-  flame: 1.9.1
+  flame: ^1.13.0
 
   # Project indexer/analyzer
-  analyzer: 5.13.0
-  dartdoc_json: ^0.2.0
+  analyzer: 6.2.0
+  dartdoc_json: ^0.3.0
   code_builder: ^4.7.0
   source_gen: ^1.4.0
   http: ^1.1.0

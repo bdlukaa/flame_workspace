@@ -49,6 +49,11 @@ Future<void> getAll() async {
         () async {
           final name = file['name'] as String;
           if (name.endsWith('.dart')) {
+            // avoid the following files:
+            // if (name.endsWith('advanced_button_component.dart') ||
+            //     name.endsWith('polygon_hitbox.dart')) {
+            //   return;
+            // }
             try {
               print(name);
               final i = await forFile(name);
@@ -90,11 +95,12 @@ ${component.components.map(forComponent).join(',\n')}
       return forComponent(component);
     });
 
-    final file = File(r'flame_workspace\lib\project\built_in_components.dart');
+    final file =
+        File(r'flame_workspace\lib\project\objects\built_in_components.dart');
     await file.writeAsString('''/// Automatically generated file.
 /// Do not edit manually
 
-import 'game_objects.dart';
+import 'component.dart';
 
 final builtInComponents = <FlameComponentObject>[
   ${declarations.join(',\n')}

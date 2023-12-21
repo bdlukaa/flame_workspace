@@ -176,7 +176,7 @@ class ProjectIndexer {
                 FlameComponentObject? superComponent;
                 FlameComponentField? superParameter;
 
-                bool isFinal = true;
+                bool isFinal = false;
 
                 if (type == null) {
                   if (name.startsWith('super.')) {

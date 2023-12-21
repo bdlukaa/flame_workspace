@@ -27,67 +27,35 @@ import 'package:recase/recase.dart';
 /// With this class, the output function would be:
 ///
 /// ```dart
-/// extension SetPropertyMyClassExtension on MyClass {
-///
-///   void setProperty(String propertyName, dynamic value) {
-///     switch (propertyName) {
-///       case 'name':
-///         name = value;
-///         break;
-///       case 'age':
-///         age = value;
-///         break;
-///       default:
-///         throw ArgumentException('Property not found');
-///     }
+/// void setPropertyMyClass(MyClass cls, String propertyName, dynamic value) {
+///   switch (propertyName) {
+///     case 'name':
+///       name = value;
+///       break;
+///     case 'age':
+///       age = value;
+///       break;
+///     default:
+///       throw ArgumentError.value(value, 'Property not found');
 ///   }
-///
 /// }
 /// ```
 /// ```
 class PropertiesGenerator {
   PropertiesGenerator._();
 
-  static String generateForClassDeclaration(ClassDeclaration declaration) {
-    final className = declaration.name.lexeme;
-    final properties = declaration.members.whereType<FieldDeclaration>();
-    final propertiesNames =
-        properties.map((p) => p.fields.variables.first.name.lexeme).toList();
-    final propertiesTypes =
-        properties.map((p) => p.fields.type!.toSource()).toList();
-
-    final buffer = StringBuffer();
-    buffer
-        .writeln('extension SetProperty${className}Extension on $className {');
-    buffer.writeln('  void setProperty(String propertyName, dynamic value) {');
-    buffer.writeln('    switch (propertyName) {');
-    for (var i = 0; i < propertiesNames.length; i++) {
-      final name = propertiesNames[i];
-      final type = propertiesTypes[i];
-      buffer.writeln('      case \'$name\':');
-      buffer.writeln('        $name = value as $type;');
-      buffer.writeln('        break;');
-    }
-    buffer.writeln('      default:');
-    buffer.writeln('        throw Exception(\'Property not found\');');
-    buffer.writeln('    }');
-    buffer.writeln('  }');
-    buffer.writeln('}');
-
-    return buffer.toString();
-  }
-
   static String generateForFlameComponent(FlameComponentObject component) {
     if ([
       'OverlayRoute',
       'ValueRoute',
       'ComponentEffect',
+      'PolygonHitbox',
     ].contains(component.name)) return '';
 
     final className = component.name;
     final properties = component.parameters.where(
       (p) =>
-          !p.name.startsWith('_') &&
+          !p.isPrivate &&
           ((p.isLocalField && !p.isFinalField) ||
               (p.superComponents != null &&
                   p.superComponents!.isNotEmpty &&
@@ -101,21 +69,25 @@ class PropertiesGenerator {
     final propertiesTypes = properties.map((p) => p.nonNullableType).toList();
 
     final buffer = StringBuffer();
-    buffer
-        .writeln('extension SetProperty${className}Extension on $className {');
-    buffer.writeln('  void setProperty(String propertyName, dynamic value) {');
-    buffer.writeln('    switch (propertyName) {');
+    buffer.writeln('void setPropertyValue$className(');
+    buffer.writeln('  $className cls,');
+    buffer.writeln('  String propertyName,');
+    buffer.writeln('  dynamic value,');
+    buffer.writeln(') {');
+    buffer.writeln('  switch (propertyName) {');
     for (var i = 0; i < propertiesNames.length; i++) {
-      final name = propertiesNames[i];
       var type = propertiesTypes[i];
+      if (type.startsWith('void Function')) continue;
+
+      final name = propertiesNames[i];
       if (type == 'T') type = 'dynamic';
-      buffer.writeln('      case \'$name\':');
-      buffer.writeln('        this.$name = value as $type;');
-      buffer.writeln('        break;');
+      buffer.writeln('    case \'$name\':');
+      buffer.writeln('      cls.$name = value as $type;');
+      buffer.writeln('      break;');
     }
-    buffer.writeln('      default:');
-    buffer.writeln('        throw Exception(\'Property not found\');');
-    buffer.writeln('    }');
+    buffer.writeln('    default:');
+    buffer.writeln(
+        '      throw ArgumentError.value(value, \'Property not found\');');
     buffer.writeln('  }');
     buffer.writeln('}');
 
@@ -146,6 +118,41 @@ class PropertiesGenerator {
     }
 
     buffer.writeln(imports.join('\n'));
+
+    // write a function that calls all the classes:
+    // void setPropertyValue(String className, dynamic cls, String propertyName, dynamic value) {
+    //   switch (className) {
+    //     case 'MyClass':
+    //       setPropertyValueMyClass(cls as MyClass, propertyName, value);
+    //       break;
+    //     case 'MyOtherClass':
+    //       setPropertyValueMyOtherClass(cls as MyOtherClass, propertyName, value);
+    //       break;
+    //     default:
+    //       throw ArgumentError.value(className, 'Class not found');
+    //   }
+    // }
+
+    buffer.writeln('void setPropertyValue(');
+    buffer.writeln('  String className,');
+    buffer.writeln('  dynamic cls,');
+    buffer.writeln('  String propertyName,');
+    buffer.writeln('  dynamic value,');
+    buffer.writeln(') {');
+    buffer.writeln('  switch (className) {');
+    for (final component in components) {
+      if (generateForFlameComponent(component).isEmpty) continue;
+      buffer.writeln('    case \'${component.name}\':');
+      buffer.writeln(
+          '      setPropertyValue${component.name}(cls as ${component.name}, propertyName, value);');
+      buffer.writeln('      break;');
+    }
+    buffer.writeln('    default:');
+    buffer.writeln(
+        '      throw ArgumentError.value(className, \'Class not found\');');
+    buffer.writeln('  }');
+    buffer.writeln('}');
+    buffer.writeln();
 
     for (final component in components) {
       buffer.writeln(generateForFlameComponent(component));

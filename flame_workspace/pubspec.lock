@@ -5,18 +5,18 @@ packages:
     dependency: transitive
     description:
       name: _fe_analyzer_shared
-      sha256: ae92f5d747aee634b87f89d9946000c2de774be1d6ac3e58268224348cd0101a
+      sha256: eb376e9acf6938204f90eb3b1f00b578640d3188b4c8a8ec054f9f479af8d051
       url: "https://pub.dev"
     source: hosted
-    version: "61.0.0"
+    version: "64.0.0"
   analyzer:
     dependency: "direct main"
     description:
       name: analyzer
-      sha256: ea3d8652bda62982addfd92fdc2d0214e5f82e43325104990d4f4c4a2a313562
+      sha256: "69f54f967773f6c26c7dcb13e93d7ccee8b17a641689da39e878d5cf13b06893"
       url: "https://pub.dev"
     source: hosted
-    version: "5.13.0"
+    version: "6.2.0"
   args:
     dependency: transitive
     description:
@@ -197,10 +197,10 @@ packages:
     dependency: "direct main"
     description:
       name: dartdoc_json
-      sha256: a054b59935f0c9026d5026dd56e0302f2badc577d4ff153063741ccbec3c8bd8
+      sha256: "423df03f4b41085421f5d87e706786c02b7143c4c7f2052f9dfe06ed0e932aa3"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.0"
+    version: "0.3.0"
   fake_async:
     dependency: transitive
     description:
@@ -245,10 +245,10 @@ packages:
     dependency: "direct main"
     description:
       name: flame
-      sha256: f1ed45b49db36f6650882900f3216516d5c2628400bad8b4e92d83c116d79b12
+      sha256: "04c2ee1e01d6baf44f0273402ae0b6494669217bdd24cc8d38832750e7c25e75"
       url: "https://pub.dev"
     source: hosted
-    version: "1.9.1"
+    version: "1.13.0"
   flame_audio:
     dependency: transitive
     description:
@@ -734,4 +734,4 @@ packages:
     version: "3.1.2"
 sdks:
   dart: ">=3.2.0-194.0.dev <4.0.0"
-  flutter: ">=3.10.0"
+  flutter: ">=3.13.0"

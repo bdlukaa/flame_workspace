@@ -136,6 +136,8 @@ class FlameComponentField {
 
   String get nonNullableType => type.replaceAll('?', '');
 
+  bool get isPrivate => name.startsWith('_');
+
   FlameComponentField copyWith({
     String? name,
     String? type,

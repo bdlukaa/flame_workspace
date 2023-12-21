@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 
 import 'game.dart';
+import 'generated/properties.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,7 @@ Future<void> main() async {
 
   final game = MyGame();
   FlameWorkspaceCore.ensureInitialized(game);
+  FlameWorkspaceCore.instance.setPropertyValue = setPropertyValue;
 
   runApp(GameWidget<MyGame>(
     game: FlameWorkspaceCore.instance.game as MyGame,

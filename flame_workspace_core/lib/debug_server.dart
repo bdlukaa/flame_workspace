@@ -63,12 +63,11 @@ void listen(WebSocketChannel channel, dynamic message) {
         declarationName,
       );
 
+      print(component?.runtimeType);
       if (component == null) {
         print('Could not find component $declarationName');
         return;
-      }
-
-      if (component is PositionComponent) {
+      } else if (component is PositionComponent) {
         if (property case 'position') {
           final vector2 = ValuesParser.parseVector2(value);
           if (vector2 != null) {
@@ -88,6 +87,14 @@ void listen(WebSocketChannel channel, dynamic message) {
           }
           break;
         } else {
+          FlameWorkspaceCore.instance.setPropertyValue(
+            // If the component type is Component<SubType>, we only want the
+            // Component part.
+            component.runtimeType.toString().split('<').first,
+            component,
+            property,
+            value,
+          );
           print('Could not find property $property');
           break;
         }

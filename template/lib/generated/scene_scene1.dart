@@ -5,6 +5,7 @@
 import 'package:flame/camera.dart';
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
+import 'package:flame/debug.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/experimental.dart';
 import 'package:flame/events.dart';

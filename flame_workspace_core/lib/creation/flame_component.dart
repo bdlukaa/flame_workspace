@@ -62,12 +62,6 @@ mixin FlameComponent on PositionComponent {
       _selectionHighlight.render(canvas);
     }
   }
-
-  /// Updates a property of the component.
-  void setProperty(String property, dynamic value);
-
-  /// Gets the value of a property of the component.
-  dynamic getProperty(String property);
 }
 
 /// A component that highlights itseslf when selected.
