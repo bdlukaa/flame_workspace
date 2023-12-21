@@ -177,12 +177,13 @@ class PropertiesGenerator {
 /// }
 /// ```
 ///
-/// generates the following functions:
+/// generates the following structure:
 ///
 /// ```dart
 ///
-/// extension MySceneExtension on MyScene {
+/// mixin MySceneMixin on FlameScene {
 ///
+///   @override
 ///   void addComponent(String declarationName) {
 ///     switch (declarationName) {
 ///       case 'supertext':
@@ -193,6 +194,7 @@ class PropertiesGenerator {
 ///
 ///   }
 ///
+///   @override
 ///   void removeComponent(String declarationName) {
 ///     switch (declarationName) {
 ///       case 'supertext':
@@ -212,15 +214,17 @@ class SceneGenerator {
 
     final buffer = StringBuffer();
 
-    buffer.writeln('extension ${className}Extension on $className {');
+    buffer.writeln('mixin ${className}Mixin on FlameScene {');
     // add component function
+    buffer.writeln('  @override');
     buffer.writeln('  void addComponent(String declarationName) {');
+    buffer.writeln('    final scene = this as $className;');
     buffer.writeln('    switch (declarationName) {');
     for (final field in declaration.members.whereType<FieldDeclaration>()) {
       final name = field.fields.variables.first.name.lexeme;
       if (name.startsWith('_')) continue;
       buffer.writeln('      case \'$name\':');
-      buffer.writeln('        add($name);');
+      buffer.writeln('        scene.add(scene.$name);');
       buffer.writeln('        break;');
     }
     buffer.writeln('      default:');
@@ -228,13 +232,15 @@ class SceneGenerator {
     buffer.writeln('    }');
     buffer.writeln('  }');
     // remove component function
+    buffer.writeln('  @override');
     buffer.writeln('  void removeComponent(String declarationName) {');
+    buffer.writeln('    final scene = this as $className;');
     buffer.writeln('    switch (declarationName) {');
     for (final field in declaration.members.whereType<FieldDeclaration>()) {
       final name = field.fields.variables.first.name.lexeme;
       if (name.startsWith('_')) continue;
       buffer.writeln('      case \'$name\':');
-      buffer.writeln('        remove($name);');
+      buffer.writeln('        scene.remove(scene.$name);');
       buffer.writeln('        break;');
     }
     buffer.writeln('      default:');
@@ -286,5 +292,10 @@ class SceneGenerator {
     //   scene.filePath,
     // );
     await Writer.formatFile(file.path);
+    await Writer(unit: scene.unit.$2).addMixinToClass(
+      scene.name,
+      '${scene.name}Mixin',
+      scene.filePath,
+    );
   }
 }

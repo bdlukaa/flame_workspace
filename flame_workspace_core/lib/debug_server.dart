@@ -112,12 +112,8 @@ void listen(WebSocketChannel channel, dynamic message) {
 
     case WorkbenchMessages.componentAdded:
       final declarationName = data['component'] as String;
-      final component = FlameWorkspaceCore.instance.game.findByKeyName(
-        declarationName,
-      );
-      if (!_debugFoundComponent(component, declarationName)) return;
-
-      FlameWorkspaceCore.instance.currentScene.add(component!);
+      // TODO: add a declared component using generated code
+      FlameWorkspaceCore.instance.currentScene.addComponent(declarationName);
       break;
 
     case WorkbenchMessages.componentRemoved:

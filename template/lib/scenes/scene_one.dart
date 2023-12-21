@@ -7,7 +7,7 @@ import 'package:flutter/widgets.dart';
 
 const topLevelConstant = Color(0xFF00FF00);
 
-class Scene1 extends FlameScene with TapCallbacks {
+class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
   Scene1({
     super.sceneName = 'Scene 1',
     super.backgroundColor = const Color(0xFF000000),

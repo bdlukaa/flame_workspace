@@ -21,6 +21,14 @@ class FlameScene extends World {
   void add(Component component) {
     super.add(FlameComponent.wrap(component));
   }
+
+  void addComponent(String declarationName) {
+    throw UnimplementedError();
+  }
+
+  void removeComponent(String declarationName) {
+    throw UnimplementedError();
+  }
 }
 
 extension FlameComponentExtension on Component {

@@ -18,39 +18,43 @@ import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:template/scenes/scene_one.dart';
 
-extension Scene1Extension on Scene1 {
+mixin Scene1Mixin on FlameScene {
+  @override
   void addComponent(String declarationName) {
+    final scene = this as Scene1;
     switch (declarationName) {
       case 'textie':
-        add(textie);
+        scene.add(scene.textie);
         break;
       case 'circle':
-        add(circle);
+        scene.add(scene.circle);
         break;
       case 'title':
-        add(title);
+        scene.add(scene.title);
         break;
       case 'supertext':
-        add(supertext);
+        scene.add(scene.supertext);
         break;
       default:
         throw Exception('Component not found');
     }
   }
 
+  @override
   void removeComponent(String declarationName) {
+    final scene = this as Scene1;
     switch (declarationName) {
       case 'textie':
-        remove(textie);
+        scene.remove(scene.textie);
         break;
       case 'circle':
-        remove(circle);
+        scene.remove(scene.circle);
         break;
       case 'title':
-        remove(title);
+        scene.remove(scene.title);
         break;
       case 'supertext':
-        remove(supertext);
+        scene.remove(scene.supertext);
         break;
       default:
         throw Exception('Component not found');
