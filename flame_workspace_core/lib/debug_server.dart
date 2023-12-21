@@ -87,6 +87,7 @@ void listen(WebSocketChannel channel, dynamic message) {
           }
           break;
         } else {
+          print('Setting property $property to $value of $component');
           FlameWorkspaceCore.instance.setPropertyValue(
             // If the component type is Component<SubType>, we only want the
             // Component part.
@@ -95,7 +96,6 @@ void listen(WebSocketChannel channel, dynamic message) {
             property,
             value,
           );
-          print('Could not find property $property');
           break;
         }
       } else {
@@ -116,6 +116,7 @@ void listen(WebSocketChannel channel, dynamic message) {
       break;
     case WorkbenchMessages.componentUnselected:
       FlameWorkspaceCore.instance.currentSelectedComponentKey = null;
+      break;
 
     case WorkbenchMessages.componentAdded:
       final declarationName = data['component'] as String;

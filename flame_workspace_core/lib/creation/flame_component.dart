@@ -111,14 +111,4 @@ class _FlameComponentWrapper extends PositionComponent with FlameComponent {
       nativeAngle = (component as PositionComponent).nativeAngle;
     }
   }
-
-  @override
-  getProperty(String property) {
-    throw UnimplementedError();
-  }
-
-  @override
-  void setProperty(String property, value) {
-    throw UnimplementedError();
-  }
 }

@@ -1,4 +1,3 @@
-import 'package:template/generated/properties.dart';
 import 'package:template/generated/scene_scene1.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
@@ -24,7 +23,7 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
       key: FlameKey('circle'),
       position: Vector2(0.0, 100.0),
       scale: Vector2(2.0, 2.0),
-      color: const Color(0xff1c7a11),
+      color: const Color(0xff50d241),
       flag: true,
       radius: 22.0);
 
@@ -36,8 +35,8 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
 
   TextComponent supertext = TextComponent(
       key: FlameKey('supertext'),
-      text: 'text rerereedited',
-      position: Vector2(296.0, 100.0));
+      text: 'textie',
+      position: Vector2(200.0, 100.0));
 
   @override
   Future<void> onLoad() async {
@@ -118,20 +117,6 @@ class MyCircle extends PositionComponent with FlameComponent {
       _paint,
     );
   }
-
-  @override
-  getProperty(String property) {
-    if (property case 'radius') {
-      return radius;
-    }
-  }
-
-  @override
-  void setProperty(String property, value) {
-    if (property case 'radius') {
-      radius = value;
-    }
-  }
 }
 
 class MyOtherCircle extends MyCircle {
@@ -170,19 +155,5 @@ class MySquare extends PositionComponent with FlameComponent {
       Rect.fromCircle(center: Offset(radius, radius), radius: radius),
       _paint,
     );
-  }
-
-  @override
-  getProperty(String property) {
-    if (property case 'radius') {
-      return radius;
-    }
-  }
-
-  @override
-  void setProperty(String property, value) {
-    if (property case 'radius') {
-      radius = value;
-    }
   }
 }

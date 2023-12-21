@@ -148,11 +148,6 @@ class ProjectIndexer {
           .cast<Map>()
           .map((e) => e as IndexedUnit);
 
-      final unitHelper = CompilationUnitHelper(
-        unit: unit,
-        indexed: indexedUnit,
-      );
-
       components.addAll(declarations.where((d) {
         final w = d['with'] as List?;
         final e = d['extends'] as String?;
