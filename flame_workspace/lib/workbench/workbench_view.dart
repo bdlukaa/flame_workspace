@@ -197,6 +197,12 @@ class _WorkbenchViewState extends State<WorkbenchView> {
       for (final scene in scenes) {
         await SceneGenerator.writeForScene(scene.$1, widget.project);
       }
+    } else if ((includeOnly != null && includeOnly.isNotEmpty) && !onlyParse) {
+      for (final scene in scenes) {
+        if (includeOnly.contains(scene.$1.filePath)) {
+          await SceneGenerator.writeForScene(scene.$1, widget.project);
+        }
+      }
     }
 
     isIndexing = false;

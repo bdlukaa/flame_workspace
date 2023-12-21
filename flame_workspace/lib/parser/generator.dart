@@ -228,7 +228,8 @@ class SceneGenerator {
       buffer.writeln('        break;');
     }
     buffer.writeln('      default:');
-    buffer.writeln('        throw Exception(\'Component not found\');');
+    buffer.writeln(
+        '        throw ArgumentError(declarationName, \'Component not found for scene \${scene.sceneName}\',);');
     buffer.writeln('    }');
     buffer.writeln('  }');
     // remove component function
@@ -244,7 +245,8 @@ class SceneGenerator {
       buffer.writeln('        break;');
     }
     buffer.writeln('      default:');
-    buffer.writeln('        throw Exception(\'Component not found\');');
+    buffer.writeln(
+        '        throw ArgumentError(declarationName, \'Component not found for scene \${scene.sceneName}\',);');
     buffer.writeln('    }');
     buffer.writeln('  }');
     buffer.writeln('}');

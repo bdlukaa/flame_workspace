@@ -38,7 +38,7 @@ class FlameWorkspaceCore {
   Component? get currentSelectedComponent =>
       game.findByKeyName(currentSelectedComponentKey ?? '__none__');
 
-  final FlameScene currentScene = FlameScene(
+  FlameScene currentScene = FlameScene(
     sceneName: 'Scene 1',
     backgroundColor: const Color(0xFF000000),
   );

@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart';
 
 import 'flame_component.dart';
@@ -16,6 +17,12 @@ class FlameScene extends World {
     required this.backgroundColor,
     super.children,
   });
+
+  @override
+  @mustCallSuper
+  void onLoad() {
+    FlameWorkspaceCore.instance.currentScene = this;
+  }
 
   @override
   void add(Component component) {

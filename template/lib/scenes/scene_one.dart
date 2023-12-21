@@ -7,7 +7,15 @@ import 'package:flutter/widgets.dart';
 
 const topLevelConstant = Color(0xFF00FF00);
 
-class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
+class Scene1 extends FlameScene
+    with
+        TapCallbacks,
+        Scene1Mixin,
+, Scene1Mixin , Scene1Mixin , Scene1Mixin         Scene1, Scene1Mixin Mixin,
+        Scene1Mixin,
+       , Scene1Mixin  Scene1Mixin,
+        Scene1Mixin,
+        Scene1Mixin {
   Scene1({
     super.sceneName = 'Scene 1',
     super.backgroundColor = const Color(0xFF000000),
@@ -49,8 +57,20 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
     text: 'textieee',
   );
 
+  TextComponent slayComponent = TextComponent(
+    key: FlameKey('slayComponent'),
+    text: 'component that slayyy',
+  );
+
+  TextComponent coolComp = TextComponent(
+    key: FlameKey('coolComp'),
+    text: 'cool component',
+    position: Vector2(50.0, 100.0),
+  );
+
   @override
   Future<void> onLoad() async {
+    super.onLoad();
     // Load all the assets that are needed in this world
     // and add components etc.
 
@@ -63,6 +83,10 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
     add(notherComponent);
 
     add(ohBoy);
+
+    add(slayComponent);
+
+    add(coolComp);
   }
 
   bool _upping = false;

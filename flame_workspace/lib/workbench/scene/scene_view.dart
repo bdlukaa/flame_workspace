@@ -197,6 +197,27 @@ class _SceneViewState extends State<SceneView> {
                           onTap: () {
                             design.onComponentSelected(component);
                           },
+                          onSecondaryTapUp: (d) {
+                            showMenu(
+                              context: context,
+                              position: RelativeRect.fromRect(
+                                d.globalPosition & const Size(40, 40),
+                                Offset.zero & MediaQuery.of(context).size,
+                              ),
+                              items: [
+                                PopupMenuItem(
+                                  child: const Text('Remove'),
+                                  onTap: () {
+                                    design.onComponentSelected(null);
+                                    workbench.runner.send(
+                                      WorkbenchMessages.componentRemoved,
+                                      {'component': component.declarationName},
+                                    );
+                                  },
+                                ),
+                              ],
+                            );
+                          },
                           children: component.components.isEmpty
                               ? null
                               : component.components.map(buildNode).toList(),
