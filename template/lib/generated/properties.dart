@@ -9,14 +9,16 @@ import 'package:flame/debug.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/experimental.dart';
 import 'package:flame/events.dart';
+import 'package:flame/game.dart';
 import 'package:flame/input.dart';
 import 'package:flame/palette.dart';
+import 'package:flame/parallax.dart';
 import 'package:flame/particles.dart';
 import 'package:flame/layout.dart';
 import 'package:flame/sprite.dart';
 import 'package:flame/text.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/widgets.dart' hide Viewport;
 import 'package:template/scenes/scene_one.dart';
 
 void setPropertyValue(
@@ -36,8 +38,13 @@ void setPropertyValue(
       setPropertyValueAdvancedButtonComponent(
           cls as AdvancedButtonComponent, propertyName, value);
       break;
-    case 'AnchorEffect':
-      setPropertyValueAnchorEffect(cls as AnchorEffect, propertyName, value);
+    case 'AlignComponent':
+      setPropertyValueAlignComponent(
+          cls as AlignComponent, propertyName, value);
+      break;
+    case 'BoundedPositionBehavior':
+      setPropertyValueBoundedPositionBehavior(
+          cls as BoundedPositionBehavior, propertyName, value);
       break;
     case 'ButtonComponent':
       setPropertyValueButtonComponent(
@@ -92,9 +99,6 @@ void setPropertyValue(
       setPropertyValueJoystickComponent(
           cls as JoystickComponent, propertyName, value);
       break;
-    case 'MoveEffect':
-      setPropertyValueMoveEffect(cls as MoveEffect, propertyName, value);
-      break;
     case 'NineTileBoxComponent':
       setPropertyValueNineTileBoxComponent(
           cls as NineTileBoxComponent, propertyName, value);
@@ -143,10 +147,6 @@ void setPropertyValue(
       setPropertyValueSpriteAnimationComponent(
           cls as SpriteAnimationComponent, propertyName, value);
       break;
-    case 'SpriteAnimationGroupComponent':
-      setPropertyValueSpriteAnimationGroupComponent(
-          cls as SpriteAnimationGroupComponent, propertyName, value);
-      break;
     case 'SpriteBatchComponent':
       setPropertyValueSpriteBatchComponent(
           cls as SpriteBatchComponent, propertyName, value);
@@ -154,10 +154,6 @@ void setPropertyValue(
     case 'SpriteComponent':
       setPropertyValueSpriteComponent(
           cls as SpriteComponent, propertyName, value);
-      break;
-    case 'SpriteGroupComponent':
-      setPropertyValueSpriteGroupComponent(
-          cls as SpriteGroupComponent, propertyName, value);
       break;
     case 'TextBoxComponent':
       setPropertyValueTextBoxComponent(
@@ -189,14 +185,23 @@ void setPropertyValueMyCircle(
   dynamic value,
 ) {
   switch (propertyName) {
+    case 'radius':
+      cls.radius = value as double;
+      break;
+    case 'color':
+      cls.color = value as Color;
+      break;
     case 'position':
       cls.position = value as Vector2;
+      break;
+    case 'flag':
+      cls.flag = value as bool;
       break;
     case 'scale':
       cls.scale = value as Vector2;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -213,7 +218,7 @@ void setPropertyValueMySquare(
       cls.position = value as Vector2;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -223,6 +228,24 @@ void setPropertyValueAdvancedButtonComponent(
   dynamic value,
 ) {
   switch (propertyName) {
+    case 'defaultSkin':
+      cls.defaultSkin = value as PositionComponent;
+      break;
+    case 'downSkin':
+      cls.downSkin = value as PositionComponent;
+      break;
+    case 'hoverSkin':
+      cls.hoverSkin = value as PositionComponent;
+      break;
+    case 'disabledSkin':
+      cls.disabledSkin = value as PositionComponent;
+      break;
+    case 'defaultLabel':
+      cls.defaultLabel = value as PositionComponent;
+      break;
+    case 'disabledLabel':
+      cls.disabledLabel = value as PositionComponent;
+      break;
     case 'size':
       cls.size = value as Vector2;
       break;
@@ -242,18 +265,38 @@ void setPropertyValueAdvancedButtonComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
-void setPropertyValueAnchorEffect(
-  AnchorEffect cls,
+void setPropertyValueAlignComponent(
+  AlignComponent cls,
   String propertyName,
   dynamic value,
 ) {
   switch (propertyName) {
+    case 'child':
+      cls.child = value as PositionComponent;
+      break;
+    case 'alignment':
+      cls.alignment = value as Anchor;
+      break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
+  }
+}
+
+void setPropertyValueBoundedPositionBehavior(
+  BoundedPositionBehavior cls,
+  String propertyName,
+  dynamic value,
+) {
+  switch (propertyName) {
+    case 'bounds':
+      cls.bounds = value as Shape;
+      break;
+    default:
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -285,7 +328,7 @@ void setPropertyValueButtonComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -298,8 +341,17 @@ void setPropertyValueCameraComponent(
     case 'world':
       cls.world = value as World;
       break;
+    case 'viewport':
+      cls.viewport = value as Viewport;
+      break;
+    case 'viewfinder':
+      cls.viewfinder = value as Viewfinder;
+      break;
+    case 'backdrop':
+      cls.backdrop = value as Component;
+      break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -313,7 +365,7 @@ void setPropertyValueChildCounterComponent(
       cls.position = value as Vector2;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -323,6 +375,9 @@ void setPropertyValueCircleComponent(
   dynamic value,
 ) {
   switch (propertyName) {
+    case 'radius':
+      cls.radius = value as double;
+      break;
     case 'position':
       cls.position = value as Vector2;
       break;
@@ -345,7 +400,7 @@ void setPropertyValueCircleComponent(
       cls.paintLayers = value as List<Paint>;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -368,7 +423,7 @@ void setPropertyValueCircleHitbox(
       cls.anchor = value as Anchor;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -397,7 +452,7 @@ void setPropertyValueClipComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -426,7 +481,7 @@ void setPropertyValueCompositeHitbox(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -458,7 +513,7 @@ void setPropertyValueCustomPainterComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -469,7 +524,7 @@ void setPropertyValueEffect(
 ) {
   switch (propertyName) {
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -498,7 +553,7 @@ void setPropertyValueFpsTextComponent(
       cls.anchor = value as Anchor;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -530,7 +585,7 @@ void setPropertyValueHudButtonComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -562,7 +617,7 @@ void setPropertyValueHudMarginComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -603,7 +658,7 @@ void setPropertyValueIsometricTileMapComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -626,18 +681,7 @@ void setPropertyValueJoystickComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
-  }
-}
-
-void setPropertyValueMoveEffect(
-  MoveEffect cls,
-  String propertyName,
-  dynamic value,
-) {
-  switch (propertyName) {
-    default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -669,7 +713,7 @@ void setPropertyValueNineTileBoxComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -679,6 +723,9 @@ void setPropertyValueParallaxComponent(
   dynamic value,
 ) {
   switch (propertyName) {
+    case 'parallax':
+      cls.parallax = value as Parallax;
+      break;
     case 'position':
       cls.position = value as Vector2;
       break;
@@ -695,7 +742,7 @@ void setPropertyValueParallaxComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -727,7 +774,7 @@ void setPropertyValueParticleSystemComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -762,7 +809,7 @@ void setPropertyValuePolygonComponent(
       cls.paintLayers = value as List<Paint>;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -772,11 +819,26 @@ void setPropertyValuePositionComponent(
   dynamic value,
 ) {
   switch (propertyName) {
+    case 'position':
+      cls.position = value as Vector2;
+      break;
+    case 'size':
+      cls.size = value as Vector2;
+      break;
+    case 'scale':
+      cls.scale = value as Vector2;
+      break;
+    case 'angle':
+      cls.angle = value as double;
+      break;
     case 'nativeAngle':
       cls.nativeAngle = value as double;
       break;
+    case 'anchor':
+      cls.anchor = value as Anchor;
+      break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -811,7 +873,7 @@ void setPropertyValueRectangleComponent(
       cls.paintLayers = value as List<Paint>;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -837,7 +899,7 @@ void setPropertyValueRectangleHitbox(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -860,7 +922,7 @@ void setPropertyValueScrollTextBoxComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -871,7 +933,7 @@ void setPropertyValueSequenceEffect(
 ) {
   switch (propertyName) {
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -900,7 +962,7 @@ void setPropertyValueShapeComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -913,6 +975,9 @@ void setPropertyValueSpawnComponent(
     case 'factory':
       cls.factory = value as PositionComponent Function(int amount);
       break;
+    case 'period':
+      cls.period = value as double;
+      break;
     case 'area':
       cls.area = value as Shape;
       break;
@@ -923,7 +988,7 @@ void setPropertyValueSpawnComponent(
       cls.selfPositioning = value as bool;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -933,6 +998,12 @@ void setPropertyValueSpriteAnimationComponent(
   dynamic value,
 ) {
   switch (propertyName) {
+    case 'animation':
+      cls.animation = value as SpriteAnimation;
+      break;
+    case 'autoResize':
+      cls.autoResize = value as bool;
+      break;
     case 'removeOnFinish':
       cls.removeOnFinish = value as bool;
       break;
@@ -961,45 +1032,7 @@ void setPropertyValueSpriteAnimationComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
-  }
-}
-
-void setPropertyValueSpriteAnimationGroupComponent(
-  SpriteAnimationGroupComponent cls,
-  String propertyName,
-  dynamic value,
-) {
-  switch (propertyName) {
-    case 'playing':
-      cls.playing = value as bool;
-      break;
-    case 'autoResetTicker':
-      cls.autoResetTicker = value as bool;
-      break;
-    case 'position':
-      cls.position = value as Vector2;
-      break;
-    case 'size':
-      cls.size = value as Vector2;
-      break;
-    case 'scale':
-      cls.scale = value as Vector2;
-      break;
-    case 'angle':
-      cls.angle = value as double;
-      break;
-    case 'nativeAngle':
-      cls.nativeAngle = value as double;
-      break;
-    case 'anchor':
-      cls.anchor = value as Anchor;
-      break;
-    case 'priority':
-      cls.priority = value as dynamic;
-      break;
-    default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -1022,7 +1055,7 @@ void setPropertyValueSpriteBatchComponent(
       cls.paint = value as Paint;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -1032,6 +1065,12 @@ void setPropertyValueSpriteComponent(
   dynamic value,
 ) {
   switch (propertyName) {
+    case 'sprite':
+      cls.sprite = value as Sprite;
+      break;
+    case 'autoResize':
+      cls.autoResize = value as bool;
+      break;
     case 'position':
       cls.position = value as Vector2;
       break;
@@ -1051,36 +1090,7 @@ void setPropertyValueSpriteComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
-  }
-}
-
-void setPropertyValueSpriteGroupComponent(
-  SpriteGroupComponent cls,
-  String propertyName,
-  dynamic value,
-) {
-  switch (propertyName) {
-    case 'position':
-      cls.position = value as Vector2;
-      break;
-    case 'scale':
-      cls.scale = value as Vector2;
-      break;
-    case 'angle':
-      cls.angle = value as double;
-      break;
-    case 'nativeAngle':
-      cls.nativeAngle = value as double;
-      break;
-    case 'anchor':
-      cls.anchor = value as Anchor;
-      break;
-    case 'priority':
-      cls.priority = value as dynamic;
-      break;
-    default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -1115,7 +1125,7 @@ void setPropertyValueTextBoxComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -1125,6 +1135,12 @@ void setPropertyValueTextComponent(
   dynamic value,
 ) {
   switch (propertyName) {
+    case 'text':
+      cls.text = value as String;
+      break;
+    case 'textRenderer':
+      cls.textRenderer = value as dynamic;
+      break;
     case 'position':
       cls.position = value as Vector2;
       break;
@@ -1144,7 +1160,7 @@ void setPropertyValueTextComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -1176,7 +1192,7 @@ void setPropertyValueTextElementComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -1190,7 +1206,7 @@ void setPropertyValueTimeTrackComponent(
       cls.position = value as Vector2;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }
 
@@ -1215,11 +1231,29 @@ void setPropertyValueToggleButtonComponent(
     case 'disabledSkin':
       cls.disabledSkin = value as PositionComponent;
       break;
+    case 'defaultSelectedSkin':
+      cls.defaultSelectedSkin = value as PositionComponent;
+      break;
+    case 'downAndSelectedSkin':
+      cls.downAndSelectedSkin = value as PositionComponent;
+      break;
+    case 'hoverAndSelectedSkin':
+      cls.hoverAndSelectedSkin = value as PositionComponent;
+      break;
+    case 'disabledAndSelectedSkin':
+      cls.disabledAndSelectedSkin = value as PositionComponent;
+      break;
     case 'defaultLabel':
       cls.defaultLabel = value as PositionComponent;
       break;
     case 'disabledLabel':
       cls.disabledLabel = value as PositionComponent;
+      break;
+    case 'defaultSelectedLabel':
+      cls.defaultSelectedLabel = value as PositionComponent;
+      break;
+    case 'disabledAndSelectedLabel':
+      cls.disabledAndSelectedLabel = value as PositionComponent;
       break;
     case 'size':
       cls.size = value as Vector2;
@@ -1240,6 +1274,6 @@ void setPropertyValueToggleButtonComponent(
       cls.priority = value as dynamic;
       break;
     default:
-      throw ArgumentError.value(value, 'Property not found');
+      throw ArgumentError.value(propertyName, 'Property not found');
   }
 }

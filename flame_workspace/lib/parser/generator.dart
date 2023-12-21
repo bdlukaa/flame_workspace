@@ -50,18 +50,22 @@ class PropertiesGenerator {
       'ValueRoute',
       'ComponentEffect',
       'PolygonHitbox',
+      'SpriteGroupComponent',
+      'SpriteAnimationGroupComponent',
+      'AnchorEffect',
+      'GlowEffect',
+      'MoveEffect',
     ].contains(component.name)) return '';
 
     final className = component.name;
     final properties = component.parameters.where(
       (p) =>
           !p.isPrivate &&
+          p.name != 'key' &&
+          p.name != 'children' &&
           ((p.isLocalField && !p.isFinalField) ||
-              (p.superComponents != null &&
-                  p.superComponents!.isNotEmpty &&
-                  p.name != 'key' &&
-                  p.name != 'children' &&
-                  !p.isFinalField)),
+              (!p.isLocalField && p.hasSetter) ||
+              (p.superComponents != null && p.superComponents!.isNotEmpty)),
     );
     if (properties.isEmpty) return '';
 
@@ -75,7 +79,7 @@ class PropertiesGenerator {
     buffer.writeln('  dynamic value,');
     buffer.writeln(') {');
     buffer.writeln('  switch (propertyName) {');
-    for (var i = 0; i < propertiesNames.length; i++) {
+    for (var i = 0; i < properties.length; i++) {
       var type = propertiesTypes[i];
       if (type.startsWith('void Function')) continue;
 
@@ -87,7 +91,7 @@ class PropertiesGenerator {
     }
     buffer.writeln('    default:');
     buffer.writeln(
-        '      throw ArgumentError.value(value, \'Property not found\');');
+        '      throw ArgumentError.value(propertyName, \'Property not found\');');
     buffer.writeln('  }');
     buffer.writeln('}');
 

@@ -113,6 +113,9 @@ class FlameComponentField {
   /// Whether this field can not be reassigned.
   final bool isFinalField;
 
+  /// Whether this field is local, but has a getter and a setter
+  final bool hasSetter;
+
   FlameComponentField(
     this.name,
     this.type, [
@@ -120,6 +123,7 @@ class FlameComponentField {
     this.superComponents,
     this.isLocalField = false,
     this.isFinalField = false,
+    this.hasSetter = false,
   ]);
 
   @override
@@ -129,7 +133,8 @@ class FlameComponentField {
       "'$defaultValue', "
       "${superComponents == null ? 'null, ' : "[${superComponents!.map((e) => "'$e'").join(', ')}], "}"
       "$isLocalField, "
-      "$isFinalField"
+      "$isFinalField,"
+      "$hasSetter"
       ")";
 
   bool get isNullable => type == 'dynamic' || type.endsWith('?');

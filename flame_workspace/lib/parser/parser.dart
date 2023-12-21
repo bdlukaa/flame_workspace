@@ -147,6 +147,12 @@ class ProjectIndexer {
       final declarations = (indexedUnit['declarations'] as List)
           .cast<Map>()
           .map((e) => e as IndexedUnit);
+
+      final unitHelper = CompilationUnitHelper(
+        unit: unit,
+        indexed: indexedUnit,
+      );
+
       components.addAll(declarations.where((d) {
         final w = d['with'] as List?;
         final e = d['extends'] as String?;
@@ -163,7 +169,8 @@ class ProjectIndexer {
         if (d['members'] != null) {
           final members = (d['members'] as List).cast<Map>();
           for (final member in members) {
-            // TODO: add support for multiple constructors (factory constructors / named constructors)
+            // TODO: add support for multiple constructors
+            //       (factory constructors / named constructors)
             if (member['kind'] == 'constructor' &&
                 member['factory'] != true &&
                 !(member['name'] as String).contains('.')) {
@@ -219,8 +226,15 @@ class ProjectIndexer {
                 }
                 type ??= 'dynamic';
 
+                final fieldName = name.replaceAll('this.', '');
+                final hasSetter = members.any(
+                  (element) =>
+                      element['kind'] == 'setter' &&
+                      element['name'] == fieldName,
+                );
+
                 componentParameters.add(FlameComponentField(
-                  name.replaceAll('this.', ''),
+                  fieldName,
                   type,
                   defaultValue,
                   superComponent == null
@@ -232,6 +246,7 @@ class ProjectIndexer {
                         ],
                   name.startsWith('this.'),
                   isFinal,
+                  hasSetter,
                 ));
               }
             }

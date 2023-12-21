@@ -47,6 +47,18 @@ class CompilationUnitHelper {
         .firstWhereOrNull((v) => v.name.lexeme == name);
   }
 
+  FunctionDeclaration? findSetter(ClassDeclaration? cls, String name) {
+    return cls?.members
+        .whereType<FunctionDeclaration>()
+        .firstWhereOrNull((v) => v.isSetter && v.name.lexeme == name);
+  }
+
+  FunctionDeclaration? findGetter(ClassDeclaration? cls, String name) {
+    return cls?.members
+        .whereType<FunctionDeclaration>()
+        .firstWhereOrNull((v) => v.isGetter && v.name.lexeme == name);
+  }
+
   /// Tries to parse a value from an expression.
   ///
   /// Returns null if the expression is not a valid constructor call.

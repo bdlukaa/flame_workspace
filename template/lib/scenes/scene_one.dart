@@ -30,13 +30,13 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
 
   TextComponent title = TextComponent(
     key: FlameKey('textComponent'),
-    text: 'slayy less',
+    text: 'slayy even more less',
     position: Vector2(200.0, 200.0),
   );
 
   TextComponent supertext = TextComponent(
       key: FlameKey('supertext'),
-      text: 'text rereedited',
+      text: 'text rerereedited',
       position: Vector2(296.0, 100.0));
 
   @override
@@ -85,12 +85,14 @@ class MyCircle extends PositionComponent with FlameComponent {
     _paint.color = color;
   }
 
+  bool flag;
+
   MyCircle({
     super.key,
     double radius = 20.0,
     Color color = const Color(0xFFFF0000),
     super.position,
-    bool flag = false,
+    this.flag = false,
     super.scale,
   })  : _paint = Paint()..color = color,
         _radius = radius,

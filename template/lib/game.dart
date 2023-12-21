@@ -12,14 +12,13 @@ class MyGame extends FlameGame with SingleGameInstance, WindowListener {
   Color backgroundColor() => const Color(0xFF000000);
 
   @override
-  late final CameraComponent camera;
+  late final CameraComponent camera = CameraComponent(world: world);
   @override
   final world = Scene1();
 
   @override
   Future<void> onLoad() async {
     windowManager.addListener(this);
-    camera = CameraComponent(world: world);
     camera.viewfinder.anchor = Anchor.topLeft;
     addAll([camera, world]);
 
