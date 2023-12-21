@@ -27,17 +27,23 @@ import 'package:recase/recase.dart';
 /// With this class, the output function would be:
 ///
 /// ```dart
-/// void setPropertyMyClass(MyClass classReference, String propertyName, dynamic value) {
-///   switch (propertyName) {
-///     case 'name':
-///       classReference.name = value;
-///       break;
-///     case 'age':
-///       classReference.age = value;
-///       break;
-///     default:
-///       throw ArgumentException('Property not found');
+/// extension SetPropertyMyClassExtension on MyClass {
+///
+///   void setProperty(String propertyName, dynamic value) {
+///     switch (propertyName) {
+///       case 'name':
+///         name = value;
+///         break;
+///       case 'age':
+///         age = value;
+///         break;
+///       default:
+///         throw ArgumentException('Property not found');
+///     }
+///   }
+///
 /// }
+/// ```
 /// ```
 class PropertiesGenerator {
   PropertiesGenerator._();
@@ -51,18 +57,20 @@ class PropertiesGenerator {
         properties.map((p) => p.fields.type!.toSource()).toList();
 
     final buffer = StringBuffer();
-    buffer.writeln(
-        'void setProperty$className($className classReference, String propertyName, dynamic value) {');
-    buffer.writeln('  switch (propertyName) {');
+    buffer
+        .writeln('extension SetProperty${className}Extension on $className {');
+    buffer.writeln('  void setProperty(String propertyName, dynamic value) {');
+    buffer.writeln('    switch (propertyName) {');
     for (var i = 0; i < propertiesNames.length; i++) {
       final name = propertiesNames[i];
       final type = propertiesTypes[i];
-      buffer.writeln('    case \'$name\':');
-      buffer.writeln('      classReference.$name = value as $type;');
-      buffer.writeln('      break;');
+      buffer.writeln('      case \'$name\':');
+      buffer.writeln('        $name = value as $type;');
+      buffer.writeln('        break;');
     }
-    buffer.writeln('    default:');
-    buffer.writeln('      throw Exception(\'Property not found\');');
+    buffer.writeln('      default:');
+    buffer.writeln('        throw Exception(\'Property not found\');');
+    buffer.writeln('    }');
     buffer.writeln('  }');
     buffer.writeln('}');
 
@@ -93,19 +101,21 @@ class PropertiesGenerator {
     final propertiesTypes = properties.map((p) => p.nonNullableType).toList();
 
     final buffer = StringBuffer();
-    buffer.writeln(
-        'void setProperty$className($className classReference, String propertyName, dynamic value) {');
-    buffer.writeln('  switch (propertyName) {');
+    buffer
+        .writeln('extension SetProperty${className}Extension on $className {');
+    buffer.writeln('  void setProperty(String propertyName, dynamic value) {');
+    buffer.writeln('    switch (propertyName) {');
     for (var i = 0; i < propertiesNames.length; i++) {
       final name = propertiesNames[i];
       var type = propertiesTypes[i];
       if (type == 'T') type = 'dynamic';
-      buffer.writeln('    case \'$name\':');
-      buffer.writeln('      classReference.$name = value as $type;');
-      buffer.writeln('      break;');
+      buffer.writeln('      case \'$name\':');
+      buffer.writeln('        this.$name = value as $type;');
+      buffer.writeln('        break;');
     }
-    buffer.writeln('    default:');
-    buffer.writeln('      throw Exception(\'Property not found\');');
+    buffer.writeln('      default:');
+    buffer.writeln('        throw Exception(\'Property not found\');');
+    buffer.writeln('    }');
     buffer.writeln('  }');
     buffer.writeln('}');
 
@@ -118,7 +128,8 @@ class PropertiesGenerator {
   ) async {
     final buffer = StringBuffer();
     buffer.writeln(generatedFileNotice);
-    buffer.writeln('// ignore_for_file: unused_import');
+    buffer.writeln(
+        '// ignore_for_file: unused_import, unnecessary_import, unnecessary_this');
     buffer.writeln(defaultImports);
 
     Set<String> imports = {};
@@ -170,27 +181,26 @@ class PropertiesGenerator {
 ///
 /// ```dart
 ///
-/// void addComponentMyScene(MyScene scene, String declarationName) {
+/// extension MySceneExtension on MyScene {
 ///
-///   switch (declarationName) {
-///     case 'supertext':
-///       scene.add(supertext);
-///       break;
-///     default:
-///       throw Exception('Component $declarationName not found');
+///   void addComponent(String declarationName) {
+///     switch (declarationName) {
+///       case 'supertext':
+///         add(supertext);
+///         break;
+///      default:
+///         throw ArgumentException('Component not found');
+///
 ///   }
 ///
-/// }
-///
-/// void removeComponentMyScene(MyScene scene, String declarationName) {
-///
-///   switch (declarationName) {
-///     case 'supertext':
-///       scene.remove(supertext);
-///       break;
-///     default:
-///       throw Exception('Component $declarationName not found');
-///
+///   void removeComponent(String declarationName) {
+///     switch (declarationName) {
+///       case 'supertext':
+///         remove(supertext);
+///         break;
+///       default:
+///         throw ArgumentException('Component not found');
+///   }
 /// }
 ///
 /// ```
@@ -202,41 +212,34 @@ class SceneGenerator {
 
     final buffer = StringBuffer();
 
+    buffer.writeln('extension ${className}Extension on $className {');
     // add component function
-
-    buffer.writeln(
-        'void addComponent$className($className scene, String declarationName) {');
-    buffer.writeln('  switch (declarationName) {');
+    buffer.writeln('  void addComponent(String declarationName) {');
+    buffer.writeln('    switch (declarationName) {');
     for (final field in declaration.members.whereType<FieldDeclaration>()) {
       final name = field.fields.variables.first.name.lexeme;
       if (name.startsWith('_')) continue;
-
-      buffer.writeln('    case \'$name\':');
-      buffer.writeln('      scene.add(scene.$name);');
-      buffer.writeln('      break;');
+      buffer.writeln('      case \'$name\':');
+      buffer.writeln('        add($name);');
+      buffer.writeln('        break;');
     }
-    buffer.writeln('    default:');
-    buffer.writeln(
-        '      throw Exception(\'Component \$declarationName not found\');');
+    buffer.writeln('      default:');
+    buffer.writeln('        throw Exception(\'Component not found\');');
+    buffer.writeln('    }');
     buffer.writeln('  }');
-    buffer.writeln('}');
-
     // remove component function
-
-    buffer.writeln(
-        'void removeComponent$className($className scene, String declarationName) {');
-    buffer.writeln('  switch (declarationName) {');
+    buffer.writeln('  void removeComponent(String declarationName) {');
+    buffer.writeln('    switch (declarationName) {');
     for (final field in declaration.members.whereType<FieldDeclaration>()) {
       final name = field.fields.variables.first.name.lexeme;
       if (name.startsWith('_')) continue;
-
-      buffer.writeln('    case \'$name\':');
-      buffer.writeln('      scene.remove(scene.$name);');
-      buffer.writeln('      break;');
+      buffer.writeln('      case \'$name\':');
+      buffer.writeln('        remove($name);');
+      buffer.writeln('        break;');
     }
-    buffer.writeln('    default:');
-    buffer.writeln(
-        '      throw Exception(\'Component \$declarationName not found\');');
+    buffer.writeln('      default:');
+    buffer.writeln('        throw Exception(\'Component not found\');');
+    buffer.writeln('    }');
     buffer.writeln('  }');
     buffer.writeln('}');
 

@@ -18,40 +18,42 @@ import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:template/scenes/scene_one.dart';
 
-void addComponentScene1(Scene1 scene, String declarationName) {
-  switch (declarationName) {
-    case 'textie':
-      scene.add(scene.textie);
-      break;
-    case 'circle':
-      scene.add(scene.circle);
-      break;
-    case 'title':
-      scene.add(scene.title);
-      break;
-    case 'supertext':
-      scene.add(scene.supertext);
-      break;
-    default:
-      throw Exception('Component $declarationName not found');
+extension Scene1Extension on Scene1 {
+  void addComponent(String declarationName) {
+    switch (declarationName) {
+      case 'textie':
+        add(textie);
+        break;
+      case 'circle':
+        add(circle);
+        break;
+      case 'title':
+        add(title);
+        break;
+      case 'supertext':
+        add(supertext);
+        break;
+      default:
+        throw Exception('Component not found');
+    }
   }
-}
 
-void removeComponentScene1(Scene1 scene, String declarationName) {
-  switch (declarationName) {
-    case 'textie':
-      scene.remove(scene.textie);
-      break;
-    case 'circle':
-      scene.remove(scene.circle);
-      break;
-    case 'title':
-      scene.remove(scene.title);
-      break;
-    case 'supertext':
-      scene.remove(scene.supertext);
-      break;
-    default:
-      throw Exception('Component $declarationName not found');
+  void removeComponent(String declarationName) {
+    switch (declarationName) {
+      case 'textie':
+        remove(textie);
+        break;
+      case 'circle':
+        remove(circle);
+        break;
+      case 'title':
+        remove(title);
+        break;
+      case 'supertext':
+        remove(supertext);
+        break;
+      default:
+        throw Exception('Component not found');
+    }
   }
 }
