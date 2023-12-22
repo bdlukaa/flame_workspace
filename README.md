@@ -1,12 +1,20 @@
+<div align="center">
+      
 # Flame Workspace
 
 A Workspace for Flame games.
+
+<a title="Discord" href="https://discord.gg/674gpDQUVq">
+  <img src="https://img.shields.io/discord/809528329337962516?style=flat-square&label=discord&color=7289da&logo=discord&logoColor=white" />
+</a>
+
+</div>
 
 > \[!NOTE] 
 > 
 > This project is unrelated to the Flame team, it is a personal project that I'm working on to make it easier to create games using Flame. For official support, see [flame-engine/Flame Studio](https://github.com/flame-engine/flame/issues/2319)
 
-![Example usage video](https://cdn.discordapp.com/attachments/809529583622946876/1187779363329036328/flame_workspace_2.mp4?ex=659820bc&is=6585abbc&hm=2fb0aac3ac79710dd9dc18517361b95aef949c639b0bc928159958e22b65f138&)
+https://github.com/bdlukaa/flame_workspace/assets/45696119/80f88bee-8fe9-4a35-9c8d-203ffacee79e
 
 #### Progress
 
