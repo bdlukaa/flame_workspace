@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flame/components.dart';
-import 'package:flame_workspace/parser/parser_values.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -57,15 +56,17 @@ void listen(WebSocketChannel channel, dynamic message) {
     case WorkbenchMessages.propertyChanged:
       final declarationName = data['component'] as String;
       final property = data['property'] as String;
+      final type = data['type'] as String;
       final value = data['value'] as String;
 
       final component = FlameWorkspaceCore.instance.game.findByKeyName(
         declarationName,
       );
 
-      print(component?.runtimeType);
       if (component == null) {
-        print('Could not find component $declarationName');
+        print(
+          'Could not find component $declarationName/${component.runtimeType}',
+        );
         return;
       } else if (component is PositionComponent) {
         if (property case 'position') {
@@ -94,7 +95,7 @@ void listen(WebSocketChannel channel, dynamic message) {
             component.runtimeType.toString().split('<').first,
             component,
             property,
-            value,
+            ValuesParser.parse(type, value),
           );
           break;
         }

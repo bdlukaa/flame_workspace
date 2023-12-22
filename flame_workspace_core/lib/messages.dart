@@ -7,6 +7,7 @@ enum WorkbenchMessages {
   /// The value of this message is a map with the following keys:
   ///   - `component`: The key of the component that has changed.
   ///   - `property`: The name of the property that has changed.
+  ///   - `type`: The type of the property that has changed.
   ///   - `value`: The new value of the property.
   propertyChanged,
 
@@ -33,5 +34,28 @@ enum WorkbenchMessages {
 
   static WorkbenchMessages fromString(String text) {
     return values.firstWhere((v) => v.name == text);
+  }
+}
+
+class PropertyChangedMessage {
+  final String component;
+  final String property;
+  final String type;
+  final dynamic value;
+
+  PropertyChangedMessage({
+    required this.component,
+    required this.property,
+    required this.type,
+    required this.value,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'component': component,
+      'property': property,
+      'type': type,
+      'value': value,
+    };
   }
 }

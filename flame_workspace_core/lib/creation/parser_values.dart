@@ -58,4 +58,22 @@ class ValuesParser {
 
     return result ?? namedExpression.$2;
   }
+
+  static dynamic parse(String type, String value) {
+    if (value == '${null}') return null;
+
+    value = value.replaceAll('?', '');
+    final result = switch (type) {
+      'Color' => parseColor(value),
+      'int' => int.tryParse(value),
+      'double' => double.tryParse(value),
+      'String' => // The string without the quotes (', ")
+        value.substring(1, value.length - 1),
+      'Vector2' =>
+        'Vector2(${parseVector2(value)!.$1}, ${parseVector2(value)!.$2})',
+      _ => value,
+    };
+
+    return result ?? value;
+  }
 }

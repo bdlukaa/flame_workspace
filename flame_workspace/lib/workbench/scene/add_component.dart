@@ -1,8 +1,8 @@
 import 'package:flame_workspace/utils.dart';
+import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
 import 'package:recase/recase.dart';
 
-import '../../parser/parser_values.dart';
 import '../../project/objects/built_in_components.dart';
 import '../../project/objects/component.dart';
 import '../../widgets/tree_view.dart';

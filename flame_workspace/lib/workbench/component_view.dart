@@ -4,7 +4,6 @@ import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
-import '../parser/parser_values.dart';
 import 'scene/scene_properties.dart';
 import 'workbench_view.dart';
 
@@ -109,12 +108,15 @@ class ComponentView extends StatelessWidget {
                       second: '${parameter.name} | b',
                       onChanged: (value) {
                         componentHelper.writeArgument(parameter.name, value);
-                        workbench.runner
-                            .send(WorkbenchMessages.propertyChanged, {
-                          'component': component.declarationName!,
-                          'property': parameter.name,
-                          'value': value,
-                        });
+                        workbench.runner.send(
+                          WorkbenchMessages.propertyChanged,
+                          PropertyChangedMessage(
+                            component: component.declarationName!,
+                            property: parameter.name,
+                            type: 'Vector2',
+                            value: value,
+                          ).toMap(),
+                        );
                       },
                     ),
                   _ => PropertyField(
@@ -124,12 +126,15 @@ class ComponentView extends StatelessWidget {
                       type: parameter.type,
                       onChanged: (value) {
                         componentHelper.writeArgument(parameter.name, value);
-                        workbench.runner
-                            .send(WorkbenchMessages.propertyChanged, {
-                          'component': component.declarationName!,
-                          'property': parameter.name,
-                          'value': value,
-                        });
+                        workbench.runner.send(
+                          WorkbenchMessages.propertyChanged,
+                          PropertyChangedMessage(
+                            component: component.declarationName!,
+                            property: parameter.name,
+                            type: parameter.type,
+                            value: value,
+                          ).toMap(),
+                        );
                       },
                     ),
                 };
@@ -199,11 +204,15 @@ class ComponentView extends StatelessWidget {
                     onChanged: (value) {
                       const parameter = 'position';
                       componentHelper.writeArgument(parameter, value);
-                      workbench.runner.send(WorkbenchMessages.propertyChanged, {
-                        'component': component.declarationName!,
-                        'property': parameter,
-                        'value': value,
-                      });
+                      workbench.runner.send(
+                        WorkbenchMessages.propertyChanged,
+                        PropertyChangedMessage(
+                          component: component.declarationName!,
+                          property: parameter,
+                          type: 'Vector2',
+                          value: value,
+                        ).toMap(),
+                      );
                     },
                   ),
                 if (isSizeSuper)
@@ -215,11 +224,15 @@ class ComponentView extends StatelessWidget {
                     onChanged: (value) {
                       const parameter = 'size';
                       componentHelper.writeArgument('size', value);
-                      workbench.runner.send(WorkbenchMessages.propertyChanged, {
-                        'component': component.declarationName!,
-                        'property': parameter,
-                        'value': value,
-                      });
+                      workbench.runner.send(
+                        WorkbenchMessages.propertyChanged,
+                        PropertyChangedMessage(
+                          component: component.declarationName!,
+                          property: parameter,
+                          type: 'Vector2',
+                          value: value,
+                        ).toMap(),
+                      );
                     },
                   ),
                 if (isAngleSuper)
@@ -231,11 +244,15 @@ class ComponentView extends StatelessWidget {
                     onChanged: (value) {
                       const parameter = 'angle';
                       componentHelper.writeArgument('angle', value);
-                      workbench.runner.send(WorkbenchMessages.propertyChanged, {
-                        'component': component.declarationName!,
-                        'property': parameter,
-                        'value': value,
-                      });
+                      workbench.runner.send(
+                        WorkbenchMessages.propertyChanged,
+                        PropertyChangedMessage(
+                          component: component.declarationName!,
+                          property: parameter,
+                          type: 'double',
+                          value: value,
+                        ).toMap(),
+                      );
                     },
                   ),
                 if (isScaleSuper)
@@ -247,11 +264,15 @@ class ComponentView extends StatelessWidget {
                     onChanged: (value) {
                       const parameter = 'scale';
                       componentHelper.writeArgument('scale', value);
-                      workbench.runner.send(WorkbenchMessages.propertyChanged, {
-                        'component': component.declarationName!,
-                        'property': parameter,
-                        'value': value,
-                      });
+                      workbench.runner.send(
+                        WorkbenchMessages.propertyChanged,
+                        PropertyChangedMessage(
+                          component: component.declarationName!,
+                          property: parameter,
+                          type: 'Vector2',
+                          value: value,
+                        ).toMap(),
+                      );
                     },
                   ),
               ],
