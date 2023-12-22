@@ -10,8 +10,9 @@ import 'package:web_socket_channel/io.dart';
 import 'package:win32/win32.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'package:flame_workspace/project/project.dart';
 import 'package:flame_workspace_core/messages.dart';
+
+import '../project/project.dart';
 
 const kWorkspaceLogPrefix = 'flame_workspace: ';
 const kPreviewLogPrefix = 'preview: ';

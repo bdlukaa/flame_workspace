@@ -285,7 +285,10 @@ class NotificationsField extends StatelessWidget {
     final workbench = Workbench.of(context);
 
     // whether the runner has any activity
-    final (bool has, String text) hasActivity = () {
+    final (bool hasActivity, String text) = () {
+      if (workbench.state.isIndexing) {
+        return (true, 'Indexing project');
+      }
       if (workbench.runner.isRunning) {
         if (!workbench.runner.isReady) {
           return (true, 'Loading game');
@@ -300,7 +303,7 @@ class NotificationsField extends StatelessWidget {
         return (true, 'Running preview');
       }
 
-      return (false, 'No notifications');
+      return (false, 'No activity');
     }();
 
     return SizedBox(
@@ -316,12 +319,12 @@ class NotificationsField extends StatelessWidget {
               const SizedBox(width: 8.0),
               Expanded(
                 child: Text(
-                  hasActivity.$2,
+                  text,
                   style: theme.textTheme.labelMedium,
                 ),
               ),
               const SizedBox(width: 12.0),
-              if (hasActivity.$1)
+              if (hasActivity)
                 const SizedBox(
                   height: 16.0,
                   width: 16.0,

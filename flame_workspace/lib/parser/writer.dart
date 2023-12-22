@@ -31,14 +31,15 @@ class Writer {
   }
 
   /// Adds a mixin to a class.
+  ///
+  /// If the class already has the mixin, this function does nothing.
   Future<void> addMixinToClass(
     String className,
     String mixinName,
     String filePath,
   ) async {
-    if (hasMixin(className, mixinName)) {
-      return print('$className already has mixin $mixinName');
-    }
+    if (hasMixin(className, mixinName)) return;
+
     // The class declaration of [className]
     final cls = unit.declarations
         .whereType<ClassDeclaration>()

@@ -3,13 +3,17 @@ library project_state;
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flame_workspace/parser/generator.dart';
-import 'package:flame_workspace/parser/parser.dart';
-import 'package:flame_workspace/project/objects/built_in_components.dart';
-import 'package:flame_workspace/project/objects/component.dart';
-import 'package:flame_workspace/project/objects/scene.dart';
-import 'package:flame_workspace/project/project.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:recase/recase.dart';
+import 'package:path/path.dart' as path;
+
+import '../parser/generator.dart';
+import '../parser/parser.dart';
+import '../project/objects/built_in_components.dart';
+import '../project/objects/component.dart';
+import '../project/objects/scene.dart';
+import '../project/project.dart';
 
 class FlameProjectState with ChangeNotifier {
   final FlameProject project;
@@ -21,7 +25,12 @@ class FlameProjectState with ChangeNotifier {
     sortFiles(files);
     _filesSubscription =
         project.location.watch(recursive: true).listen((FileSystemEvent event) {
-      if (!event.path.endsWith('.dart')) return;
+      // Only listen to dart files and ignore generated files.
+      if (!event.path.endsWith('.dart') ||
+          event.path.contains(
+            path.join(project.name, 'lib', 'generated'),
+          )) return;
+
       project.location.list().toList().then((value) {
         files = value;
         sortFiles(files);
@@ -30,8 +39,13 @@ class FlameProjectState with ChangeNotifier {
 
       // print(event);
       switch (event.type) {
-        case FileSystemEvent.create:
         case FileSystemEvent.modify:
+          final modifyEvent = event as FileSystemModifyEvent;
+          if (modifyEvent.contentChanged) {
+            indexProject(includeOnly: [event.path]);
+          }
+          break;
+        case FileSystemEvent.create:
         case FileSystemEvent.move:
           indexProject(includeOnly: [event.path]);
           break;
@@ -97,6 +111,42 @@ class FlameProjectState with ChangeNotifier {
       indexed = null;
     }
     notifyListeners();
+    final (
+      indexedResult,
+      componentsResult,
+      scenesResult,
+    ) = await compute(_indexProject, {
+      'project': project,
+      'indexed': indexed,
+      'includeOnly': includeOnly,
+      'onlyParse': onlyParse,
+    });
+
+    indexed = indexedResult;
+    components
+      ..clear()
+      ..addAll(componentsResult);
+    scenes
+      ..clear()
+      ..addAll(scenesResult);
+
+    isIndexing = false;
+    notifyListeners();
+  }
+
+  static Future<
+      (
+        ProjectIndexResult?,
+        List<ComponentResult>,
+        List<SceneResult>,
+      )> _indexProject(Map data) async {
+    final project = data['project'];
+    final includeOnly = data['includeOnly'] as Iterable<String>?;
+    final onlyParse = data['onlyParse'] as bool;
+    var indexed = data['indexed'] as ProjectIndexResult?;
+    var components = <ComponentResult>[];
+    var scenes = <SceneResult>[];
+
     if (!onlyParse) {
       final result = await ProjectIndexer.indexProject(
         project.location,
@@ -104,21 +154,21 @@ class FlameProjectState with ChangeNotifier {
       );
       indexed ??= [];
       if (includeOnly != null && includeOnly.isNotEmpty) {
-        indexed!
+        indexed
           ..removeWhere((e) => includeOnly.contains(e.$1['source']))
           ..addAll(result);
       } else {
-        indexed!.clear();
-        indexed!.addAll(result);
+        indexed.clear();
+        indexed.addAll(result);
       }
     }
     if (indexed != null) {
       components
         ..clear()
-        ..addAll(ProjectIndexer.components(indexed!));
+        ..addAll(ProjectIndexer.components(indexed));
       scenes
         ..clear()
-        ..addAll(ProjectIndexer.scenes(indexed!));
+        ..addAll(ProjectIndexer.scenes(indexed));
     }
 
     if ((includeOnly == null || includeOnly.isEmpty) && !onlyParse) {
@@ -138,8 +188,7 @@ class FlameProjectState with ChangeNotifier {
       }
     }
 
-    isIndexing = false;
-    notifyListeners();
+    return (indexed, components, scenes);
   }
 
   @override

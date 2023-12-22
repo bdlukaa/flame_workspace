@@ -143,11 +143,13 @@ class SceneHelper {
   /// The component must be declared in the scene. You can use [declareComponent]
   /// to declare a component.
   Future<void> addComponent(String declarationName) async {
-    await runner.hotReload();
-    runner.send(
-      WorkbenchMessages.componentAdded,
-      ComponentChangedMessage(component: declarationName).toMap(),
-    );
+    if (runner.isReady) {
+      await runner.hotReload();
+      runner.send(
+        WorkbenchMessages.componentAdded,
+        ComponentChangedMessage(component: declarationName).toMap(),
+      );
+    }
   }
 
   /// Removes a component from the scene.
