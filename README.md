@@ -6,6 +6,8 @@ A Workspace for Flame games.
 > 
 > This project is unrelated to the Flame team, it is a personal project that I'm working on to make it easier to create games using Flame. For official support, see [flame-engine/Flame Studio](https://github.com/flame-engine/flame/issues/2319)
 
+![Example usage video](https://cdn.discordapp.com/attachments/809529583622946876/1187779363329036328/flame_workspace_2.mp4?ex=659820bc&is=6585abbc&hm=2fb0aac3ac79710dd9dc18517361b95aef949c639b0bc928159958e22b65f138&)
+
 #### Progress
 
 - [x] POC <br />
@@ -16,6 +18,15 @@ A Workspace for Flame games.
       The alpha stage is where I try to implement most of the basic features and fix most of the bugs.
 - [ ] Beta
 - [ ] Stable
+
+#### How to use?
+
+Given the current state of the application, some manual steps are required to run it. The `template/` folder contains the necessary arrangements to make it run and interact with the Workspace.
+
+**1.** Clone the repository <br/>
+**2.** Run `flutter run` in the `flame_workspace` folder to start the Workspace <br/>
+**3.** Open the `template/` folder from the Workspace <br/>
+**4.** `Run` the project to start the Game Preview
 
 ### Packages
 
