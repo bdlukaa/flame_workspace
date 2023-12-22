@@ -36,6 +36,34 @@ Given the current state of the application, some manual steps are required to ru
 **3.** Open the `template/` folder from the Workspace <br/>
 **4.** `Run` the project to start the Game Preview
 
+<details>
+
+<summary> Roadmap </summary>
+
+#### Core Features
+
+- [x] Analyze and parse a Flame project <br/>
+- [x] Code generation <br/>
+- [x] Code manipulation <br />
+      Manipulate the project classes, like declaring components in scenes, changing the properties of components, etc.
+- [x] Game Preview <br/>
+
+
+#### Basic Features
+
+- [ ] Create a new project <br/>
+      Create a new project from the Workspace that contains all the necessary code to connect to the Workspace and interact with it.
+- [x] Scene Editor <br/>
+      A visual scene editor for designing and arranging game levels, environments, and assets.
+- [ ] Component Editor <br/>
+      Create, edit and manage components isolatedaly from the Workspace.
+- [ ] Asset Management <br/>
+      View, edit and manage the assets of the game from the Workspace.
+- [ ] Script Editor <br/>
+      Edit the code of the game from the Workspace, without the need to open the project in external editors. The editor can take advantage of the analyzed code to provide code completion and other features.
+
+</details>
+
 ### Packages
 
 * flame_workspace <br/>
