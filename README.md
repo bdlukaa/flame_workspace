@@ -14,7 +14,11 @@ A Workspace for Flame games.
 > 
 > This project is unrelated to the Flame team, it is a personal project that I'm working on to make it easier to create games using Flame. For official support, see [flame-engine/Flame Studio](https://github.com/flame-engine/flame/issues/2319)
 
-https://github.com/bdlukaa/flame_workspace/assets/45696119/80f88bee-8fe9-4a35-9c8d-203ffacee79e
+
+
+https://github.com/bdlukaa/flame_workspace/assets/45696119/00178d89-aeeb-487c-a262-557258db4fbc
+
+
 
 #### Progress
 
