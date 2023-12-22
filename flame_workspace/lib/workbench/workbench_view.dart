@@ -122,7 +122,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (state.indexed == null) {
+    if (!state.initialized) {
       return Scaffold(
         body: Center(
           child: Card(

@@ -93,16 +93,7 @@ class _ProjectConfiguration extends StatelessWidget {
 
     workbench.state;
 
-    final files = workbench.state.files
-      ..sort((a, b) {
-        if (a is Directory && b is File) {
-          return -1;
-        } else if (a is File && b is Directory) {
-          return 1;
-        } else {
-          return a.path.compareTo(b.path);
-        }
-      });
+    final files = workbench.state.files;
     final projectStructure =
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Project Structure', style: theme.textTheme.titleSmall),

@@ -14,15 +14,20 @@ import 'package:flutter/material.dart';
 class FlameProjectState with ChangeNotifier {
   final FlameProject project;
 
+  bool initialized = false;
+
   FlameProjectState(this.project) {
-    files = project.location.listSync(recursive: true);
+    files = project.location.listSync();
+    sortFiles(files);
     _filesSubscription =
         project.location.watch(recursive: true).listen((FileSystemEvent event) {
-      project.location.list(recursive: true).toList().then((value) {
+      if (!event.path.endsWith('.dart')) return;
+      project.location.list().toList().then((value) {
         files = value;
+        sortFiles(files);
         notifyListeners();
       });
-      if (!event.path.endsWith('.dart')) return;
+
       // print(event);
       switch (event.type) {
         case FileSystemEvent.create:
@@ -36,20 +41,33 @@ class FlameProjectState with ChangeNotifier {
           break;
       }
     });
-    indexProject();
-
-    _currentScene = scenes.map((e) => e.$1).firstWhere(
-          (scene) => scene.name == project.initialScene,
-          orElse: () => scenes.first.$1,
-        );
+    indexProject().then((value) {
+      _currentScene = scenes.map((e) => e.$1).firstWhere(
+            (scene) => scene.name == project.initialScene,
+            orElse: () => scenes.first.$1,
+          );
+      initialized = true;
+      notifyListeners();
+    });
   }
 
   List<FileSystemEntity> files = [];
   late final StreamSubscription<FileSystemEvent> _filesSubscription;
+  void sortFiles(List<FileSystemEntity> files) {
+    files.sort((a, b) {
+      if (a is Directory && b is File) {
+        return -1;
+      } else if (a is File && b is Directory) {
+        return 1;
+      } else {
+        return a.path.compareTo(b.path);
+      }
+    });
+  }
 
   final scenes = <SceneResult>[];
-  late FlameSceneObject _currentScene;
-  FlameSceneObject get currentScene => _currentScene;
+  FlameSceneObject? _currentScene;
+  FlameSceneObject get currentScene => _currentScene!;
 
   final components = <ComponentResult>[];
 
@@ -70,7 +88,7 @@ class FlameProjectState with ChangeNotifier {
   /// indexed.
   ///
   /// If [onlyParse] is true, the project will not be indexed, only parsed.
-  void indexProject({
+  Future<void> indexProject({
     Iterable<String>? includeOnly,
     bool onlyParse = false,
   }) async {
