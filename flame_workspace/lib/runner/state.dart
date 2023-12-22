@@ -121,9 +121,11 @@ class FlameProjectState with ChangeNotifier {
     components
       ..clear()
       ..addAll(componentsResult);
-    scenes
-      ..clear()
-      ..addAll(scenesResult);
+    if (scenesResult.isNotEmpty) {
+      scenes
+        ..clear()
+        ..addAll(scenesResult);
+    }
 
     isIndexing = false;
     notifyListeners();
