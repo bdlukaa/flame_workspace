@@ -97,8 +97,7 @@ ${component.components.map(forComponent).join(',\n')}
 
     final file =
         File(r'flame_workspace\lib\project\objects\built_in_components.dart');
-    await file.writeAsString(
-      Writer.formatString('''/// Automatically generated file.
+    await Writer.writeFormatted(file, '''/// Automatically generated file.
 /// Do not edit manually
 
 import 'component.dart';
@@ -106,8 +105,7 @@ import 'component.dart';
 final builtInComponents = <FlameComponentObject>[
   ${declarations.join(',\n')}
 ];
-'''),
-    );
+''');
   } else {
     print('Failed to get the file.');
   }

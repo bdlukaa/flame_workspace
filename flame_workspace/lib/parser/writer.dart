@@ -12,18 +12,19 @@ class Writer {
 
   const Writer({required this.unit});
 
-  @Deprecated('Use DartFormatter from dart_style instead.')
+  @Deprecated('Use Writer.formatString instead before saving the file.')
   static Future<void> formatFile(String filePath) {
-    return Process.run(
-      'dart',
-      ['format', filePath],
-      runInShell: true,
-    );
+    return Process.run('dart', ['format', filePath], runInShell: true);
   }
 
   static String formatString(String content) {
     final fomratter = DartFormatter();
     return fomratter.format(content);
+  }
+
+  /// Writes [content] to [file] and formats it.
+  static Future<void> writeFormatted(File file, String content) {
+    return file.writeAsString(formatString(content));
   }
 
   /// Whether [className] has a mixin named [mixinName].
@@ -69,7 +70,7 @@ class Writer {
       final afterOffset = text.substring(lbo);
       text = '$beforeOffset with $mixinName $afterOffset';
     }
-    await file.writeAsString(Writer.formatString(text));
+    await Writer.writeFormatted(file, text);
   }
 
   static Future<void> addImport(String importPath, String filePath) {

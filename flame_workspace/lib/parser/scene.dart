@@ -61,7 +61,7 @@ class SceneHelper {
 
     final newContent = '$before$newName$after';
 
-    await file.writeAsString(Writer.formatString(newContent));
+    await Writer.writeFormatted(file, newContent);
   }
 
   bool hasComponent(String declarationName) {
@@ -133,7 +133,7 @@ class SceneHelper {
     final code = result.$1.toCode(result.$2, result.$3);
     final newContent = '$before\n$code\n\n$after';
 
-    await file.writeAsString(Writer.formatString(newContent));
+    await Writer.writeFormatted(file, newContent);
   }
 
   /// Adds a component to the scene.
@@ -216,7 +216,7 @@ class SceneHelper {
     final after = newContent.substring(end);
 
     newContent = '$before\n\n$after';
-    await file.writeAsString(Writer.formatString(newContent));
+    await Writer.writeFormatted(file, newContent);
   }
 
   /// Removes a component from the scene.

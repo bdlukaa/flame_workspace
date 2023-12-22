@@ -167,7 +167,7 @@ class PropertiesGenerator {
     );
     if (!(await file.exists())) file.createSync(recursive: true);
 
-    await file.writeAsString(Writer.formatString(buffer.toString().trim()));
+    await Writer.writeFormatted(file, buffer.toString().trim());
   }
 }
 
@@ -298,7 +298,7 @@ class SceneGenerator {
     );
     if (!(await file.exists())) await file.create(recursive: true);
 
-    await file.writeAsString(Writer.formatString(buffer.toString().trim()));
+    await Writer.writeFormatted(file, buffer.toString().trim());
     // await Writer.addImport(
     //   'package:${project.name}/generated/scene_${scene.name.pathCase}.dart',
     //   scene.filePath,

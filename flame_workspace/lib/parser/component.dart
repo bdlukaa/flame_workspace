@@ -65,7 +65,7 @@ class ComponentHelper {
 
     final newContent = '$before$newName$after';
 
-    await file.writeAsString(Writer.formatString(newContent));
+    await Writer.writeFormatted(file, newContent);
   }
 
   Iterable<(String name, String expression, NamedExpression argument)>?
@@ -126,7 +126,7 @@ class ComponentHelper {
       final newContent =
           '$before${shouldAddComma ? ', ' : ''}$newArgument$after';
 
-      await file.writeAsString(Writer.formatString(newContent));
+      await Writer.writeFormatted(file, newContent);
     } else {
       final namedArgument = arg.$3;
 
@@ -139,7 +139,7 @@ class ComponentHelper {
       final newArgument = '${namedArgument.name} $value';
       final newContent = '$before$newArgument$after';
 
-      await file.writeAsString(Writer.formatString(newContent));
+      await Writer.writeFormatted(file, newContent);
     }
   }
 }
