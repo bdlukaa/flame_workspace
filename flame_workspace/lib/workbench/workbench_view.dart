@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flame_workspace/parser/generator.dart';
 import 'package:flame_workspace/project/objects/built_in_components.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../parser/parser.dart';
 import '../project/objects/component.dart';
@@ -124,6 +125,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   @override
   void initState() {
     super.initState();
+    windowManager.addListener(runner);
     _filesSubscription = widget.project.location
         .watch(recursive: true)
         .listen((FileSystemEvent event) {
@@ -212,6 +214,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   void dispose() {
     runner.dispose();
     _filesSubscription.cancel();
+    windowManager.removeListener(runner);
     super.dispose();
   }
 

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_view/flutter_native_view.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:win32/win32.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'project.dart';
 
@@ -18,7 +19,7 @@ const kInitialLog = '$kWorkspaceLogPrefix' 'Project not running';
 
 /// The runner for a Flame project. This class is responsible for running the
 /// project preview.
-class FlameProjectRunner with ChangeNotifier {
+class FlameProjectRunner with ChangeNotifier, WindowListener {
   final FlameProject project;
 
   final String hostname;
@@ -30,7 +31,9 @@ class FlameProjectRunner with ChangeNotifier {
     this.project, {
     this.hostname = '0.0.0.0',
     this.port = 3000,
-  });
+  }) {
+    windowManager.setPreventClose(true);
+  }
 
   bool _isRunning = false;
 
@@ -189,6 +192,7 @@ class FlameProjectRunner with ChangeNotifier {
     }));
   }
 
+  /// Sends a message to the game preview.
   void send(WorkbenchMessages id, Map data) {
     if (isReady) {
       _channel!.sink.add(json.encode(<String, dynamic>{
@@ -201,6 +205,19 @@ class FlameProjectRunner with ChangeNotifier {
   @override
   void dispose() {
     stop();
+    windowManager.setPreventClose(false);
     super.dispose();
+  }
+
+  @override
+  void onWindowClose() async {
+    final check = await windowManager.isPreventClose();
+
+    if (check) {
+      windowManager.hide();
+      stop();
+      await Future.delayed(const Duration(milliseconds: 250));
+      windowManager.close();
+    }
   }
 }
