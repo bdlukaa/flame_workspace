@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'workbench_view.dart';
+import '../workbench_view.dart';
 
 class GamePreviewView extends StatefulWidget {
   const GamePreviewView({super.key});

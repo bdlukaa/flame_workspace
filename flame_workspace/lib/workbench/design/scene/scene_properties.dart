@@ -2,7 +2,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 
 import '../component_view.dart';
-import '../workbench_view.dart';
+import '../../workbench_view.dart';
 
 class ScenePropertiesView extends StatelessWidget {
   const ScenePropertiesView({super.key});

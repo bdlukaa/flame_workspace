@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../parser/scene.dart';
-import '../../project/objects/component.dart';
-import '../../widgets/tree_view.dart';
-import '../workbench_view.dart';
+import '../../../parser/scene.dart';
+import '../../../project/objects/component.dart';
+import '../../../widgets/tree_view.dart';
+import '../../workbench_view.dart';
 import 'add_component.dart';
 
 IconData? iconForComponent(String componentType) {

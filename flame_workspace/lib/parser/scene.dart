@@ -9,7 +9,7 @@ import 'package:flame_workspace_core/utils.dart';
 import 'package:flame_workspace/workbench/workbench_view.dart';
 import 'package:flame_workspace_core/messages.dart';
 
-import '../workbench/scene/add_component.dart';
+import '../workbench/design/scene/add_component.dart';
 import 'writer.dart';
 
 class SceneHelper {

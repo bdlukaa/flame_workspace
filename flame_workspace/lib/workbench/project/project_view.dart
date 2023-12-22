@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../parser/parser.dart';
-import '../project/objects/built_in_components.dart';
-import 'scene/scene_view.dart';
-import 'workbench_view.dart';
+import '../../parser/parser.dart';
+import '../../project/objects/built_in_components.dart';
+import '../design/scene/scene_view.dart';
+import '../workbench_view.dart';
 
 class ProjectView extends StatelessWidget {
   const ProjectView({super.key});

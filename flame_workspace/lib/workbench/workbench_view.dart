@@ -8,13 +8,10 @@ import '../project/project.dart';
 import '../runner/runner.dart';
 import '../runner/state.dart';
 import '../widgets/inked_icon_button.dart';
-import 'assets_view.dart';
-import 'component_view.dart';
-import 'configuration_view.dart';
-import 'preview_view.dart';
-import 'project_view.dart';
-import 'scene/scene_view.dart';
-import 'structure_view.dart';
+import 'assets/assets_view.dart';
+import 'configuration/configuration_view.dart';
+import 'design/design.dart';
+import 'project/project_view.dart';
 
 /// The workbench is the main view of the editor.
 ///
@@ -275,26 +272,6 @@ class _WorkbenchViewState extends State<WorkbenchView> {
         ]),
       ),
       const SizedBox(width: 24.0),
-    ]);
-  }
-}
-
-class DesignView extends StatelessWidget {
-  const DesignView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Row(children: [
-      Expanded(
-        flex: 1,
-        child: Column(children: [
-          Expanded(flex: 3, child: SceneView()),
-          Divider(),
-          Expanded(flex: 2, child: ProjectStructureView()),
-        ]),
-      ),
-      Expanded(flex: 3, child: GamePreviewView()),
-      Expanded(flex: 1, child: ComponentView()),
     ]);
   }
 }
