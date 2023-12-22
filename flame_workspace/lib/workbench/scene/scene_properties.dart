@@ -10,8 +10,8 @@ class ScenePropertiesView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final design = Design.of(context);
-    final scene = design.currentScene;
+    final workbench = Workbench.of(context);
+    final scene = workbench.state.currentScene;
 
     return Padding(
       padding: const EdgeInsets.all(8.0),

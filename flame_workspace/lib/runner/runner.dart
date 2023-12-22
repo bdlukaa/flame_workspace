@@ -4,27 +4,42 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:ffi/ffi.dart';
-import 'package:flame_workspace_core/messages.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_view/flutter_native_view.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:win32/win32.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'project.dart';
+import 'package:flame_workspace/project/project.dart';
+import 'package:flame_workspace_core/messages.dart';
 
 const kWorkspaceLogPrefix = 'flame_workspace: ';
 const kPreviewLogPrefix = 'preview: ';
 const kInitialLog = '$kWorkspaceLogPrefix' 'Project not running';
 
-/// The runner for a Flame project. This class is responsible for running the
-/// project preview.
+/// Runs a flame project.
+///
+/// This classes starts the game preview and handles the communication with it.
+/// The game preview creates a http server, which this class connects to. With
+/// this connection, it is possible to send and receives messages from the game.
 class FlameProjectRunner with ChangeNotifier, WindowListener {
+  /// The project to run.
   final FlameProject project;
 
+  /// The hostname to use when connecting to the game preview.
+  ///
+  /// Defaults to localhost.
   final String hostname;
+
+  /// The port to use when connecting to the game preview.
+  ///
+  /// Defaults to 3000
   final int port;
 
+  /// The logs of the runner.
+  ///
+  /// When the preview is running, the logs are updated with the output of the
+  /// preview.
   final List<String> logs = [kInitialLog];
 
   FlameProjectRunner(
@@ -48,6 +63,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
 
   IOWebSocketChannel? _channel;
 
+  /// Whether the app has been initialized
   bool get isReady => isRunning && _runProcess != null;
 
   void emitLog(String log, String prefix) {

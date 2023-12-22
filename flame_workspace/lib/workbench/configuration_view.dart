@@ -60,7 +60,8 @@ class _ProjectConfiguration extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final project = Workbench.of(context).project;
+    final workbench = Workbench.of(context);
+    final project = workbench.project;
 
     final projectConfiguration =
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -90,7 +91,9 @@ class _ProjectConfiguration extends StatelessWidget {
       ),
     ]);
 
-    final files = project.location.listSync()
+    workbench.state;
+
+    final files = workbench.state.files
       ..sort((a, b) {
         if (a is Directory && b is File) {
           return -1;

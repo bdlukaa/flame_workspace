@@ -1,9 +1,10 @@
-import 'package:flame_workspace/parser/component.dart';
-import 'package:flame_workspace_core/utils.dart';
-import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
+import 'package:flame_workspace_core/flame_workspace_core.dart';
+import 'package:flame_workspace_core/utils.dart';
+
+import '../parser/component.dart';
 import 'scene/scene_properties.dart';
 import 'workbench_view.dart';
 
@@ -16,17 +17,16 @@ class ComponentView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final workbench = Workbench.of(context);
-    final design = Design.of(context);
 
-    final scene = design.currentScene;
-    final component = design.currentSelectedComponent;
+    final scene = workbench.state.currentScene;
+    final component = workbench.state.selectedComponent;
     if (component == null) return const ScenePropertiesView();
 
     final componentHelper = ComponentHelper(
       component: component,
       scene: scene,
-      scenes: workbench.scenes,
-      components: workbench.components,
+      scenes: workbench.state.scenes,
+      components: workbench.state.components,
     );
 
     final initArgs = componentHelper.initializerArguments;

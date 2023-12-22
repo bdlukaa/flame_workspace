@@ -1,6 +1,6 @@
-import 'package:flame_workspace/parser/scene.dart';
 import 'package:flutter/material.dart';
 
+import '../../parser/scene.dart';
 import '../../project/objects/component.dart';
 import '../../widgets/tree_view.dart';
 import '../workbench_view.dart';
@@ -82,9 +82,8 @@ class _SceneViewState extends State<SceneView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final workbench = Workbench.of(context);
-    final design = Design.of(context);
 
-    final scene = design.currentScene;
+    final scene = workbench.state.currentScene;
     final sceneHelper = SceneHelper.fromWorkbench(scene, workbench);
 
     return Padding(
@@ -92,7 +91,7 @@ class _SceneViewState extends State<SceneView> {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          design.onComponentSelected(null);
+          workbench.onComponentSelected(null);
           FocusScope.of(context).unfocus();
         },
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -153,9 +152,9 @@ class _SceneViewState extends State<SceneView> {
                 builder: (context) {
                   if (choosingScene) {
                     return ListView.builder(
-                      itemCount: workbench.scenes.length,
+                      itemCount: workbench.state.scenes.length,
                       itemBuilder: (context, index) {
-                        final sceneResult = workbench.scenes[index];
+                        final sceneResult = workbench.state.scenes[index];
                         final scene = sceneResult.$1;
                         return ListTile(
                           title: Text(scene.name),
@@ -173,10 +172,10 @@ class _SceneViewState extends State<SceneView> {
                     );
                   }
                   return TreeView(
-                    nodes: design.currentScene.components.map((component) {
+                    nodes: scene.components.map((component) {
                       TreeNode buildNode(FlameComponentObject component) {
                         final isSelected =
-                            design.currentSelectedComponent == component;
+                            workbench.state.selectedComponent == component;
 
                         return TreeNode(
                           value: component,
@@ -186,7 +185,7 @@ class _SceneViewState extends State<SceneView> {
                           text: component.declarationName ?? component.name,
                           isSelected: isSelected,
                           onTap: () {
-                            design.onComponentSelected(component);
+                            workbench.onComponentSelected(component);
                           },
                           onSecondaryTapUp: (d) {
                             showMenu(
@@ -199,7 +198,7 @@ class _SceneViewState extends State<SceneView> {
                                 PopupMenuItem(
                                   child: const Text('Remove'),
                                   onTap: () async {
-                                    design.onComponentSelected(null);
+                                    workbench.onComponentSelected(null);
                                     sceneHelper.removeComponent(
                                       component.declarationName!,
                                     );

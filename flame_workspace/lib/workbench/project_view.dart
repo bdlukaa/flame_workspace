@@ -1,8 +1,9 @@
-import 'package:flame_workspace/parser/parser.dart';
-import 'package:flame_workspace/project/objects/built_in_components.dart';
-import 'package:flame_workspace/workbench/scene/scene_view.dart';
-import 'package:flame_workspace/workbench/workbench_view.dart';
 import 'package:flutter/material.dart';
+
+import '../parser/parser.dart';
+import '../project/objects/built_in_components.dart';
+import 'scene/scene_view.dart';
+import 'workbench_view.dart';
 
 class ProjectView extends StatelessWidget {
   const ProjectView({super.key});
@@ -53,7 +54,7 @@ class TopLevel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final workbench = Workbench.of(context);
-    final topLevel = ProjectIndexer.topLevel(workbench.indexed);
+    final topLevel = ProjectIndexer.topLevel(workbench.state.indexed!);
 
     if (topLevel.isEmpty) {
       return const Center(
@@ -94,8 +95,8 @@ class ComponentsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final workbench = Workbench.of(context);
-    final projectComponents =
-        workbench.components.where((c) => !builtInComponents.contains(c.$1));
+    final projectComponents = workbench.state.components
+        .where((c) => !builtInComponents.contains(c.$1));
 
     return ListView.builder(
       itemCount: projectComponents.length,
@@ -127,7 +128,7 @@ class ScenesListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final workbench = Workbench.of(context);
-    final scenes = workbench.scenes;
+    final scenes = workbench.state.scenes;
 
     assert(scenes.isNotEmpty, 'The project must have at least one scene.');
 

@@ -1,3 +1,4 @@
+import 'package:flame_workspace/widgets/inked_icon_button.dart';
 import 'package:flame_workspace_core/utils.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
@@ -70,7 +71,7 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
   }
 
   void _updateComponents() {
-    final components = widget.workbench.components;
+    final components = widget.workbench.state.components;
 
     int sorter(TreeNode a, TreeNode b) {
       if (a.children == null && b.children == null) return 0;
@@ -374,9 +375,9 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
             padding: const EdgeInsetsDirectional.only(end: 8.0),
             child: Tooltip(
               message: MaterialLocalizations.of(context).backButtonTooltip,
-              child: InkWell(
+              child: InkedIconButton(
                 onTap: widget.onBack,
-                child: const Icon(Icons.navigate_before),
+                icon: const Icon(Icons.navigate_before),
               ),
             ),
           ),
