@@ -100,8 +100,6 @@ class FlameProjectRunner with ChangeNotifier {
 
         notifyListeners();
       } else if (line.trim().contains('Reloaded ')) {
-        // TODO: this is error prone, we should find a better way to detect
-        //       when the project hot reloads.
         _hotReloadCompleter?.complete();
         _hotReloadCompleter = null;
       } else if (line.trim().contains('Restarted application in ')) {
@@ -133,12 +131,18 @@ class FlameProjectRunner with ChangeNotifier {
     return _hotReloadCompleter!.future;
   }
 
+  bool get isHotReloading =>
+      _hotReloadCompleter != null && !_hotReloadCompleter!.isCompleted;
+
   Completer? _hotRestartCompleter;
   Future<void> hotRestart() {
     _hotRestartCompleter = Completer();
     emitInput('R');
     return _hotRestartCompleter!.future;
   }
+
+  bool get isHotRestarting =>
+      _hotRestartCompleter != null && !_hotRestartCompleter!.isCompleted;
 
   void stop() {
     if (_runProcess != null) {

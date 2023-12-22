@@ -16,7 +16,6 @@ import '../widgets/inked_icon_button.dart';
 import 'assets_view.dart';
 import 'component_view.dart';
 import 'configuration_view.dart';
-import 'notifications_field.dart';
 import 'preview_view.dart';
 import 'project_view.dart';
 import 'scene/scene_view.dart';
@@ -461,5 +460,64 @@ class Design extends InheritedWidget {
   @override
   bool updateShouldNotify(Design oldWidget) {
     return true;
+  }
+}
+
+class NotificationsField extends StatelessWidget {
+  const NotificationsField({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final workbench = Workbench.of(context);
+
+    // whether the runner has any activity
+    final (bool has, String text) hasActivity = () {
+      if (workbench.runner.isRunning) {
+        if (!workbench.runner.isReady) {
+          return (true, 'Loading game');
+        }
+        if (workbench.runner.isHotRestarting) {
+          return (true, 'Hot restarting');
+        }
+        if (workbench.runner.isHotReloading) {
+          return (true, 'Hot reloading');
+        }
+
+        return (true, 'Running preview');
+      }
+
+      return (false, 'No notifications');
+    }();
+
+    return SizedBox(
+      width: 200.0,
+      child: Material(
+        color: theme.colorScheme.tertiaryContainer,
+        child: InkedIconButton(
+          onTap: () {},
+          icon: Padding(
+            padding: const EdgeInsets.all(6.0),
+            child: Row(children: [
+              const Icon(Icons.notifications, size: 16.0),
+              const SizedBox(width: 8.0),
+              Expanded(
+                child: Text(
+                  hasActivity.$2,
+                  style: theme.textTheme.labelMedium,
+                ),
+              ),
+              const SizedBox(width: 12.0),
+              if (hasActivity.$1)
+                const SizedBox(
+                  height: 16.0,
+                  width: 16.0,
+                  child: CircularProgressIndicator.adaptive(strokeWidth: 1.25),
+                ),
+            ]),
+          ),
+        ),
+      ),
+    );
   }
 }

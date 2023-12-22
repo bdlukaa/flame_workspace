@@ -18,17 +18,17 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
           'Nice to see all of you here! Hope to continue to work on this awesome project!!',
       textRenderer: null,
       position: Vector2(20.0, 25.0),
-      size: Vector2(0.0, 0.0));
+      size: Vector2(100.0, 100.0));
   MyCircle circle = MyCircle(
       key: FlameKey('circle'),
       position: Vector2(0.0, 100.0),
       scale: Vector2(2.0, 2.0),
-      color: const Color(0xff1a187b),
+      color: const Color(0xff3431cd),
       flag: true,
-      radius: 22.0);
+      radius: 30.0);
 
   TextComponent title = TextComponent(
-    key: FlameKey('textComponent'),
+    key: FlameKey('title'),
     text: 'slayy even more',
     position: Vector2(200.0, 200.0),
   );
