@@ -34,4 +34,11 @@ extension StringExtension on String {
       return this;
     }
   }
+
+  /// Removes the generics from a string, if any.
+  ///
+  /// For example, `List<int>` will return `List`.
+  String removeGenerics() {
+    return split('<').first;
+  }
 }

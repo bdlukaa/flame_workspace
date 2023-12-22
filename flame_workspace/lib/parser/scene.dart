@@ -5,7 +5,7 @@ import 'package:flame_workspace/compilation_unit_helper.dart';
 import 'package:flame_workspace/parser/parser.dart';
 import 'package:flame_workspace/project/objects/scene.dart';
 import 'package:flame_workspace/project/runner.dart';
-import 'package:flame_workspace/utils.dart';
+import 'package:flame_workspace_core/utils.dart';
 import 'package:flame_workspace/workbench/workbench_view.dart';
 import 'package:flame_workspace_core/messages.dart';
 
@@ -146,7 +146,7 @@ class SceneHelper {
     await runner.hotReload();
     runner.send(
       WorkbenchMessages.componentAdded,
-      {'component': declarationName},
+      ComponentChangedMessage(component: declarationName).toMap(),
     );
   }
 
@@ -230,7 +230,7 @@ class SceneHelper {
   void removeComponent(String declarationName) {
     runner.send(
       WorkbenchMessages.componentRemoved,
-      {'component': declarationName},
+      ComponentChangedMessage(component: declarationName).toMap(),
     );
   }
 }

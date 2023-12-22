@@ -8,8 +8,13 @@ import 'package:flutter/widgets.dart';
 /// Every non built-in components must use this mixin. This is used to ensure
 /// the IDE can track the properties of the component.
 ///
-/// Components created directly from the IDE will automatically use this mixin.
+/// Components created directly from the Workspace will automatically use this
+/// mixin.
+///
+/// This adds a selection highlight to the component when it is selected. This
+/// enables the repositioning and resizing of the component.
 mixin FlameComponent on PositionComponent {
+  /// Wrap a component in a [FlameComponent] if it is not already wrapped.
   static Component wrap(Component component) {
     if (component is FlameComponent || component is _FlameComponentWrapper) {
       return component;
@@ -64,7 +69,7 @@ mixin FlameComponent on PositionComponent {
   }
 }
 
-/// A component that highlights itseslf when selected.
+/// A component that highlights itself.
 class FlameSelectionComponent extends PositionComponent {
   FlameSelectionComponent({
     Vector2? position,

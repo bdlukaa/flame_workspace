@@ -412,9 +412,9 @@ class _DesignViewState extends State<DesignView> {
           component == null
               ? WorkbenchMessages.componentUnselected
               : WorkbenchMessages.componentSelected,
-          {
-            'component': component?.declarationName,
-          },
+          ComponentChangedMessage(
+            component: component?.declarationName,
+          ).toMap(),
         );
         setState(() => _currentSelectedComponent = component);
       },

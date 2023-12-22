@@ -1,5 +1,5 @@
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:flame_workspace/utils.dart';
+import 'package:flame_workspace_core/utils.dart';
 
 typedef IndexedUnit = Map<String, dynamic>;
 

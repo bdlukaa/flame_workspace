@@ -1,4 +1,4 @@
-import 'package:flame_workspace/utils.dart';
+import 'package:flame_workspace_core/utils.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
 import 'package:recase/recase.dart';

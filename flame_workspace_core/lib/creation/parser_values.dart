@@ -1,5 +1,9 @@
-import 'package:flame_workspace/project/objects/component.dart';
+import 'dart:convert';
+
+import 'package:flame_workspace_core/utils.dart';
 import 'package:flutter/widgets.dart';
+
+import 'package:flame_workspace/project/objects/component.dart';
 
 /// A class that parse values of parameters and components into an actual class.
 class ValuesParser {
@@ -59,18 +63,39 @@ class ValuesParser {
     return result ?? namedExpression.$2;
   }
 
+  /// Parses a value from a string based on the type.
+  ///
+  /// The type must be one of the following:
+  ///
+  ///   * [Color], in the format `const Color(0xFF000000)`. See [parseColor]
+  ///     for more info;
+  ///   * [int], in the format `0`. See [int.tryParse] for more info;
+  ///   * [double], in the format `0.0`. See [double.tryParse] for more info;
+  ///   * [num]. See [num.tryParse] for more info;
+  ///   * [String];
+  ///   * [Vector2], in the format `const Vector2(0, 0)`. See [parseVector2]
+  ///     for more info;
   static dynamic parse(String type, String value) {
     if (value == '${null}') return null;
+    if (type.contains('<')) {
+      // If the type contains a generic, we only want the type itself:
+      //  * `Map<String, dynamic>` -> `Map`;
+      //  * `List<int>` -> `List`;
+      //  * `List<Map<String, dynamic>>` -> `List`.
+      type = type.removeGenerics();
+    }
 
     value = value.replaceAll('?', '');
     final result = switch (type) {
       'Color' => parseColor(value),
       'int' => int.tryParse(value),
       'double' => double.tryParse(value),
+      'num' => num.tryParse(value),
       'String' => // The string without the quotes (', ")
         value.substring(1, value.length - 1),
       'Vector2' =>
         'Vector2(${parseVector2(value)!.$1}, ${parseVector2(value)!.$2})',
+      'Map' => json.decode(value) as Map,
       _ => value,
     };
 

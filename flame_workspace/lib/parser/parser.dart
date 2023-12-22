@@ -8,7 +8,7 @@ import 'package:flame_workspace/project/objects/component.dart';
 import 'package:flame_workspace/project/objects/scene.dart';
 import 'package:path/path.dart' as path;
 
-import 'package:flame_workspace/utils.dart';
+import 'package:flame_workspace_core/utils.dart';
 
 import '../compilation_unit_helper.dart';
 import '../project/objects/built_in_components.dart';
