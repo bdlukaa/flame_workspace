@@ -23,7 +23,7 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
       key: FlameKey('circle'),
       position: Vector2(0.0, 100.0),
       scale: Vector2(2.0, 2.0),
-      color: const Color(0xff50d241),
+      color: const Color(0xff1a187b),
       flag: true,
       radius: 22.0);
 

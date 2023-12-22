@@ -32,32 +32,3 @@ class MyCircle extends PositionComponent with FlameComponent {
 }
 ```
 
-It adds the `setProperty` and `getProperty` methods. They are used to keep track of the component properties at runtime, so the IDE can display them and allow the dev to edit them. Every custom component must add them in order for the IDE to work properly. They are somewhat similar to Flutter's `Diagnosticable.debugFillProperties` method.
-
-```dart
-... {
-
-  Color color;
-
-  MyCircle({
-    super.color = const Color(0xFF000000),
-  });
-
-  @override
-  void setProperty(String property, dynamic value) {
-    if (property case 'color') {
-      color = value;
-    }
-  }
-
-  @override
-  getProperty(String property) {
-    if (property case 'color') {
-      return color;
-    }
-  }
-}
-```
-
-⚠️ **NOTE**
-It is know that the `setProperty` and `getProperty` methods are not the best way to do this, since it creates extra verbosity and is error prone. Ideally, reflection should be used to get and set the component properties. However, this is not possible in Flutter, since it is not supported.
