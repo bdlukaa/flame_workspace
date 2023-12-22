@@ -167,8 +167,7 @@ class PropertiesGenerator {
     );
     if (!(await file.exists())) file.createSync(recursive: true);
 
-    await file.writeAsString(buffer.toString().trim());
-    Writer.formatFile(file.path);
+    await file.writeAsString(Writer.formatString(buffer.toString().trim()));
   }
 }
 
@@ -299,12 +298,11 @@ class SceneGenerator {
     );
     if (!(await file.exists())) await file.create(recursive: true);
 
-    await file.writeAsString(buffer.toString().trim());
+    await file.writeAsString(Writer.formatString(buffer.toString().trim()));
     // await Writer.addImport(
     //   'package:${project.name}/generated/scene_${scene.name.pathCase}.dart',
     //   scene.filePath,
     // );
-    await Writer.formatFile(file.path);
 
     final writer = Writer(unit: scene.unit.$2);
     final mixinName = '${scene.name}Mixin';

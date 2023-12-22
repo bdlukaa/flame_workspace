@@ -38,8 +38,8 @@ mixin Scene1Mixin on FlameScene {
       case 'supertext':
         scene.add(scene.supertext);
         break;
-      case 'textComponent':
-        scene.add(scene.textComponent);
+      case 'rooo':
+        scene.add(scene.rooo);
         break;
       default:
         throw ArgumentError(
@@ -65,8 +65,8 @@ mixin Scene1Mixin on FlameScene {
       case 'supertext':
         scene.remove(scene.supertext);
         break;
-      case 'textComponent':
-        scene.remove(scene.textComponent);
+      case 'rooo':
+        scene.remove(scene.rooo);
         break;
       default:
         throw ArgumentError(

@@ -37,7 +37,7 @@ class FlameComponentObject {
 
   @override
   String toString() =>
-      'FlameComponentObject(name: $name, type: $type, parameters: $parameters)';
+      'FlameComponentObject(name: $name, declarationName: $declarationName type: $type, parameters: $parameters)';
 
   /// Returns the super parameters for the given [superclass].
   ///

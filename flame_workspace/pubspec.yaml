@@ -21,6 +21,7 @@ dependencies:
   source_gen: ^1.4.0
   http: ^1.1.0
   recase: ^4.1.0
+  dart_style: ^2.3.4
 
   # External functionality
   file_picker: ^5.5.0

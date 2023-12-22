@@ -4,8 +4,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:recase/recase.dart';
 import 'package:path/path.dart' as path;
 
 import '../parser/generator.dart';
@@ -56,10 +54,6 @@ class FlameProjectState with ChangeNotifier {
       }
     });
     indexProject().then((value) {
-      _currentScene = scenes.map((e) => e.$1).firstWhere(
-            (scene) => scene.name == project.initialScene,
-            orElse: () => scenes.first.$1,
-          );
       initialized = true;
       notifyListeners();
     });
@@ -80,8 +74,10 @@ class FlameProjectState with ChangeNotifier {
   }
 
   final scenes = <SceneResult>[];
-  FlameSceneObject? _currentScene;
-  FlameSceneObject get currentScene => _currentScene!;
+  FlameSceneObject get currentScene => scenes.map((e) => e.$1).firstWhere(
+        (scene) => scene.name == project.initialScene,
+        orElse: () => scenes.first.$1,
+      );
 
   final components = <ComponentResult>[];
 
@@ -107,10 +103,9 @@ class FlameProjectState with ChangeNotifier {
     bool onlyParse = false,
   }) async {
     isIndexing = true;
-    if (includeOnly == null || includeOnly.isEmpty) {
-      indexed = null;
-    }
+    if (includeOnly == null || includeOnly.isEmpty) indexed = null;
     notifyListeners();
+
     final (
       indexedResult,
       componentsResult,
@@ -134,12 +129,8 @@ class FlameProjectState with ChangeNotifier {
     notifyListeners();
   }
 
-  static Future<
-      (
-        ProjectIndexResult?,
-        List<ComponentResult>,
-        List<SceneResult>,
-      )> _indexProject(Map data) async {
+  static Future<(ProjectIndexResult?, List<ComponentResult>, List<SceneResult>)>
+      _indexProject(Map data) async {
     final project = data['project'];
     final includeOnly = data['includeOnly'] as Iterable<String>?;
     final onlyParse = data['onlyParse'] as bool;

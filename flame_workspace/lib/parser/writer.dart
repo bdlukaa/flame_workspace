@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:dart_style/dart_style.dart';
 
 /// A class that modifies the files.
 ///
@@ -11,12 +12,18 @@ class Writer {
 
   const Writer({required this.unit});
 
+  @Deprecated('Use DartFormatter from dart_style instead.')
   static Future<void> formatFile(String filePath) {
     return Process.run(
       'dart',
       ['format', filePath],
       runInShell: true,
     );
+  }
+
+  static String formatString(String content) {
+    final fomratter = DartFormatter();
+    return fomratter.format(content);
   }
 
   /// Whether [className] has a mixin named [mixinName].
@@ -62,8 +69,7 @@ class Writer {
       final afterOffset = text.substring(lbo);
       text = '$beforeOffset with $mixinName $afterOffset';
     }
-    await file.writeAsString(text);
-    await Writer.formatFile(file.path);
+    await file.writeAsString(Writer.formatString(text));
   }
 
   static Future<void> addImport(String importPath, String filePath) {

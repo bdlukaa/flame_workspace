@@ -39,9 +39,9 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
       position: Vector2(100.0, 100.0),
       angle: null);
 
-  TextComponent textComponent = TextComponent(
-    key: FlameKey('textComponent'),
-    text: 'textiieie',
+  TextComponent rooo = TextComponent(
+    key: FlameKey('rooo'),
+    text: 'testing thisshit out',
   );
 
   @override
@@ -56,7 +56,7 @@ class Scene1 extends FlameScene with TapCallbacks, Scene1Mixin {
 
     add(supertext);
 
-    add(textComponent);
+    add(rooo);
   }
 
   bool _upping = false;
