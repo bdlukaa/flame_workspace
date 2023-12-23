@@ -293,7 +293,7 @@ class SceneGenerator {
         project.location.path,
         'lib',
         'generated',
-        'scene_${scene.name.pathCase}.dart',
+        'scene_${scene.name.replaceAll(r'$', '').snakeCase}.dart',
       ),
     );
     if (!(await file.exists())) await file.create(recursive: true);

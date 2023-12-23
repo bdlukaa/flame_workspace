@@ -19,7 +19,7 @@ import 'package:flame/sprite.dart';
 import 'package:flame/text.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart' hide Viewport;
-import 'package:template/scenes/scene_one.dart';
+import 'package:template/components/my_circle.dart';
 
 void setPropertyValue(
   String className,
@@ -28,11 +28,9 @@ void setPropertyValue(
   dynamic value,
 ) {
   switch (className) {
-    case 'MyCircle':
-      setPropertyValueMyCircle(cls as MyCircle, propertyName, value);
-      break;
-    case 'MySquare':
-      setPropertyValueMySquare(cls as MySquare, propertyName, value);
+    case 'MyCircleComponent':
+      setPropertyValueMyCircleComponent(
+          cls as MyCircleComponent, propertyName, value);
       break;
     case 'AdvancedButtonComponent':
       setPropertyValueAdvancedButtonComponent(
@@ -179,43 +177,23 @@ void setPropertyValue(
   }
 }
 
-void setPropertyValueMyCircle(
-  MyCircle cls,
+void setPropertyValueMyCircleComponent(
+  MyCircleComponent cls,
   String propertyName,
   dynamic value,
 ) {
   switch (propertyName) {
-    case 'radius':
-      cls.radius = value as double;
-      break;
-    case 'color':
-      cls.color = value as Color;
-      break;
     case 'position':
       cls.position = value as Vector2;
-      break;
-    case 'flag':
-      cls.flag = value as bool;
       break;
     case 'scale':
       cls.scale = value as Vector2;
       break;
-    default:
-      throw ArgumentError.value(propertyName, 'Property not found');
-  }
-}
-
-void setPropertyValueMySquare(
-  MySquare cls,
-  String propertyName,
-  dynamic value,
-) {
-  switch (propertyName) {
+    case 'color':
+      cls.color = value as Color;
+      break;
     case 'radius':
       cls.radius = value as double;
-      break;
-    case 'position':
-      cls.position = value as Vector2;
       break;
     default:
       throw ArgumentError.value(propertyName, 'Property not found');

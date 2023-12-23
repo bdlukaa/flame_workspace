@@ -21,25 +21,13 @@ import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart' hide Viewport;
 import 'package:template/scenes/scene_one.dart';
 
-mixin Scene1Mixin on FlameScene {
+mixin $SceneLevelOneMixin on FlameScene {
   @override
   void addComponent(String declarationName) {
-    final scene = this as Scene1;
+    final scene = this as $SceneLevelOne;
     switch (declarationName) {
-      case 'textie':
-        scene.add(scene.textie);
-        break;
       case 'circle':
         scene.add(scene.circle);
-        break;
-      case 'title':
-        scene.add(scene.title);
-        break;
-      case 'supertext':
-        scene.add(scene.supertext);
-        break;
-      case 'rooo':
-        scene.add(scene.rooo);
         break;
       default:
         throw ArgumentError(
@@ -51,22 +39,10 @@ mixin Scene1Mixin on FlameScene {
 
   @override
   void removeComponent(String declarationName) {
-    final scene = this as Scene1;
+    final scene = this as $SceneLevelOne;
     switch (declarationName) {
-      case 'textie':
-        scene.remove(scene.textie);
-        break;
       case 'circle':
         scene.remove(scene.circle);
-        break;
-      case 'title':
-        scene.remove(scene.title);
-        break;
-      case 'supertext':
-        scene.remove(scene.supertext);
-        break;
-      case 'rooo':
-        scene.remove(scene.rooo);
         break;
       default:
         throw ArgumentError(

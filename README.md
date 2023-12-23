@@ -35,10 +35,10 @@ https://github.com/bdlukaa/flame_workspace/assets/45696119/00178d89-aeeb-487c-a2
 
 Given the current state of the application, some manual steps are required to run it. The `template/` folder contains the necessary arrangements to make it run and interact with the Workspace.
 
-**1.** Clone the repository <br/>
-**2.** Run `flutter run` in the `flame_workspace` folder to start the Workspace <br/>
-**3.** Open the `template/` folder from the Workspace <br/>
-**4.** `Run` the project to start the Game Preview
+**`1.`** Clone the repository <br/>
+**`2.`** Run `flutter run` in the `flame_workspace` folder to start the Workspace <br/>
+**`3.`** Open the `template/` folder from the Workspace <br/>
+**`4.`** `Run` the project to start the Game Preview
 
 <details>
 
@@ -57,7 +57,7 @@ Given the current state of the application, some manual steps are required to ru
 
 - [ ] Create a new project <br/>
       Create a new project from the Workspace that contains all the necessary code to connect to the Workspace and interact with it.
-- [x] Scene Editor <br/>
+- [ ] Scene Editor <br/>
       A visual scene editor for designing and arranging game levels, environments, and assets.
 - [ ] Component Editor <br/>
       Create, edit and manage components isolatedaly from the Workspace.
@@ -77,13 +77,24 @@ Given the current state of the application, some manual steps are required to ru
   A template used when creating a new Flame project.
   The default folder structure is:
   ```yaml
-  assets/                         # Contains the assets of the game
-  lib/                            # Contains the source code of the game
-    main.dart                     # The entry point of the game
-    game.dart                     # The game itself
-  pubspec.yaml                    # The dependencies of the game      
-  flame_configuration.yaml        # Configuration options used by the workspace
+      assets/                         # Contains the assets of the game
+      lib/                            # Contains the source code of the game
+        generated/                      # Contains the generated code
+          components/                       # Contains the generated code of the components
+          scenes/                           # Contains the generated code of the scenes
+          properties.dart                   # Contains the generated code to manipulate components
+        components/
+          component_name.dart               # A custom component    
+        scenes/
+          scene_name.dart                    # A scene
+          scene_name_script.dart             # The script of the scene_name
+        main.dart                       # The entry point of the game
+        game.dart                       # The game itself
+      pubspec.yaml                    # The dependencies of the game
+      flame_configuration.yaml        # Configuration options used by the workspace
   ```
+
+  For more details, see [template/README.md](template/README.md)
 
 * flame_workspace_core <br/>
   The core package, in which every Flame project must depend on. It contains the necessary code that makes the interaction between the Workspace and the game itself possible.

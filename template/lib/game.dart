@@ -1,9 +1,8 @@
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/palette.dart';
+import 'package:template/scenes/scene_one_script.dart';
 import 'package:window_manager/window_manager.dart';
-
-import 'scenes/scene_one.dart';
 
 class MyGame extends FlameGame with SingleGameInstance, WindowListener {
   MyGame() : super();
@@ -14,7 +13,7 @@ class MyGame extends FlameGame with SingleGameInstance, WindowListener {
   @override
   late final CameraComponent camera = CameraComponent(world: world);
   @override
-  final world = Scene1();
+  final world = SceneLevelOne();
 
   @override
   Future<void> onLoad() async {
