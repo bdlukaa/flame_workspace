@@ -259,7 +259,19 @@ class SceneGenerator {
         '        throw ArgumentError(declarationName, \'Component not found for scene \${scene.sceneName}\',);');
     buffer.writeln('    }');
     buffer.writeln('  }');
+    // set scene
+    buffer.writeln('  @override');
+    buffer.writeln('  void setScene() {');
+    buffer.writeln('    FlameWorkspaceCore.instance.currentScene = this;');
+    buffer.writeln('  }');
     buffer.writeln('}');
+    buffer.writeln();
+    buffer.writeln('  void setScene$className() {');
+    buffer.writeln(
+      '    FlameWorkspaceCore.instance.currentScene = $className();',
+    );
+    buffer.writeln('  }');
+    buffer.writeln();
 
     return buffer.toString();
   }
@@ -306,10 +318,61 @@ class SceneGenerator {
 
     final writer = Writer(unit: scene.unit.$2);
     final mixinName = '${scene.name}Mixin';
+    // TODO: perform only one write
     await writer.addMixinToClass(
       scene.name,
       mixinName,
       scene.filePath,
     );
+  }
+
+  /// Writes the file that contains the function that sets the scenes.
+  ///
+  /// The output is:
+  ///
+  /// ```dart
+  /// void setScene(String sceneName) {
+  ///   switch (sceneName) {
+  ///     case 'MyScene':
+  ///       setSceneMyScene();
+  ///       break;
+  ///   }
+  /// }
+  /// ```
+  static Future<void> writeSetScenes(
+    FlameProject project,
+    Iterable<FlameSceneObject> scenes,
+  ) async {
+    final buffer = StringBuffer();
+
+    buffer.writeln(generatedFileNotice);
+    buffer.writeln('// ignore_for_file: unused_import');
+    buffer.writeln(defaultImports);
+
+    for (final scene in scenes) {
+      buffer.writeln(
+        "import 'package:${project.name}/generated/scene_${scene.name.replaceAll(r'$', '').snakeCase}.dart';",
+      );
+    }
+
+    buffer.writeln();
+    buffer.writeln('void setScene(String sceneName) {');
+    buffer.writeln('  switch (sceneName) {');
+    for (final scene in scenes) {
+      buffer.writeln('    case r\'${scene.name}\':');
+      buffer.writeln('      setScene${scene.name}();');
+      buffer.writeln('      break;');
+    }
+    buffer.writeln('    default:');
+    buffer.writeln(
+        '      throw ArgumentError.value(sceneName, \'Scene not found\');');
+    buffer.writeln('  }');
+    buffer.writeln('}');
+
+    final file = File(
+      path.join(project.location.path, 'lib', 'generated', 'scenes.dart'),
+    );
+    if (!(await file.exists())) await file.create(recursive: true);
+    await Writer.writeFormatted(file, buffer.toString());
   }
 }

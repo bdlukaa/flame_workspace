@@ -51,4 +51,13 @@ mixin $SceneLevelOneMixin on FlameScene {
         );
     }
   }
+
+  @override
+  void setScene() {
+    FlameWorkspaceCore.instance.currentScene = this;
+  }
+}
+
+void setScene$SceneLevelOne() {
+  FlameWorkspaceCore.instance.currentScene = $SceneLevelOne();
 }

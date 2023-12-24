@@ -133,7 +133,7 @@ class FlameProjectState with ChangeNotifier {
 
   static Future<(ProjectIndexResult?, List<ComponentResult>, List<SceneResult>)>
       _indexProject(Map data) async {
-    final project = data['project'];
+    final project = data['project'] as FlameProject;
     final includeOnly = data['includeOnly'] as Iterable<String>?;
     final onlyParse = data['onlyParse'] as bool;
     var indexed = data['indexed'] as ProjectIndexResult?;
@@ -173,12 +173,14 @@ class FlameProjectState with ChangeNotifier {
       for (final scene in scenes) {
         await SceneGenerator.writeForScene(scene.$1, project);
       }
+      await SceneGenerator.writeSetScenes(project, scenes.map((e) => e.$1));
     } else if ((includeOnly != null && includeOnly.isNotEmpty) && !onlyParse) {
       for (final scene in scenes) {
         if (includeOnly.contains(scene.$1.filePath)) {
           await SceneGenerator.writeForScene(scene.$1, project);
         }
       }
+      await SceneGenerator.writeSetScenes(project, scenes.map((e) => e.$1));
     }
 
     return (indexed, components, scenes);

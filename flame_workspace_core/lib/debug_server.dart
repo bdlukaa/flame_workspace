@@ -139,6 +139,10 @@ void listen(WebSocketChannel channel, dynamic message) {
         component!.parent!,
       );
       break;
+    case WorkbenchMessages.setScene:
+      final scene = data['scene'] as String;
+      FlameWorkspaceCore.instance.setScene(scene);
+      break;
   }
 }
 

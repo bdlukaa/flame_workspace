@@ -36,6 +36,10 @@ class FlameScene extends World {
   void removeComponent(String declarationName) {
     throw UnimplementedError();
   }
+
+  void setScene() {
+    throw UnimplementedError();
+  }
 }
 
 extension FlameComponentExtension on Component {

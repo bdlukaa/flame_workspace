@@ -30,7 +30,13 @@ enum WorkbenchMessages {
   ///
   /// The value of this message is a map with the following keys:
   ///   - `component`: The key of the component that has been removed.
-  componentRemoved;
+  componentRemoved,
+
+  /// The message key that represents when a scene has been changed.
+  ///
+  /// The value of this message is a map with the following keys:
+  ///   - `scene`: The key of the scene that has been changed.
+  setScene;
 
   static WorkbenchMessages fromString(String text) {
     return values.firstWhere((v) => v.name == text);
@@ -109,6 +115,30 @@ class PropertyChangedMessage extends ComponentChangedMessage {
       'property': property,
       'type': type,
       'value': value,
+    };
+  }
+}
+
+class SceneChangedMessage extends MessageData {
+  final String scene;
+
+  const SceneChangedMessage({
+    required this.scene,
+  });
+
+  static SceneChangedMessage fromMap(Map<String, dynamic> map) {
+    final scene = map['scene'] as String?;
+    if (scene == null) {
+      throw ArgumentError('The scene key is required');
+    }
+
+    return SceneChangedMessage(scene: scene);
+  }
+
+  @override
+  Map<String, dynamic> toMap() {
+    return {
+      'scene': scene,
     };
   }
 }

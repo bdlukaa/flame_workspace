@@ -20,6 +20,8 @@ typedef SetPropertyValue = void Function(
   dynamic value,
 );
 
+typedef SetScene = void Function(String scene);
+
 class FlameWorkspaceCore {
   static FlameWorkspaceCore instance = FlameWorkspaceCore();
 
@@ -44,6 +46,13 @@ class FlameWorkspaceCore {
   Component? get currentSelectedComponent =>
       game.findByKeyName(currentSelectedComponentKey ?? '__none__');
 
-  late FlameScene currentScene;
+  late FlameScene _currentScene;
+  FlameScene get currentScene => _currentScene;
+  set currentScene(FlameScene scene) {
+    _currentScene = scene;
+    game.world = scene;
+  }
+
   late SetPropertyValue setPropertyValue;
+  late SetScene setScene;
 }
