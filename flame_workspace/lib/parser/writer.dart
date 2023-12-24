@@ -41,12 +41,12 @@ class Writer {
   /// Adds a mixin to a class.
   ///
   /// If the class already has the mixin, this function does nothing.
-  Future<void> addMixinToClass(
+  Future<String?> addMixinToClass(
     String className,
     String mixinName,
     String filePath,
   ) async {
-    if (hasMixin(className, mixinName)) return;
+    if (hasMixin(className, mixinName)) return null;
 
     // The class declaration of [className]
     final cls = unit.declarations
@@ -70,7 +70,23 @@ class Writer {
       final afterOffset = text.substring(lbo);
       text = '$beforeOffset with $mixinName $afterOffset';
     }
-    await Writer.writeFormatted(file, text);
+
+    return text;
+  }
+
+  Future<void> writeMixinToClass(
+    String className,
+    String mixinName,
+    String filePath,
+  ) async {
+    final classWithMixin = await addMixinToClass(
+      className,
+      mixinName,
+      filePath,
+    );
+    if (classWithMixin != null) {
+      await Writer.writeFormatted(File(filePath), classWithMixin);
+    }
   }
 
   static Future<void> addImport(String importPath, String filePath) {

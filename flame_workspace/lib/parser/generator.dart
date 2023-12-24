@@ -310,18 +310,10 @@ class SceneGenerator {
     );
     if (!(await file.exists())) await file.create(recursive: true);
 
-    await Writer.writeFormatted(file, buffer.toString().trim());
-    // await Writer.addImport(
-    //   'package:${project.name}/generated/scene_${scene.name.pathCase}.dart',
-    //   scene.filePath,
-    // );
-
     final writer = Writer(unit: scene.unit.$2);
-    final mixinName = '${scene.name}Mixin';
-    // TODO: perform only one write
-    await writer.addMixinToClass(
+    await writer.writeMixinToClass(
       scene.name,
-      mixinName,
+      '${scene.name}Mixin',
       scene.filePath,
     );
   }
