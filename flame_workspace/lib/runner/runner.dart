@@ -67,8 +67,20 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
 
   IOWebSocketChannel? _channel;
 
-  /// Whether the app has been initialized
-  bool get isReady => isRunning && _runProcess != null;
+  GameState _gameState = GameState.initial();
+  GameState get gameState => _gameState;
+  set gameState(GameState state) {
+    _gameState = state;
+    send(WorkbenchMessages.setGameState, state.toMap());
+  }
+
+  void pause() => gameState = gameState.copyWith(paused: true);
+  void resume() => gameState = gameState.copyWith(paused: false);
+
+  bool _ready = false;
+
+  /// Whether the app has started
+  bool get isReady => _ready;
 
   void emitLog(String log, String prefix) {
     final lines = log.split('\n').where((line) => line.trim().isNotEmpty);
@@ -115,6 +127,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
           hitTestBehavior: HitTestBehavior.translucent,
         );
         setScene?.call();
+        _ready = true;
       } else if (line.trim().contains('flutter: Serving at ')) {
         final url = line.trim().split('flutter: Serving at').last.trim();
         debugPrint('Connecting to $url');

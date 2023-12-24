@@ -5,9 +5,9 @@ import 'package:flame_workspace/compilation_unit_helper.dart';
 import 'package:flame_workspace/parser/parser.dart';
 import 'package:flame_workspace/project/objects/scene.dart';
 import 'package:flame_workspace/runner/runner.dart';
+import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flame_workspace_core/utils.dart';
 import 'package:flame_workspace/workbench/workbench_view.dart';
-import 'package:flame_workspace_core/messages.dart';
 
 import '../workbench/design/scene/add_component.dart';
 import 'writer.dart';

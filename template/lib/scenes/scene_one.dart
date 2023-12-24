@@ -14,7 +14,7 @@ class $SceneLevelOne extends FlameScene with $SceneLevelOneMixin {
 
   MyCircleComponent circle = MyCircleComponent(
       key: FlameKey('circle'),
-      color: const Color(0xffff0000),
+      color: const Color(0xffffffff),
       radius: 50.0,
       position: Vector2(50.0, 50.0));
 }

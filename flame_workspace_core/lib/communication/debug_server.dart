@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flame/components.dart';
 import 'package:flame_workspace_core/utils.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_web_socket/shelf_web_socket.dart';
@@ -54,7 +53,11 @@ void listen(WebSocketChannel channel, dynamic message) {
   final id = data['id'] as String;
 
   switch (WorkbenchMessages.fromString(id)) {
+    case WorkbenchMessages.setGameState:
+      FlameWorkspaceCore.instance.setGameState(GameState.fromMap(data));
+      break;
     case WorkbenchMessages.propertyChanged:
+      assert(_debugGamePaused());
       final message = PropertyChangedMessage.fromMap(data);
 
       final component = FlameWorkspaceCore.instance.game.findByKeyName(
@@ -66,47 +69,23 @@ void listen(WebSocketChannel channel, dynamic message) {
           'Could not find component ${message.component}/${component.runtimeType}',
         );
         return;
-      } else if (component is PositionComponent) {
-        if (message.property case 'position') {
-          final vector2 = ValuesParser.parseVector2(message.value);
-          if (vector2 != null) {
-            component.position = Vector2(vector2.$1, vector2.$2);
-          }
-          break;
-        } else if (message.property case 'size') {
-          final vector2 = ValuesParser.parseVector2(message.value);
-          if (vector2 != null) {
-            component.size = Vector2(vector2.$1, vector2.$2);
-          }
-          break;
-        } else if (message.property case 'scale') {
-          final vector2 = ValuesParser.parseVector2(message.value);
-          if (vector2 != null) {
-            component.scale = Vector2(vector2.$1, vector2.$2);
-          }
-          break;
-        } else {
-          print(
-            'Setting property ${message.property} to ${message.value} of $component',
-          );
-          FlameWorkspaceCore.instance.setPropertyValue(
-            // If the component type is Component<SubType>, we only want the
-            // Component part.
-            component.runtimeType.toString().removeGenerics(),
-            component,
-            message.property,
-            ValuesParser.parse(message.type, message.value),
-          );
-          break;
-        }
       } else {
         print(
-          'It is only possible to change properties of "PositionComponent"s',
+          'Setting property ${message.property} to ${message.value} of $component',
+        );
+        FlameWorkspaceCore.instance.setPropertyValue(
+          // If the component type is Component<SubType>, we only want the
+          // Component part.
+          component.runtimeType.toString().removeGenerics(),
+          component,
+          message.property,
+          ValuesParser.parse(message.type, message.value),
         );
       }
 
       break;
     case WorkbenchMessages.componentSelected:
+      assert(_debugGamePaused());
       final declarationName = data['component'] as String;
       final component = FlameWorkspaceCore.instance.game.findByKeyName(
         declarationName,
@@ -116,15 +95,18 @@ void listen(WebSocketChannel channel, dynamic message) {
       FlameWorkspaceCore.instance.currentSelectedComponentKey = declarationName;
       break;
     case WorkbenchMessages.componentUnselected:
+      assert(_debugGamePaused());
       FlameWorkspaceCore.instance.currentSelectedComponentKey = null;
       break;
 
     case WorkbenchMessages.componentAdded:
+      assert(_debugGamePaused());
       final declarationName = data['component'] as String;
       FlameWorkspaceCore.instance.currentScene.addComponent(declarationName);
       break;
 
     case WorkbenchMessages.componentRemoved:
+      assert(_debugGamePaused());
       final declarationName = data['component'] as String;
       final component = FlameWorkspaceCore.instance.game.findByKeyName(
         declarationName,
@@ -140,6 +122,7 @@ void listen(WebSocketChannel channel, dynamic message) {
       );
       break;
     case WorkbenchMessages.setScene:
+      // assert(_debugGamePaused());
       final scene = data['scene'] as String;
       FlameWorkspaceCore.instance.setScene(scene);
       break;
@@ -151,5 +134,18 @@ bool _debugFoundComponent(dynamic component, String declarationName) {
     print('Could not find component $declarationName');
     return false;
   }
+  return true;
+}
+
+bool _debugGamePaused() {
+  // if (!FlameWorkspaceCore.instance.game.paused) {
+  //   print(
+  //     'To manipulate the current scene, the game must be paused. You can pause '
+  //     'the game using the pause button (||) on the top right corner of the '
+  //     'screen.',
+  //   );
+  //   return false;
+  // }
+  // return true;
   return true;
 }

@@ -5,9 +5,11 @@ export 'package:flame_workspace_core/creation/scene.dart';
 export 'package:flame_workspace_core/creation/parser_values.dart';
 export 'package:flame_workspace_core/creation/key.dart';
 export 'package:flame_workspace_core/communication/messages.dart';
+export 'package:flame_workspace_core/communication/state.dart';
 
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
+import 'package:flame_workspace_core/communication/state.dart';
 import 'package:flutter/foundation.dart';
 
 import 'creation/scene.dart';
@@ -26,7 +28,7 @@ class FlameWorkspaceCore {
   static FlameWorkspaceCore instance = FlameWorkspaceCore();
 
   /// Whether the current environment is a game or not.
-  static bool isGame = false;
+  static bool isGame = true;
 
   late FlameGame game;
 
@@ -56,4 +58,12 @@ class FlameWorkspaceCore {
 
   late SetPropertyValue setPropertyValue;
   late SetScene setScene;
+
+  void setGameState(GameState state) {
+    // if (state.paused) {
+    //   game.pauseEngine();
+    // } else {
+    //   game.resumeEngine();
+    // }
+  }
 }

@@ -108,7 +108,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
         runner.send(
           WorkbenchMessages.setScene,
           SceneChangedMessage(
-            scene: state.currentScene.scriptClassName,
+            scene: state.currentScene.name,
           ).toMap(),
         );
       },
@@ -265,13 +265,19 @@ class _WorkbenchViewState extends State<WorkbenchView> {
           ),
           const VerticalDivider(),
           InkedIconButton(
-            onTap: runner.isRunning ? null : runner.run,
+            onTap: !runner.isRunning
+                ? runner.run
+                : runner.gameState.paused
+                    ? runner.resume
+                    : null,
             tooltip: 'Run',
             icon: const Icon(Icons.play_arrow, color: Colors.lightBlue),
           ),
           const SizedBox(width: 8.0),
           InkedIconButton(
-            onTap: !runner.isRunning ? null : runner.stop,
+            onTap: !runner.isReady || runner.gameState.paused
+                ? null
+                : runner.pause,
             tooltip: 'Pause',
             icon: const Icon(Icons.pause),
           ),

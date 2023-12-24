@@ -36,7 +36,13 @@ enum WorkbenchMessages {
   ///
   /// The value of this message is a map with the following keys:
   ///   - `scene`: The key of the scene that has been changed.
-  setScene;
+  setScene,
+
+  /// The message key that represents when a game state has been changed.
+  ///
+  /// The value of this message is a map with the following keys:
+  ///   - `state`: The new state of the game as a [GameState] instance
+  setGameState;
 
   static WorkbenchMessages fromString(String text) {
     return values.firstWhere((v) => v.name == text);
