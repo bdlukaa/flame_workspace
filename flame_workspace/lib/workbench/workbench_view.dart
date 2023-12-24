@@ -1,3 +1,4 @@
+import 'package:flame_workspace/workbench/design/script_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -35,12 +36,15 @@ class Workbench extends InheritedWidget {
 
   final ValueChanged<FlameComponentObject?> onComponentSelected;
 
+  final VoidCallback onEditScript;
+
   const Workbench({
     super.key,
     required this.project,
     required this.runner,
     required this.state,
     required this.onComponentSelected,
+    required this.onEditScript,
     required super.child,
   });
 
@@ -98,6 +102,8 @@ class _WorkbenchViewState extends State<WorkbenchView> {
 
   late final state = FlameProjectState(widget.project);
   late final FlameProjectRunner runner;
+
+  bool _editingScript = false;
 
   @override
   void initState() {
@@ -168,6 +174,9 @@ class _WorkbenchViewState extends State<WorkbenchView> {
           );
           state.selectedComponent = component;
         },
+        onEditScript: () {
+          setState(() => _editingScript = !_editingScript);
+        },
         child: Scaffold(
           body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Card(
@@ -181,7 +190,9 @@ class _WorkbenchViewState extends State<WorkbenchView> {
             ),
             Expanded(
               child: switch (mode) {
-                WorkbenchViewMode.design => const DesignView(),
+                WorkbenchViewMode.design => DesignView(
+                    isEditingScript: _editingScript,
+                  ),
                 WorkbenchViewMode.project => const ProjectView(),
                 WorkbenchViewMode.assets => const AssetsView(),
                 WorkbenchViewMode.configuration => const ConfigurationView(),
@@ -209,43 +220,82 @@ class _WorkbenchViewState extends State<WorkbenchView> {
         ]),
       ),
       Expanded(
-        child: Center(
-          child: ToggleButtons(
-            isSelected: WorkbenchViewMode.values.map((m) => m == mode).toList(),
-            children: const [
-              (Icon(Icons.design_services), 'DESIGN'),
-              (Icon(Icons.apps), 'PROJECT'),
-              (Icon(Icons.web_stories), 'ASSETS'),
-              (Icon(Icons.settings), 'CONFIG'),
-            ].indexed.map((e) {
-              final isSelected = WorkbenchViewMode.values.indexed
-                      .firstWhere((mode) => mode.$1 == e.$1)
-                      .$2 ==
-                  mode;
+        child: Builder(builder: (context) {
+          if (_editingScript) {
+            final editor = scriptEditorKey.currentState;
+            return AnimatedBuilder(
+              animation: editor?.controller ?? Listenable.merge([]),
+              builder: (context, _) => Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      (editor?.file.path ?? '').split(widget.project.name).last,
+                      style: theme.textTheme.labelMedium,
+                    ),
+                    const SizedBox(width: 8.0),
+                    InkedIconButton(
+                      onTap: () =>
+                          setState(() => _editingScript = !_editingScript),
+                      icon: const Icon(Icons.close, size: 16.0),
+                      tooltip: 'Close',
+                    ),
+                    const SizedBox(width: 8.0),
+                    InkedIconButton(
+                      onTap: editor?.isSaved ?? false ? null : editor?.save,
+                      icon: const Icon(Icons.save, size: 16.0),
+                      tooltip: 'Quit editing',
+                    ),
+                    const SizedBox(width: 8.0),
+                    InkedIconButton(
+                      onTap: editor?.format,
+                      icon: const Icon(Icons.segment, size: 16.0),
+                      tooltip: 'Format',
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          return Center(
+            child: ToggleButtons(
+              isSelected:
+                  WorkbenchViewMode.values.map((m) => m == mode).toList(),
+              children: const [
+                (Icon(Icons.design_services), 'DESIGN'),
+                (Icon(Icons.apps), 'PROJECT'),
+                (Icon(Icons.web_stories), 'ASSETS'),
+                (Icon(Icons.settings), 'CONFIG'),
+              ].indexed.map((e) {
+                final isSelected = WorkbenchViewMode.values.indexed
+                        .firstWhere((mode) => mode.$1 == e.$1)
+                        .$2 ==
+                    mode;
 
-              final (icon, text) = e.$2;
+                final (icon, text) = e.$2;
 
-              return AnimatedSize(
-                duration: const Duration(milliseconds: 200),
-                child: isSelected
-                    ? Padding(
-                        padding: const EdgeInsetsDirectional.symmetric(
-                          horizontal: 12.0,
-                        ),
-                        child: Row(children: [
-                          icon,
-                          const SizedBox(width: 8.0),
-                          Text(text, style: theme.textTheme.labelMedium),
-                        ]),
-                      )
-                    : e.$2.$1,
-              );
-            }).toList(),
-            onPressed: (index) => setState(() {
-              mode = WorkbenchViewMode.values[index];
-            }),
-          ),
-        ),
+                return AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  child: isSelected
+                      ? Padding(
+                          padding: const EdgeInsetsDirectional.symmetric(
+                            horizontal: 12.0,
+                          ),
+                          child: Row(children: [
+                            icon,
+                            const SizedBox(width: 8.0),
+                            Text(text, style: theme.textTheme.labelMedium),
+                          ]),
+                        )
+                      : e.$2.$1,
+                );
+              }).toList(),
+              onPressed: (index) => setState(() {
+                mode = WorkbenchViewMode.values[index];
+              }),
+            ),
+          );
+        }),
       ),
       Expanded(
         child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [

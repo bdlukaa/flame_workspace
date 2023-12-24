@@ -1,6 +1,5 @@
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
-import 'package:flame/input.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';

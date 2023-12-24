@@ -23,4 +23,6 @@ class FlameSceneObject {
   });
 
   String get scriptClassName => name.replaceFirst(r'$', '');
+
+  String get scriptPath => filePath.replaceFirst(r'.dart', '_script.dart');
 }

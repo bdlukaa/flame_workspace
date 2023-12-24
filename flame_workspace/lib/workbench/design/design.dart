@@ -1,15 +1,33 @@
+import 'package:flame_workspace/workbench/workbench_view.dart';
 import 'package:flutter/material.dart';
 
 import 'component_view.dart';
 import 'preview_view.dart';
 import 'scene/scene_view.dart';
+import 'script_editor.dart';
 import 'structure_view.dart';
 
 class DesignView extends StatelessWidget {
-  const DesignView({super.key});
+  final bool isEditingScript;
+
+  const DesignView({super.key, required this.isEditingScript});
 
   @override
   Widget build(BuildContext context) {
+    final workbench = Workbench.of(context);
+
+    if (isEditingScript) {
+      return Row(children: [
+        const Expanded(child: GamePreviewView()),
+        Expanded(
+          child: ScriptEditor(
+            key: scriptEditorKey,
+            scriptPath: workbench.state.currentScene.scriptPath,
+          ),
+        ),
+      ]);
+    }
+
     return const Row(children: [
       Expanded(
         flex: 1,

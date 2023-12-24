@@ -1,4 +1,5 @@
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flame_workspace/widgets/inked_icon_button.dart';
 import 'package:flutter/material.dart';
 
 import '../component_view.dart';
@@ -60,6 +61,26 @@ class ScenePropertiesView extends StatelessWidget {
                   ),
                 ]),
               ),
+          ],
+        ),
+        const Spacer(),
+        ComponentSectionCard(
+          title: 'Script',
+          trailingWidget: InkedIconButton(
+            tooltip: 'Edit',
+            icon: const Padding(
+              padding: EdgeInsets.all(2.0),
+              child: Icon(Icons.edit, size: 14.0),
+            ),
+            onTap: workbench.onEditScript,
+          ),
+          children: [
+            PropertyField(
+              name: 'Script class',
+              value: scene.scriptClassName,
+              type: '$String',
+              editable: false,
+            ),
           ],
         ),
       ]),

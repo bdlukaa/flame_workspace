@@ -286,12 +286,14 @@ class ComponentView extends StatelessWidget {
 class ComponentSectionCard extends StatelessWidget {
   final String title;
   final String? trailing;
+  final Widget? trailingWidget;
   final List<Widget> children;
 
   const ComponentSectionCard({
     super.key,
     required this.title,
     this.trailing,
+    this.trailingWidget,
     this.children = const [],
   });
 
@@ -313,6 +315,7 @@ class ComponentSectionCard extends StatelessWidget {
                 trailing!,
                 style: theme.textTheme.labelSmall,
               ),
+            if (trailingWidget != null) trailingWidget!,
           ]),
           ...children,
         ]),
