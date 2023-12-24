@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flame_workspace/parser/parser.dart';
-import 'package:flame_workspace/template/project_template.dart' as template;
+import 'package:flame_workspace/project/project_template.dart' as template;
 import 'package:path/path.dart' as path;
 import 'package:recase/recase.dart';
 
@@ -69,6 +69,9 @@ class ProjectCreator {
       workingDirectory: projectDirectory.path,
       runInShell: true,
     );
+
+    await Directory(path.join(projectDirectory.path, 'test'))
+        .delete(recursive: true);
   }
 
   Future<void> _writeMain() {

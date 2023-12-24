@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:yaml/yaml.dart';
 
-import 'project_template.dart';
-
 class DartDependency {
   /// The name of the dependency.
   final String name;
@@ -97,63 +95,6 @@ class FlameProject {
   Iterable<File> get assets => Directory(path.join(location.path, 'assets'))
       .listSync(recursive: true)
       .whereType<File>();
-}
-
-/// Creates a new Flame project.
-///
-/// Steps:
-///   1. Creates the project folder.
-///   2. Runs `flutter create --org [organization] [name]` in the project folder.
-///      2.1 Delete the `lib` folder.
-///      2.2 Delete the `test` folder.
-///      2.3 Create the `assets` folder.
-///      2.4 Delete the `README.md` file.
-///   3. Creates the `flame_configuration.yaml` file.
-///   4. Creates the `pubspec.yaml` file.
-///   5. Creates the `lib/main.dart` file.
-///   6. Creates the `lib/game.dart` file.
-///
-Future<void> createProject(FlameProject project) async {
-  final location = await project.location.create(recursive: true);
-
-  final result = await Process.run(
-    'flutter',
-    [
-      'create',
-      '--org',
-      project.organization,
-      project.name,
-    ],
-    runInShell: true,
-    workingDirectory: location.path,
-  );
-
-  if (result.exitCode != 0) throw Exception('Failed to create the project.');
-
-  final projectDir = path.join(location.path, project.name);
-
-  await Directory(path.join(projectDir, 'lib'))
-      .list()
-      .forEach((f) => f.delete());
-  Directory(path.join(projectDir, 'test')).delete(recursive: true);
-  Directory(path.join(projectDir, 'assets')).create();
-  File(path.join(projectDir, 'README.md')).delete();
-
-  final configFile = File(path.join(projectDir, 'flame_configuration.yaml'));
-  await configFile.create();
-  await configFile.writeAsString(project.flameConfigFile);
-
-  final pubspec = File(path.join(projectDir, 'pubspec.yaml'));
-  await pubspec.create();
-  await pubspec.writeAsString(project.pubspecFile);
-
-  final main = File(path.join(projectDir, 'lib', 'main.dart'));
-  await main.create();
-  await main.writeAsString(project.mainFile);
-
-  final game = File(path.join(projectDir, 'lib', 'game.dart'));
-  await game.create();
-  await game.writeAsString(project.gameFile);
 }
 
 FlameProject importProject(Directory location) {

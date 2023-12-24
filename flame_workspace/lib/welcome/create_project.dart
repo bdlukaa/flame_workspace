@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:flame_workspace/project/project.dart';
+import 'package:flame_workspace/project/project_creator.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:recase/recase.dart';
 
 void showCreateProjectView(BuildContext context) {
   showModalBottomSheet(
@@ -238,7 +240,14 @@ class _CreateProjectViewState extends State<CreateProjectView> {
       );
 
       try {
-        await createProject(project);
+        await ProjectCreator(
+          location: location,
+          projectName: _nameController.text,
+          description: 'A Flame project',
+          org: _organizationController.text,
+          gameName: _nameController.text.pascalCase,
+          sceneName: _sceneController.text,
+        ).createProject();
       } catch (e, trace) {
         debugPrint('Failed to create project');
         debugPrint('$e\n$trace');
