@@ -21,4 +21,6 @@ class FlameSceneObject {
     required this.unit,
     this.modifiers = const [],
   });
+
+  String get scriptClassName => name.replaceFirst(r'$', '');
 }

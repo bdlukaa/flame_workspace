@@ -108,7 +108,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
         runner.send(
           WorkbenchMessages.setScene,
           SceneChangedMessage(
-            scene: state.currentScene.name,
+            scene: state.currentScene.scriptClassName,
           ).toMap(),
         );
       },

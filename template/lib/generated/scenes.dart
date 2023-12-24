@@ -19,13 +19,9 @@ import 'package:flame/sprite.dart';
 import 'package:flame/text.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart' hide Viewport;
-import 'package:template/generated/scene_scene_level_one.dart';
 
 void setScene(String sceneName) {
   switch (sceneName) {
-    case r'$SceneLevelOne':
-      setScene$SceneLevelOne();
-      break;
     default:
       throw ArgumentError.value(sceneName, 'Scene not found');
   }
