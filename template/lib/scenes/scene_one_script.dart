@@ -1,14 +1,16 @@
 // part of 'scene_one.dart';
 
+import 'package:flame/components.dart';
+
 import 'scene_one.dart';
 
-class SceneLevelOne extends $SceneLevelOne {
+class SceneLevelOne extends $SceneLevelOne with HasGameRef {
   @override
   Future<void> onLoad() async {
     super.onLoad();
 
     add(circle);
-    add(Title);
+    add(myComp);
   }
 
   bool _upping = false;

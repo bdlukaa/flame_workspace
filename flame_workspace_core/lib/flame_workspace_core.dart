@@ -45,9 +45,20 @@ class FlameWorkspaceCore {
     }
   }
 
-  String? currentSelectedComponentKey;
-  Component? get currentSelectedComponent =>
-      game.findByKeyName(currentSelectedComponentKey ?? '__none__');
+  String? _currentSelectedComponentKey;
+  String? get currentSelectedComponentKey => _currentSelectedComponentKey;
+  set currentSelectedComponentKey(String? key) {
+    _currentSelectedComponentKey = key;
+    _currentSelectedComponent =
+        game.findByKeyName(currentSelectedComponentKey ?? '__none__');
+  }
+
+  Component? _currentSelectedComponent;
+  Component? get currentSelectedComponent => _currentSelectedComponent;
+  set currentSelectedComponent(Component? component) {
+    _currentSelectedComponentKey = null;
+    _currentSelectedComponent = component;
+  }
 
   late FlameScene _currentScene;
   FlameScene get currentScene => _currentScene;

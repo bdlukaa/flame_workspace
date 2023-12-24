@@ -1,4 +1,6 @@
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
+import 'package:flame/input.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -98,7 +100,8 @@ class FlameSelectionComponent extends PositionComponent {
   }
 }
 
-class _FlameComponentWrapper extends PositionComponent with FlameComponent {
+class _FlameComponentWrapper extends PositionComponent
+    with FlameComponent, HasGameRef, TapCallbacks, DragCallbacks {
   _FlameComponentWrapper(this.component) : super(children: [component]);
 
   final Component component;
@@ -116,4 +119,20 @@ class _FlameComponentWrapper extends PositionComponent with FlameComponent {
       nativeAngle = (component as PositionComponent).nativeAngle;
     }
   }
+
+  // TODO: implement this feature when proper embedding is available.
+  //       We currently embed the game using flutter_native_view. Whether it is
+  //       a great package, it doesn't support touch events.
+  //       We need to wait for official platform views or touch implementation
+  //       in flutter_native_view.
+  // @override
+  // void onTapUp(TapUpEvent event) {
+  //   super.onTapUp(event);
+  //   FlameWorkspaceCore.instance.currentSelectedComponent = component;
+  // }
+
+  // @override
+  // void onDragUpdate(DragUpdateEvent event) {
+  //   (component as PositionComponent).position = event.localEndPosition;
+  // }
 }
