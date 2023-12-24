@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/palette.dart';
+import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:template/scenes/scene_one_script.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -11,15 +12,15 @@ class MyGame extends FlameGame with SingleGameInstance, WindowListener {
   Color backgroundColor() => const Color(0xFF000000);
 
   @override
-  late final CameraComponent camera = CameraComponent(world: world);
-  @override
-  final world = SceneLevelOne();
-
-  @override
   Future<void> onLoad() async {
     windowManager.addListener(this);
+
+    FlameWorkspaceCore.instance.currentScene = SceneLevelOne();
+
+    world = FlameWorkspaceCore.instance.currentScene;
+    camera = CameraComponent(world: world);
     camera.viewfinder.anchor = Anchor.topLeft;
-    addAll([camera, world]);
+    addAll([camera]);
 
     return super.onLoad();
   }

@@ -21,20 +21,23 @@ typedef SetPropertyValue = void Function(
 );
 
 class FlameWorkspaceCore {
-  static late FlameWorkspaceCore instance;
+  static FlameWorkspaceCore instance = FlameWorkspaceCore();
 
-  final FlameGame game;
+  late FlameGame game;
 
-  FlameWorkspaceCore(this.game);
+  FlameWorkspaceCore();
 
   /// Initializes the package server.
   static Future<void> ensureInitialized(FlameGame game) async {
-    FlameWorkspaceCore.instance = FlameWorkspaceCore(game);
+    instance.game = game;
     if (kDebugMode) {
       assert(!kIsWeb, 'Can not run in web mode');
       debugPrint('Initializing Flame Workspace Core');
       await ds.createServer();
     }
+
+    // TODO: read the flame_configuration.yaml file to determine the initial
+    //       scene to be loaded.
   }
 
   String? currentSelectedComponentKey;

@@ -9,7 +9,7 @@ class MyCircleComponent extends PositionComponent with FlameComponent {
   double _radius;
 
   MyCircleComponent({
-    super.key,
+    required FlameKey super.key,
     super.position,
     super.scale,
     Color color = const Color(0xFFFF0000),

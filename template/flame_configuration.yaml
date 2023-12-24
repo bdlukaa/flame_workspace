@@ -5,4 +5,4 @@ project_name: template
 organization: com.example.template
 
 # The name of the initial scene class.
-initial_scene: Scene1
+initial_scene: SceneLevelOne

@@ -5,10 +5,6 @@ import 'package:flutter/widgets.dart';
 
 import '../generated/scene_scene_level_one.dart';
 
-// part 'scene_one_script.dart';
-
-const topLevelConstant = Color(0xFF00FF00);
-
 @protected
 class $SceneLevelOne extends FlameScene with $SceneLevelOneMixin {
   $SceneLevelOne({
@@ -18,7 +14,7 @@ class $SceneLevelOne extends FlameScene with $SceneLevelOneMixin {
 
   MyCircleComponent circle = MyCircleComponent(
       key: FlameKey('circle'),
-      color: const Color(0xffffffff),
+      color: const Color(0xffff0000),
       radius: 50.0,
       position: Vector2(50.0, 50.0));
 }
