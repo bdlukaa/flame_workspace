@@ -4,14 +4,14 @@ export 'package:flame_workspace_core/creation/flame_component.dart';
 export 'package:flame_workspace_core/creation/scene.dart';
 export 'package:flame_workspace_core/creation/parser_values.dart';
 export 'package:flame_workspace_core/creation/key.dart';
-export 'package:flame_workspace_core/messages.dart';
+export 'package:flame_workspace_core/communication/messages.dart';
 
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 
 import 'creation/scene.dart';
-import 'debug_server.dart' as ds;
+import 'communication/debug_server.dart' as ds;
 
 typedef SetPropertyValue = void Function(
   String className,
@@ -25,12 +25,16 @@ typedef SetScene = void Function(String scene);
 class FlameWorkspaceCore {
   static FlameWorkspaceCore instance = FlameWorkspaceCore();
 
+  /// Whether the current environment is a game or not.
+  static bool isGame = false;
+
   late FlameGame game;
 
   FlameWorkspaceCore();
 
   /// Initializes the package server.
   static Future<void> ensureInitialized(FlameGame game) async {
+    assert(isGame);
     instance.game = game;
     if (kDebugMode) {
       assert(!kIsWeb, 'Can not run in web mode');

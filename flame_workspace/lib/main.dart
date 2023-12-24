@@ -1,5 +1,6 @@
 import 'package:flame_workspace/project/project.dart';
 import 'package:flame_workspace/workbench/workbench_view.dart';
+import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_view/flutter_native_view.dart';
 
@@ -8,6 +9,7 @@ import 'welcome/welcome.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FlutterNativeView.ensureInitialized();
+  FlameWorkspaceCore.isGame = false;
 
   runApp(const FlameWorkspaceApp());
 }
