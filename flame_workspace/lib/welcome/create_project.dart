@@ -132,7 +132,7 @@ class _CreateProjectViewState extends State<CreateProjectView> {
                     controller: _locationController,
                     textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
-                      labelText: 'Initial scene',
+                      labelText: 'Project location',
                       border: InputBorder.none,
                       suffix: TextButton(
                         onPressed: _browse,
@@ -144,7 +144,7 @@ class _CreateProjectViewState extends State<CreateProjectView> {
                     enabled: !_loading,
                     controller: _sceneController,
                     decoration: const InputDecoration(
-                      labelText: 'Scene name',
+                      labelText: 'Initial scene',
                       border: InputBorder.none,
                     ),
                     onChanged: (text) {

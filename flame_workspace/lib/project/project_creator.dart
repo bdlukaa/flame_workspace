@@ -39,7 +39,7 @@ class ProjectCreator {
       Directory(path.join(location.path, projectName));
 
   Future<void> createProject() async {
-    await projectDirectory.create();
+    await projectDirectory.create(recursive: true);
 
     await Future.wait([
       _writeMain(),
@@ -74,14 +74,16 @@ class ProjectCreator {
         .delete(recursive: true);
   }
 
-  Future<void> _writeMain() {
+  Future<void> _writeMain() async {
     final mainFile = File(path.join(projectDirectory.path, 'lib', 'main.dart'));
-    return mainFile.writeAsString(template.main$dart(gameName));
+    await mainFile.create(recursive: true);
+    await mainFile.writeAsString(template.main$dart(gameName));
   }
 
-  Future<void> _writeGame() {
+  Future<void> _writeGame() async {
     final gameFile = File(path.join(projectDirectory.path, 'lib', 'game.dart'));
-    return gameFile.writeAsString(template.game$dart(gameName));
+    await gameFile.create(recursive: true);
+    await gameFile.writeAsString(template.game$dart(gameName));
   }
 
   Future<void> writeScene(String sceneName) {
@@ -91,34 +93,37 @@ class ProjectCreator {
     ]);
   }
 
-  Future<void> _writeScene(String sceneName) {
+  Future<void> _writeScene(String sceneName) async {
     final gameFile = File(path.join(
       projectDirectory.path,
       'lib',
       'scenes',
       '${sceneName.snakeCase}.dart',
     ));
-    return gameFile.writeAsString(template.scene$dart(sceneName));
+    await gameFile.create(recursive: true);
+    await gameFile.writeAsString(template.scene$dart(sceneName));
   }
 
-  Future<void> _writeSceneScript(String sceneName) {
+  Future<void> _writeSceneScript(String sceneName) async {
     final gameFile = File(path.join(
       projectDirectory.path,
       'lib',
       'scenes',
       '${sceneName.snakeCase}_script.dart',
     ));
-    return gameFile.writeAsString(template.sceneScript$dart(sceneName));
+    await gameFile.create(recursive: true);
+    await gameFile.writeAsString(template.sceneScript$dart(sceneName));
   }
 
-  Future<void> writeComponent([String componentName = 'MyComponent']) {
+  Future<void> writeComponent([String componentName = 'MyComponent']) async {
     final gameFile = File(path.join(
       projectDirectory.path,
       'lib',
       'components',
       '${componentName.snakeCase}.dart',
     ));
-    return gameFile.writeAsString(template.component$dart(componentName));
+    await gameFile.create(recursive: true);
+    await gameFile.writeAsString(template.component$dart(componentName));
   }
 
   Future<void> createFolders() {
@@ -128,18 +133,20 @@ class ProjectCreator {
     ]);
   }
 
-  Future<void> writePubspec() {
+  Future<void> writePubspec() async {
     final pubspecFile = File(path.join(projectDirectory.path, 'pubspec.yaml'));
-    return pubspecFile.writeAsString(template.pubspec$yaml(
+    await pubspecFile.create(recursive: true);
+    await pubspecFile.writeAsString(template.pubspec$yaml(
       projectName,
       description,
     ));
   }
 
-  Future<void> writeFlameConfiguration() {
+  Future<void> writeFlameConfiguration() async {
     final flameConfigurationFile =
         File(path.join(projectDirectory.path, 'flame_configuration.yaml'));
-    return flameConfigurationFile.writeAsString(
+    await flameConfigurationFile.create(recursive: true);
+    await flameConfigurationFile.writeAsString(
       template.flameConfiguration$yaml(
         projectName: projectName,
         organization: org,
