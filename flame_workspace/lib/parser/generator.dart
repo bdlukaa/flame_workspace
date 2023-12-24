@@ -268,7 +268,7 @@ class SceneGenerator {
     buffer.writeln();
     buffer.writeln('  void setScene$className() {');
     buffer.writeln(
-      '    FlameWorkspaceCore.instance.currentScene = $className();',
+      '    FlameWorkspaceCore.instance.currentScene = ${className.replaceAll(r'$', '')}();',
     );
     buffer.writeln('  }');
     buffer.writeln();
@@ -287,9 +287,15 @@ class SceneGenerator {
 
     // scene import
     final sceneFilePath = scene.filePath;
-    final scenePath = sceneFilePath.split(path.join(project.name, 'lib')).last;
+    final scenePath = sceneFilePath
+        .split(path.join(project.name, 'lib'))
+        .last
+        .replaceAll('.dart', '');
     buffer.writeln(
-      "import 'package:${project.name}${scenePath.replaceAll(r'\', '/')}';",
+      "import 'package:${project.name}${scenePath.replaceAll(r'\', '/')}.dart';",
+    );
+    buffer.writeln(
+      "import 'package:${project.name}${scenePath.replaceAll(r'\', '/')}_script.dart';",
     );
 
     final unitHelper = CompilationUnitHelper(
@@ -309,6 +315,7 @@ class SceneGenerator {
       ),
     );
     if (!(await file.exists())) await file.create(recursive: true);
+    await Writer.writeFormatted(file, buffer.toString().trim());
 
     final writer = Writer(unit: scene.unit.$2);
     await writer.writeMixinToClass(

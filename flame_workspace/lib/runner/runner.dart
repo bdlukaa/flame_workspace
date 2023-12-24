@@ -43,10 +43,14 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
   /// preview.
   final List<String> logs = [kInitialLog];
 
+  /// Called when the app starts or hot restart.
+  final VoidCallback? setScene;
+
   FlameProjectRunner(
     this.project, {
     this.hostname = '0.0.0.0',
     this.port = 3000,
+    this.setScene,
   }) {
     windowManager.setPreventClose(true);
   }
@@ -111,12 +115,14 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
           handle: FindWindow(nullptr, project.name.toNativeUtf16()),
           hitTestBehavior: HitTestBehavior.translucent,
         );
+        setScene?.call();
       } else if (line.trim().contains('flutter: Serving at ')) {
         final url = line.trim().split('flutter: Serving at').last.trim();
         debugPrint('Connecting to $url');
         final channel = IOWebSocketChannel.connect(url);
         await channel.ready;
         _channel = channel;
+        setScene?.call();
 
         notifyListeners();
       } else if (line.trim().contains('Reloaded ')) {

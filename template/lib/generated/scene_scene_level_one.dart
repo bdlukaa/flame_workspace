@@ -20,6 +20,7 @@ import 'package:flame/text.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart' hide Viewport;
 import 'package:template/scenes/scene_one.dart';
+import 'package:template/scenes/scene_one_script.dart';
 
 mixin $SceneLevelOneMixin on FlameScene {
   @override
@@ -59,5 +60,5 @@ mixin $SceneLevelOneMixin on FlameScene {
 }
 
 void setScene$SceneLevelOne() {
-  FlameWorkspaceCore.instance.currentScene = $SceneLevelOne();
+  FlameWorkspaceCore.instance.currentScene = SceneLevelOne();
 }

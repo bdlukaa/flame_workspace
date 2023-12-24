@@ -14,12 +14,8 @@ class MyGame extends FlameGame with SingleGameInstance, WindowListener {
   Future<void> onLoad() async {
     windowManager.addListener(this);
 
-    world = FlameWorkspaceCore.instance.currentScene;
-    camera = CameraComponent(world: world);
+    camera = CameraComponent();
     camera.viewfinder.anchor = Anchor.topLeft;
-    addAll([camera]);
-
-    return super.onLoad();
   }
 
   @override

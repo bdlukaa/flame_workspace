@@ -37,9 +37,6 @@ class FlameWorkspaceCore {
       debugPrint('Initializing Flame Workspace Core');
       await ds.createServer();
     }
-
-    // TODO: read the flame_configuration.yaml file to determine the initial
-    //       scene to be loaded.
   }
 
   String? currentSelectedComponentKey;

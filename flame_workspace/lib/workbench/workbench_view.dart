@@ -97,11 +97,23 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   var mode = WorkbenchViewMode.design;
 
   late final state = FlameProjectState(widget.project);
-  late final runner = FlameProjectRunner(widget.project);
+  late final FlameProjectRunner runner;
 
   @override
   void initState() {
     super.initState();
+    runner = FlameProjectRunner(
+      widget.project,
+      setScene: () {
+        runner.send(
+          WorkbenchMessages.setScene,
+          SceneChangedMessage(
+            scene: state.currentScene.name,
+          ).toMap(),
+        );
+      },
+    );
+
     windowManager.addListener(runner);
     state.addListener(_updateListener);
     runner.addListener(_updateListener);
