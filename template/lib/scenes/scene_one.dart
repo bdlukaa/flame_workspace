@@ -17,4 +17,9 @@ class $SceneLevelOne extends FlameScene with $SceneLevelOneMixin {
       color: const Color(0xffffffff),
       radius: 50.0,
       position: Vector2(50.0, 50.0));
+  TextComponent Title = TextComponent(
+    key: FlameKey('Title'),
+    text: 'Text component',
+    position: Vector2(50.0, 150.0),
+  );
 }

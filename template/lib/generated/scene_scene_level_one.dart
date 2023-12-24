@@ -30,6 +30,9 @@ mixin $SceneLevelOneMixin on FlameScene {
       case 'circle':
         scene.add(scene.circle);
         break;
+      case 'Title':
+        scene.add(scene.Title);
+        break;
       default:
         throw ArgumentError(
           declarationName,
@@ -44,6 +47,9 @@ mixin $SceneLevelOneMixin on FlameScene {
     switch (declarationName) {
       case 'circle':
         scene.remove(scene.circle);
+        break;
+      case 'Title':
+        scene.remove(scene.Title);
         break;
       default:
         throw ArgumentError(

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flame/game.dart';
 import 'package:flame_workspace_core/utils.dart';
 import 'package:flutter/widgets.dart';
 
@@ -93,8 +94,7 @@ class ValuesParser {
       'num' => num.tryParse(value),
       'String' => // The string without the quotes (', ")
         value.substring(1, value.length - 1),
-      'Vector2' =>
-        'Vector2(${parseVector2(value)!.$1}, ${parseVector2(value)!.$2})',
+      'Vector2' => Vector2(parseVector2(value)!.$1, parseVector2(value)!.$2),
       'Map' => json.decode(value) as Map,
       _ => value,
     };

@@ -8,6 +8,7 @@ class SceneLevelOne extends $SceneLevelOne {
     super.onLoad();
 
     add(circle);
+    add(Title);
   }
 
   bool _upping = false;

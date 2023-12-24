@@ -71,7 +71,7 @@ void listen(WebSocketChannel channel, dynamic message) {
         return;
       } else {
         print(
-          'Setting property ${message.property} to ${message.value} of $component',
+          'Setting property ${message.property} to ${message.value} (${message.type}) of $component',
         );
         FlameWorkspaceCore.instance.setPropertyValue(
           // If the component type is Component<SubType>, we only want the
