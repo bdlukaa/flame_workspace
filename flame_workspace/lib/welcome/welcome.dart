@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flame_workspace/project/import.dart';
 import 'package:flame_workspace/project/project.dart';
 import 'package:flutter/material.dart';
 
@@ -34,9 +35,12 @@ class WelcomeView extends StatelessWidget {
                 dialogTitle: 'Open existing project',
                 lockParentWindow: true,
               );
-              if (directory != null && context.mounted) {
-                final project = importProject(Directory(directory));
-                openProject(context, project);
+              if (directory != null) {
+                final project =
+                    await ProjectImporter.import(Directory(directory));
+                if (context.mounted) {
+                  openProject(context, project);
+                }
               }
             },
           ),

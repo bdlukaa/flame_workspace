@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
-import 'package:yaml/yaml.dart';
 
 class DartDependency {
   /// The name of the dependency.
@@ -95,39 +94,6 @@ class FlameProject {
   Iterable<File> get assets => Directory(path.join(location.path, 'assets'))
       .listSync(recursive: true)
       .whereType<File>();
-}
-
-FlameProject importProject(Directory location) {
-  final files = location.listSync(recursive: true);
-
-  if (!files.any((file) => file.path.endsWith('pubspec.yaml'))) {
-    throw Exception('No pubspec.yaml file found in the project.');
-  }
-  if (!files.any((file) => file.path.endsWith('flame_configuration.yaml'))) {
-    throw Exception('No flame_configuration.yaml file found in the project.');
-  }
-
-  final configContent = File(files
-          .firstWhere((file) => file.path.endsWith('flame_configuration.yaml'))
-          .path)
-      .readAsStringSync();
-
-  var doc = loadYaml(configContent) as Map;
-  final name = doc['project_name'];
-
-  if (name == null) {
-    throw Exception('No name found in the pubspec.yaml file.');
-  }
-
-  final organization = doc['organization'] ?? name;
-  final initialScene = doc['initial_scene'] ?? 'MyScene';
-
-  return FlameProject(
-    name: name,
-    organization: organization,
-    location: location,
-    initialScene: initialScene,
-  );
 }
 
 void openProject(BuildContext context, FlameProject project) {
