@@ -93,9 +93,9 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
   }
 
   void emitInput(String input) {
-    assert(isReady, 'Can not input something if the process is not ready');
-
-    _runProcess!.stdin.writeln(input);
+    if (isReady) {
+      _runProcess?.stdin.writeln(input);
+    }
   }
 
   /// Runs the project.
