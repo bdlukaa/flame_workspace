@@ -12,8 +12,8 @@ import 'writer.dart';
 class ComponentHelper {
   final FlameComponentObject component;
   final FlameSceneObject scene;
-  final List<SceneResult> scenes;
-  final List<ComponentResult> components;
+  final List<IndexedScene> scenes;
+  final List<IndexedComponent> components;
 
   const ComponentHelper({
     required this.component,

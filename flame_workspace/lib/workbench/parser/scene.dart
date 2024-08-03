@@ -14,8 +14,8 @@ import 'writer.dart';
 
 class SceneHelper {
   final FlameSceneObject scene;
-  final List<SceneResult> scenes;
-  final List<ComponentResult> components;
+  final List<IndexedScene> scenes;
+  final List<IndexedComponent> components;
   final FlameProjectRunner runner;
 
   const SceneHelper({
@@ -37,7 +37,7 @@ class SceneHelper {
     );
   }
 
-  SceneResult get sceneResult =>
+  IndexedScene get sceneResult =>
       scenes.firstWhere((e) => e.$1.name == scene.name);
 
   Future<void> renameDeclaration(String newName) async {
@@ -77,7 +77,7 @@ class SceneHelper {
   ///
   /// This function will declare the component above the `onLoad` method and
   /// add the component in the `onLoad` method.
-  Future<void> declareComponent(AddComponentResult result) async {
+  Future<void> declareComponent(AddIndexedComponent result) async {
     final helper = CompilationUnitHelper(
       indexed: sceneResult.$2,
       unit: sceneResult.$3,

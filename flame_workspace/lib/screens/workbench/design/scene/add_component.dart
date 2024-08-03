@@ -11,14 +11,14 @@ import '../component_view.dart';
 import '../../workbench_view.dart';
 import 'scene_view.dart';
 
-typedef AddComponentResult = (
+typedef AddIndexedComponent = (
   FlameComponentObject component,
   String declarationName,
   Map<String, String> parameters
 );
 
-Future<AddComponentResult?> showAddComponentDialog(BuildContext context) {
-  return showModalBottomSheet<AddComponentResult>(
+Future<AddIndexedComponent?> showAddComponentDialog(BuildContext context) {
+  return showModalBottomSheet<AddIndexedComponent>(
     context: context,
     isScrollControlled: true,
     builder: (_) {
@@ -392,7 +392,7 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
               alignment: Alignment.centerRight,
               child: FilledButton(
                 onPressed: () {
-                  Navigator.of(context).pop<AddComponentResult>((
+                  Navigator.of(context).pop<AddIndexedComponent>((
                     widget.selectedComponent,
                     declaredName,
                     parameters,

@@ -74,13 +74,13 @@ class FlameProjectState with ChangeNotifier {
     });
   }
 
-  final scenes = <SceneResult>[];
+  final scenes = <IndexedScene>[];
   FlameSceneObject get currentScene => scenes.map((e) => e.$1).firstWhere(
         (scene) => scene.name == project.initialScene,
         orElse: () => scenes.first.$1,
       );
 
-  final components = <ComponentResult>[];
+  final components = <IndexedComponent>[];
 
   FlameComponentObject? _selectedComponent;
   FlameComponentObject? get selectedComponent => _selectedComponent;
@@ -91,7 +91,7 @@ class FlameProjectState with ChangeNotifier {
 
   bool isIndexing = false;
 
-  ProjectIndexResult? indexed;
+  IndexedProject? indexed;
 
   /// Indexes the current project.
   ///
@@ -132,14 +132,14 @@ class FlameProjectState with ChangeNotifier {
     notifyListeners();
   }
 
-  static Future<(ProjectIndexResult?, List<ComponentResult>, List<SceneResult>)>
+  static Future<(IndexedProject?, List<IndexedComponent>, List<IndexedScene>)>
       _indexProject(Map data) async {
     final project = data['project'] as FlameProject;
     final includeOnly = data['includeOnly'] as Iterable<String>?;
     final onlyParse = data['onlyParse'] as bool;
-    var indexed = data['indexed'] as ProjectIndexResult?;
-    var components = <ComponentResult>[];
-    var scenes = <SceneResult>[];
+    var indexed = data['indexed'] as IndexedProject?;
+    var components = <IndexedComponent>[];
+    var scenes = <IndexedScene>[];
 
     if (!onlyParse) {
       final result = await ProjectIndexer.indexProject(

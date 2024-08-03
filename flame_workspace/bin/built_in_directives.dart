@@ -43,7 +43,7 @@ Future<void> getAll() async {
 
   if (response.statusCode == 200) {
     final files = (jsonDecode(response.body) as List).cast<Map>();
-    ProjectIndexResult indexed = [];
+    IndexedProject indexed = [];
     await Future.wait([
       for (final file in files)
         () async {
@@ -111,7 +111,7 @@ final builtInComponents = <FlameComponentObject>[
   }
 }
 
-Future<ProjectIndexResult> forFile(String path) async {
+Future<IndexedProject> forFile(String path) async {
   print('Getting for file $path');
   final response = await http.get(
     Uri.parse(
@@ -134,7 +134,7 @@ Future<ProjectIndexResult> forFile(String path) async {
 
     // paths.removeRange(5, paths.length - 1);
 
-    ProjectIndexResult indexed = [];
+    IndexedProject indexed = [];
 
     // Get all the files in the /components lib
 

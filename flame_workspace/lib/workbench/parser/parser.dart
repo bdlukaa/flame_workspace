@@ -13,13 +13,13 @@ import 'package:flame_workspace_core/utils.dart';
 import '../../compilation_unit_helper.dart';
 import '../project/objects/built_in_components.dart';
 
-typedef ProjectIndexResult = List<(IndexedUnit indexed, CompilationUnit unit)>;
-typedef ComponentResult = (
+typedef IndexedProject = List<(IndexedUnit indexed, CompilationUnit unit)>;
+typedef IndexedComponent = (
   FlameComponentObject component,
   IndexedUnit indexedUnit,
   CompilationUnit unit
 );
-typedef SceneResult = (
+typedef IndexedScene = (
   FlameSceneObject scene,
   IndexedUnit indexedUnit,
   CompilationUnit unit
@@ -32,14 +32,14 @@ class ProjectIndexer {
   ///
   /// If [includeOnly] is provided, only the files that are in the list will be
   /// indexed.
-  static Future<ProjectIndexResult> indexProject(
+  static Future<IndexedProject> indexProject(
     Directory libDir, [
     Iterable<String>? includeOnly,
   ]) async {
     // avoiding print because we can not import flutter to use it on the /bin folder
     // ignore: avoid_print
     print('Indexing project at ${libDir.path} including only $includeOnly');
-    final ProjectIndexResult files = <(IndexedUnit, CompilationUnit)>[];
+    final IndexedProject files = <(IndexedUnit, CompilationUnit)>[];
 
     libDir = Directory(path.join(libDir.path, 'lib'));
 
@@ -65,13 +65,13 @@ class ProjectIndexer {
   ///
   /// [components] represents all the components in the project. If `null`, the
   /// components will be searched for.
-  static Iterable<SceneResult> scenesFrom(
-    ProjectIndexResult indexed, [
-    Iterable<ComponentResult>? components,
+  static Iterable<IndexedScene> scenesFrom(
+    IndexedProject indexed, [
+    Iterable<IndexedComponent>? components,
   ]) {
     components ??= ProjectIndexer.componentsFrom(indexed);
 
-    final scenes = <SceneResult>[];
+    final scenes = <IndexedScene>[];
     for (final index in indexed) {
       final file = index.$1;
       final unit = index.$2;
@@ -144,8 +144,8 @@ class ProjectIndexer {
   }
 
   /// Returns all the components in the project and its compilation unit.
-  static Iterable<ComponentResult> componentsFrom(ProjectIndexResult indexed) {
-    final components = <ComponentResult>[];
+  static Iterable<IndexedComponent> componentsFrom(IndexedProject indexed) {
+    final components = <IndexedComponent>[];
 
     for (final index in indexed) {
       final indexedUnit = index.$1;
@@ -307,7 +307,7 @@ class ProjectIndexer {
 
   /// Returns all the top level constants and variables.
   static List<(Map<String, dynamic>, IndexedUnit, CompilationUnit)> topLevel(
-    ProjectIndexResult indexed,
+    IndexedProject indexed,
   ) {
     final result = <(Map<String, dynamic>, IndexedUnit, CompilationUnit)>[];
 
