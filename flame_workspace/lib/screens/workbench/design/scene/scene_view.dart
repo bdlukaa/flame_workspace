@@ -1,3 +1,4 @@
+import 'package:flame_workspace_core/communication/messages.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../workbench/parser/scene.dart';
@@ -6,6 +7,9 @@ import '../../../../widgets/tree_view.dart';
 import '../../workbench_view.dart';
 import 'add_component.dart';
 
+/// Finds the icon for the given component type.
+///
+/// If the component type is not found, it returns null.
 IconData? iconForComponent(String componentType) {
   return switch (componentType) {
     'CameraComponent' => Icons.videocam_rounded,
@@ -125,7 +129,8 @@ class _SceneViewState extends State<SceneView> {
                   child: const Icon(Icons.add),
                   onTap: () async {
                     final result = await showAddComponentDialog(context);
-                    if (result != null && mounted) {
+
+                    if (result != null && context.mounted) {
                       if (!sceneHelper.hasComponent(result.$2)) {
                         await sceneHelper.declareComponent(result);
                         sceneHelper.addComponent(result.$2);
@@ -164,7 +169,10 @@ class _SceneViewState extends State<SceneView> {
                             start: toggleBoxWidth,
                           ),
                           onTap: () {
-                            // design.onSceneSelected(scene);
+                            workbench.runner.send(
+                              WorkbenchMessages.setScene,
+                              SceneChangedMessage(scene: scene.name).toMap(),
+                            );
                             setState(() => choosingScene = false);
                           },
                         );
