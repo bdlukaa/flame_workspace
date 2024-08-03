@@ -3,28 +3,29 @@ import 'dart:io';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:dart_style/dart_style.dart';
 
-/// A class that modifies the files.
+/// A class that modifies files.
 ///
-/// This is used by the IDE to make direct edits to the files. See the underlaying
-/// methods for more information.
+/// This is used by the IDE to make direct edits to the files.
+///
+/// The `add-` functions are used to add new code to a Dart string.
+///
+/// The `write-` functions are used to write the new code to a Dart file.
+///
+/// See the documentation for each method for more information.
 class Writer {
   final CompilationUnit unit;
 
   const Writer({required this.unit});
 
-  @Deprecated('Use Writer.formatString instead before saving the file.')
-  static Future<void> formatFile(String filePath) {
-    return Process.run('dart', ['format', filePath], runInShell: true);
-  }
-
-  static String formatString(String content) {
+  /// Formats a dart string.
+  static String formatDartString(String content) {
     final fomratter = DartFormatter();
     return fomratter.format(content);
   }
 
-  /// Writes [content] to [file] and formats it.
+  /// Formats [content] and writes it to [file].
   static Future<void> writeFormatted(File file, String content) {
-    return file.writeAsString(formatString(content));
+    return file.writeAsString(formatDartString(content));
   }
 
   /// Whether [className] has a mixin named [mixinName].
@@ -56,14 +57,14 @@ class Writer {
     final file = File(filePath);
     var text = await file.readAsString();
 
-    // If there is already
+    // If there is already a "with" clause, add the mixin to it
     if (cls.withClause != null) {
       final clause = cls.withClause!;
       final beforeOffset = text.substring(0, clause.end);
       final afterOffset = text.substring(clause.end);
       text = '$beforeOffset, $mixinName $afterOffset';
     }
-    // If there is no with clause, add it
+    // If there is no with clause, add the mixin to the class declaration
     else {
       final lbo = cls.leftBracket.offset;
       final beforeOffset = text.substring(0, lbo);
