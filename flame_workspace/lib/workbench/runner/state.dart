@@ -3,10 +3,11 @@ library project_state;
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flame_workspace/workbench/generators/properties_generator.dart';
+import 'package:flame_workspace/workbench/generators/scene_generator.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 
-import '../parser/generator.dart';
 import '../parser/parser.dart';
 import '../project/objects/built_in_components.dart';
 import '../project/objects/component.dart';
