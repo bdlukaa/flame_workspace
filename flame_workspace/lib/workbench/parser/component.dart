@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:flame_workspace/compilation_unit_helper.dart';
-import 'package:flame_workspace/parser/parser.dart';
-import 'package:flame_workspace/project/objects/component.dart';
-import 'package:flame_workspace/project/objects/scene.dart';
+import 'package:flame_workspace/workbench/parser/parser.dart';
+import 'package:flame_workspace/workbench/project/objects/component.dart';
+import 'package:flame_workspace/workbench/project/objects/scene.dart';
 import 'package:flame_workspace_core/utils.dart';
 
 import 'writer.dart';

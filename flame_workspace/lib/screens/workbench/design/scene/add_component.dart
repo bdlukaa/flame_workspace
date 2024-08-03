@@ -4,8 +4,8 @@ import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
 import 'package:recase/recase.dart';
 
-import '../../../../project/objects/built_in_components.dart';
-import '../../../../project/objects/component.dart';
+import '../../../../workbench/project/objects/built_in_components.dart';
+import '../../../../workbench/project/objects/component.dart';
 import '../../../../widgets/tree_view.dart';
 import '../component_view.dart';
 import '../../workbench_view.dart';

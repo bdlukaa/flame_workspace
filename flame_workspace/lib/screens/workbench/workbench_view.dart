@@ -4,10 +4,10 @@ import 'package:window_manager/window_manager.dart';
 
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 
-import '../../project/objects/component.dart';
-import '../../project/project.dart';
-import '../../runner/runner.dart';
-import '../../runner/state.dart';
+import '../../workbench/project/objects/component.dart';
+import '../../workbench/project/project.dart';
+import '../../workbench/runner/runner.dart';
+import '../../workbench/runner/state.dart';
 import '../../widgets/inked_icon_button.dart';
 import 'assets/assets_view.dart';
 import 'configuration/configuration_view.dart';

@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flame_workspace/project/project.dart';
+import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:flame_workspace_core/utils.dart';
 import 'package:yaml/yaml.dart';
 

@@ -4,13 +4,13 @@ import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:dartdoc_json/dartdoc_json.dart' as dartdoc;
-import 'package:flame_workspace/project/objects/component.dart';
-import 'package:flame_workspace/project/objects/scene.dart';
+import 'package:flame_workspace/workbench/project/objects/component.dart';
+import 'package:flame_workspace/workbench/project/objects/scene.dart';
 import 'package:path/path.dart' as path;
 
 import 'package:flame_workspace_core/utils.dart';
 
-import '../compilation_unit_helper.dart';
+import '../../compilation_unit_helper.dart';
 import '../project/objects/built_in_components.dart';
 
 typedef ProjectIndexResult = List<(IndexedUnit indexed, CompilationUnit unit)>;

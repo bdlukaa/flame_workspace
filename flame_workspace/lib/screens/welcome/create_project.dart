@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:flame_workspace/project/project.dart';
-import 'package:flame_workspace/project/project_creator.dart';
+import 'package:flame_workspace/workbench/project/project.dart';
+import 'package:flame_workspace/workbench/project/project_creator.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:recase/recase.dart';

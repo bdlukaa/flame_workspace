@@ -1,6 +1,7 @@
 import 'dart:io';
-import 'package:flame_workspace/parser/parser.dart';
-import 'package:flame_workspace/project/project_template.dart' as template;
+import 'package:flame_workspace/workbench/parser/parser.dart';
+import 'package:flame_workspace/workbench/project/project_template.dart'
+    as template;
 import 'package:path/path.dart' as path;
 import 'package:recase/recase.dart';
 

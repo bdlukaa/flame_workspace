@@ -4,7 +4,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flame_workspace_core/utils.dart';
 
-import '../../../parser/component.dart';
+import '../../../workbench/parser/component.dart';
 import 'scene/scene_properties.dart';
 import '../workbench_view.dart';
 

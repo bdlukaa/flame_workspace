@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:flame_workspace/compilation_unit_helper.dart';
-import 'package:flame_workspace/parser/imports.dart';
-import 'package:flame_workspace/parser/writer.dart';
-import 'package:flame_workspace/project/objects/component.dart';
-import 'package:flame_workspace/project/objects/scene.dart';
-import 'package:flame_workspace/project/project.dart';
+import 'package:flame_workspace/workbench/parser/imports.dart';
+import 'package:flame_workspace/workbench/parser/writer.dart';
+import 'package:flame_workspace/workbench/project/objects/component.dart';
+import 'package:flame_workspace/workbench/project/objects/scene.dart';
+import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:path/path.dart' as path;
 import 'package:recase/recase.dart';
 

@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flame_workspace/project/import.dart';
-import 'package:flame_workspace/project/project.dart';
+import 'package:flame_workspace/workbench/project/import.dart';
+import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:flutter/material.dart';
 
 import 'create_project.dart';

@@ -1,4 +1,4 @@
-import 'package:flame_workspace/project/project.dart';
+import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';

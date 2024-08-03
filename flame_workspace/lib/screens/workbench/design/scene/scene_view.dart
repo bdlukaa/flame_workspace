@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../parser/scene.dart';
-import '../../../../project/objects/component.dart';
+import '../../../../workbench/parser/scene.dart';
+import '../../../../workbench/project/objects/component.dart';
 import '../../../../widgets/tree_view.dart';
 import '../../workbench_view.dart';
 import 'add_component.dart';

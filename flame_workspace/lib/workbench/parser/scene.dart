@@ -2,14 +2,14 @@ import 'dart:io';
 
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:flame_workspace/compilation_unit_helper.dart';
-import 'package:flame_workspace/parser/parser.dart';
-import 'package:flame_workspace/project/objects/scene.dart';
-import 'package:flame_workspace/runner/runner.dart';
+import 'package:flame_workspace/workbench/parser/parser.dart';
+import 'package:flame_workspace/workbench/project/objects/scene.dart';
+import 'package:flame_workspace/workbench/runner/runner.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flame_workspace_core/utils.dart';
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
 
-import '../screens/workbench/design/scene/add_component.dart';
+import '../../screens/workbench/design/scene/add_component.dart';
 import 'writer.dart';
 
 class SceneHelper {
