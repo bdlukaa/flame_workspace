@@ -1,14 +1,14 @@
-import 'package:flame_workspace/workbench/design/script_editor.dart';
+import 'package:flame_workspace/screens/workbench/design/script_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 
-import '../project/objects/component.dart';
-import '../project/project.dart';
-import '../runner/runner.dart';
-import '../runner/state.dart';
-import '../widgets/inked_icon_button.dart';
+import '../../project/objects/component.dart';
+import '../../project/project.dart';
+import '../../runner/runner.dart';
+import '../../runner/state.dart';
+import '../../widgets/inked_icon_button.dart';
 import 'assets/assets_view.dart';
 import 'configuration/configuration_view.dart';
 import 'design/design.dart';

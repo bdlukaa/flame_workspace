@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../../widgets/tree_view.dart';
+import '../../../widgets/tree_view.dart';
 import '../workbench_view.dart';
 
 class ConfigurationView extends StatefulWidget {

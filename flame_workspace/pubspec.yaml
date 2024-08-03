@@ -36,7 +36,7 @@ dependencies:
   process_run: ^0.13.1
 
   # UI
-  flutter_colorpicker: ^1.0.3
+  flutter_colorpicker: ^1.2.0
   auto_size_text: ^3.0.0
   google_fonts: ^6.1.0
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../parser/parser.dart';
-import '../../project/objects/built_in_components.dart';
+import '../../../parser/parser.dart';
+import '../../../project/objects/built_in_components.dart';
 import '../design/scene/scene_view.dart';
 import '../workbench_view.dart';
 
