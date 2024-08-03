@@ -159,10 +159,10 @@ class FlameProjectState with ChangeNotifier {
     if (indexed != null) {
       components
         ..clear()
-        ..addAll(ProjectIndexer.components(indexed));
+        ..addAll(ProjectIndexer.componentsFrom(indexed));
       scenes
         ..clear()
-        ..addAll(ProjectIndexer.scenes(indexed));
+        ..addAll(ProjectIndexer.scenesFrom(indexed));
     }
 
     if ((includeOnly == null || includeOnly.isEmpty) && !onlyParse) {

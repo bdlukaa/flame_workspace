@@ -28,7 +28,10 @@ typedef SceneResult = (
 class ProjectIndexer {
   const ProjectIndexer._();
 
-  /// Indexes a project at the given [libDir]
+  /// Indexes a project at the given [libDir].
+  ///
+  /// If [includeOnly] is provided, only the files that are in the list will be
+  /// indexed.
   static Future<ProjectIndexResult> indexProject(
     Directory libDir, [
     Iterable<String>? includeOnly,
@@ -60,23 +63,27 @@ class ProjectIndexer {
 
   /// Returns all the scenes in the project
   ///
-  /// `components` represents all the components in the project. If null, the
+  /// [components] represents all the components in the project. If `null`, the
   /// components will be searched for.
-  static Iterable<SceneResult> scenes(
+  static Iterable<SceneResult> scenesFrom(
     ProjectIndexResult indexed, [
     Iterable<ComponentResult>? components,
   ]) {
-    components ??= ProjectIndexer.components(indexed);
+    components ??= ProjectIndexer.componentsFrom(indexed);
 
     final scenes = <SceneResult>[];
     for (final index in indexed) {
       final file = index.$1;
       final unit = index.$2;
+
+      // If the file has no declarations, we skip it.
       if (file['declarations'] == null) continue;
+
       final declarations = (file['declarations'] as List)
           .cast<Map>()
           .map((e) => e as IndexedUnit);
       scenes.addAll(declarations.where((d) {
+        // Only add the classes that extend FlameScene
         return d['kind'] == 'class' && d['extends'] == 'FlameScene';
       }).map((d) {
         final members = (d['members'] as List).cast<Map>();
@@ -137,7 +144,7 @@ class ProjectIndexer {
   }
 
   /// Returns all the components in the project and its compilation unit.
-  static Iterable<ComponentResult> components(ProjectIndexResult indexed) {
+  static Iterable<ComponentResult> componentsFrom(ProjectIndexResult indexed) {
     final components = <ComponentResult>[];
 
     for (final index in indexed) {

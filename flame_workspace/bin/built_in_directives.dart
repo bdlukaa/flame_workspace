@@ -67,7 +67,7 @@ Future<void> getAll() async {
 
     // First, get all the components
     var components =
-        ProjectIndexer.components(indexed).map((e) => e.$1).toList();
+        ProjectIndexer.componentsFrom(indexed).map((e) => e.$1).toList();
 
     // Remove duplicates
     for (final component in List<FlameComponentObject>.from(components)) {
