@@ -197,10 +197,10 @@ packages:
     dependency: "direct main"
     description:
       name: dartdoc_json
-      sha256: "423df03f4b41085421f5d87e706786c02b7143c4c7f2052f9dfe06ed0e932aa3"
+      sha256: f51bcf7dc33f13c81d1afae935c953353eccacd0821a1e761b477ac70e867ec1
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.0"
+    version: "0.4.0"
   fake_async:
     dependency: transitive
     description:

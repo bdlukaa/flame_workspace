@@ -5,6 +5,7 @@ import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:dartdoc_json/dartdoc_json.dart' as dartdoc;
 import 'package:flame_workspace/workbench/project/objects/component.dart';
+import 'package:flame_workspace/workbench/project/objects/mixin.dart';
 import 'package:flame_workspace/workbench/project/objects/scene.dart';
 import 'package:path/path.dart' as path;
 
@@ -21,6 +22,11 @@ typedef IndexedComponent = (
 );
 typedef IndexedScene = (
   FlameSceneObject scene,
+  IndexedUnit indexedUnit,
+  CompilationUnit unit
+);
+typedef IndexedMixin = (
+  FlameMixin mixin,
   IndexedUnit indexedUnit,
   CompilationUnit unit
 );
@@ -327,5 +333,42 @@ class ProjectIndexer {
     }
 
     return result;
+  }
+
+  /// Returns all the mixins in the project.
+  static Iterable<IndexedMixin> mixinsFrom(IndexedProject indexed) {
+    final mixins = <IndexedMixin>[];
+
+    for (final index in indexed) {
+      final indexedUnit = index.$1;
+      final unit = index.$2;
+      if (indexedUnit['declarations'] == null) continue;
+      final declarations = (indexedUnit['declarations'] as List)
+          .cast<Map>()
+          .map((e) => e as IndexedUnit);
+
+      mixins.addAll(declarations.where((d) {
+        return d['kind'] == 'mixin';
+      }).map((mixin) {
+        final mixinName = mixin['name'] as String;
+        final typeParameters = List<Map>.from(mixin['typeParameters'] ?? [])
+            .map<MixinType>((mixin) {
+          return (mixin['name'], mixin['extends']);
+        }).toList();
+
+        return (
+          FlameMixin(
+            name: mixinName,
+            types: typeParameters,
+            isComponentRestricted: false,
+            isSceneRestricted: false,
+          ),
+          indexedUnit,
+          unit,
+        );
+      }));
+    }
+
+    return mixins;
   }
 }
