@@ -132,7 +132,7 @@ class ProjectIndexer {
 
     for (final scene in scenes) {
       scene.$1.script = scenes.firstWhereOrNull((s) {
-        return s.$1.name == scene.$1.name.replaceFirst(r'$', '');
+        return r'$s.$1.name' == scene.$1.name;
       })?.$1;
     }
 

@@ -24,11 +24,11 @@ import 'package:template/generated/scenes/scene_level_one.dart';
 
 void setScene(String sceneName) {
   switch (sceneName) {
-    case r'SceneLevelTwo':
-      setSceneSceneLevelTwo();
+    case r'$SceneLevelTwo':
+      setScene$SceneLevelTwo();
       break;
-    case r'SceneLevelOne':
-      setSceneSceneLevelOne();
+    case r'$SceneLevelOne':
+      setScene$SceneLevelOne();
       break;
     default:
       throw ArgumentError.value(sceneName, 'Scene not found');
