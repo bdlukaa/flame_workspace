@@ -9,6 +9,9 @@ import 'package:flame/debug.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/experimental.dart';
 import 'package:flame/events.dart';
+import 'package:flame/game.dart';
+import 'package:flame/input.dart';
+import 'package:flame/palette.dart';
 import 'package:flame/parallax.dart';
 import 'package:flame/particles.dart';
 import 'package:flame/layout.dart';
@@ -21,11 +24,11 @@ import 'package:template/generated/scenes/scene_level_one.dart';
 
 void setScene(String sceneName) {
   switch (sceneName) {
-    case r'$SceneLevelTwo':
-      setScene$SceneLevelTwo();
+    case r'SceneLevelTwo':
+      setSceneSceneLevelTwo();
       break;
-    case r'$SceneLevelOne':
-      setScene$SceneLevelOne();
+    case r'SceneLevelOne':
+      setSceneSceneLevelOne();
       break;
     default:
       throw ArgumentError.value(sceneName, 'Scene not found');

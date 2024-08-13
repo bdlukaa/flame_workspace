@@ -64,6 +64,38 @@ class ScenePropertiesView extends StatelessWidget {
           ],
         ),
         const Spacer(),
+        Text('Script', style: theme.textTheme.labelLarge),
+        ComponentSectionCard(
+          title: 'Modifiers',
+          trailing: '${scene.script?.modifiers.length ?? 0}',
+          children: [
+            for (final mixin in scene.script?.modifiers ?? [])
+              PropertyField(
+                name: 'Name',
+                value: mixin.name,
+                type: '$String',
+                editable: false,
+              ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Center(
+                child: OutlinedButton(
+                  style: ButtonStyle(
+                    shape: WidgetStateProperty.all(
+                      const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
+                      ),
+                    ),
+                  ),
+                  onPressed: () {
+                    // TODO: add modifiers
+                  },
+                  child: const Text('Add modifier'),
+                ),
+              ),
+            ),
+          ],
+        ),
         ComponentSectionCard(
           title: 'Script',
           trailingWidget: InkedIconButton(

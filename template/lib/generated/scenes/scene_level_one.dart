@@ -9,6 +9,9 @@ import 'package:flame/debug.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/experimental.dart';
 import 'package:flame/events.dart';
+import 'package:flame/game.dart';
+import 'package:flame/input.dart';
+import 'package:flame/palette.dart';
 import 'package:flame/parallax.dart';
 import 'package:flame/particles.dart';
 import 'package:flame/layout.dart';
@@ -16,20 +19,13 @@ import 'package:flame/sprite.dart';
 import 'package:flame/text.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart' hide Viewport;
-import 'package:template/scenes/scene_one/scene_one.dart';
 import 'package:template/scenes/scene_one/scene_one_script.dart';
 
 mixin $SceneLevelOneMixin on FlameScene {
   @override
   void addComponent(String declarationName) {
-    final scene = this as $SceneLevelOne;
+    final scene = this as SceneLevelOne;
     switch (declarationName) {
-      case 'circle':
-        scene.add(scene.circle);
-        break;
-      case 'myComp':
-        scene.add(scene.myComp);
-        break;
       default:
         throw ArgumentError(
           declarationName,
@@ -40,14 +36,8 @@ mixin $SceneLevelOneMixin on FlameScene {
 
   @override
   void removeComponent(String declarationName) {
-    final scene = this as $SceneLevelOne;
+    final scene = this as SceneLevelOne;
     switch (declarationName) {
-      case 'circle':
-        scene.remove(scene.circle);
-        break;
-      case 'myComp':
-        scene.remove(scene.myComp);
-        break;
       default:
         throw ArgumentError(
           declarationName,
@@ -62,6 +52,6 @@ mixin $SceneLevelOneMixin on FlameScene {
   }
 }
 
-void setScene$SceneLevelOne() {
+void setSceneSceneLevelOne() {
   FlameWorkspaceCore.instance.currentScene = SceneLevelOne();
 }

@@ -9,6 +9,9 @@ import 'package:flame/debug.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/experimental.dart';
 import 'package:flame/events.dart';
+import 'package:flame/game.dart';
+import 'package:flame/input.dart';
+import 'package:flame/palette.dart';
 import 'package:flame/parallax.dart';
 import 'package:flame/particles.dart';
 import 'package:flame/layout.dart';
@@ -17,6 +20,7 @@ import 'package:flame/text.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart' hide Viewport;
 import 'package:template/components/my_circle.dart';
+import 'package:template/game.dart';
 
 void setPropertyValue(
   String className,
@@ -73,6 +77,9 @@ void setPropertyValue(
       break;
     case 'Effect':
       setPropertyValueEffect(cls as Effect, propertyName, value);
+      break;
+    case 'FlameGame':
+      setPropertyValueFlameGame(cls as FlameGame, propertyName, value);
       break;
     case 'FpsTextComponent':
       setPropertyValueFpsTextComponent(
@@ -168,6 +175,10 @@ void setPropertyValue(
     case 'ToggleButtonComponent':
       setPropertyValueToggleButtonComponent(
           cls as ToggleButtonComponent, propertyName, value);
+      break;
+    case 'ViewportAwareBoundsBehavior':
+      setPropertyValueViewportAwareBoundsBehavior(
+          cls as ViewportAwareBoundsBehavior, propertyName, value);
       break;
     default:
       throw ArgumentError.value(className, 'Class not found');
@@ -503,6 +514,23 @@ void setPropertyValueEffect(
   }
 }
 
+void setPropertyValueFlameGame(
+  FlameGame cls,
+  String propertyName,
+  dynamic value,
+) {
+  switch (propertyName) {
+    case 'world':
+      cls.world = value as W;
+      break;
+    case 'camera':
+      cls.camera = value as CameraComponent;
+      break;
+    default:
+      throw ArgumentError.value(propertyName, 'Property not found');
+  }
+}
+
 void setPropertyValueFpsTextComponent(
   FpsTextComponent cls,
   String propertyName,
@@ -643,9 +671,6 @@ void setPropertyValueJoystickComponent(
   dynamic value,
 ) {
   switch (propertyName) {
-    case 'margin':
-      cls.margin = value as EdgeInsets;
-      break;
     case 'position':
       cls.position = value as Vector2;
       break;
@@ -1148,11 +1173,11 @@ void setPropertyValueTextElementComponent(
     case 'element':
       cls.element = value as TextElement;
       break;
-    case 'position':
-      cls.position = value as Vector2;
-      break;
     case 'size':
       cls.size = value as Vector2;
+      break;
+    case 'position':
+      cls.position = value as Vector2;
       break;
     case 'scale':
       cls.scale = value as Vector2;
@@ -1247,6 +1272,20 @@ void setPropertyValueToggleButtonComponent(
       break;
     case 'priority':
       cls.priority = value as dynamic;
+      break;
+    default:
+      throw ArgumentError.value(propertyName, 'Property not found');
+  }
+}
+
+void setPropertyValueViewportAwareBoundsBehavior(
+  ViewportAwareBoundsBehavior cls,
+  String propertyName,
+  dynamic value,
+) {
+  switch (propertyName) {
+    case 'boundsShape':
+      cls.boundsShape = value as Shape;
       break;
     default:
       throw ArgumentError.value(propertyName, 'Property not found');

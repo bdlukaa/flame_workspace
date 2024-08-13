@@ -90,12 +90,11 @@ class ProjectIndexer {
           .map((e) => e as IndexedUnit);
       scenes.addAll(declarations.where((d) {
         // Only add the classes that extend FlameScene
-        return d['kind'] == 'class' && d['extends'] == 'FlameScene';
+        // return d['kind'] == 'class' && d['extends'] == 'FlameScene';
+        return d['kind'] == 'class';
       }).map((d) {
         final members = (d['members'] as List).cast<Map>();
-
         final className = d['name'] as String;
-
         final fields = members.where((m) => m['kind'] == 'field');
 
         return (
@@ -106,13 +105,41 @@ class ProjectIndexer {
               fields,
             ),
             filePath: file['source'],
-            unit: (file, unit),
+            unit: index,
+            modifiers:
+                (d['with'] as List<String>? ?? []).map<FlameMixin>((mixin) {
+              return FlameMixin(
+                name: mixin,
+                types: mixin.split('<').map((e) {
+                  final name = e.split(' ').last;
+                  final extendsIndex = name.indexOf('extends');
+                  if (extendsIndex == -1) return (name, null);
+                  return (
+                    name.substring(0, extendsIndex),
+                    name.substring(extendsIndex + 7)
+                  );
+                }).toList(),
+                isComponentRestricted: false,
+                isSceneRestricted: false,
+              );
+            }).toList(),
           ),
           file,
           unit,
         );
       }));
     }
+
+    for (final scene in scenes) {
+      scene.$1.script = scenes.firstWhereOrNull((s) {
+        return s.$1.name == scene.$1.name.replaceFirst(r'$', '');
+      })?.$1;
+    }
+
+    scenes.removeWhere((scene) {
+      return scene.$1.script == null &&
+          scene.$2['declarations'].first['extends'] != 'FlameScene';
+    });
 
     return scenes;
   }
@@ -183,7 +210,7 @@ class ProjectIndexer {
                 member['factory'] != true &&
                 !(member['name'] as String).contains('.')) {
               final parameters =
-                  (member['parameters']['all'] as List).cast<Map>();
+                  (member['parameters']?['all'] as List?)?.cast<Map>() ?? [];
               for (final parameter in parameters) {
                 var name = parameter['name'] as String;
                 var type = parameter['type'] as String?;

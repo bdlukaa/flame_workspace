@@ -18,9 +18,7 @@ class MyGame extends FlameGame with SingleGameInstance, WindowListener {
   }
 
   @override
-  void update(double dt) {
-    // TODO: implement app loop
-
+  Future<void> update(double dt) async {
     super.update(dt);
   }
 
