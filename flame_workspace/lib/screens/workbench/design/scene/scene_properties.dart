@@ -67,7 +67,16 @@ class ScenePropertiesView extends StatelessWidget {
         Text('Script', style: theme.textTheme.labelLarge),
         ComponentSectionCard(
           title: 'Modifiers',
-          trailing: '${scene.script?.modifiers.length ?? 0}',
+          // trailing: ,
+          trailingWidget: Row(children: [
+            Text('${scene.script?.modifiers.length ?? 0}'),
+            const SizedBox(width: 6.0),
+            InkedIconButton(
+              tooltip: 'Add',
+              icon: const Icon(Icons.add, size: 16.0),
+              onTap: () {},
+            )
+          ]),
           children: [
             for (final mixin in scene.script?.modifiers ?? [])
               PropertyField(
@@ -76,24 +85,24 @@ class ScenePropertiesView extends StatelessWidget {
                 type: '$String',
                 editable: false,
               ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Center(
-                child: OutlinedButton(
-                  style: ButtonStyle(
-                    shape: WidgetStateProperty.all(
-                      const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.zero,
-                      ),
-                    ),
-                  ),
-                  onPressed: () {
-                    // TODO: add modifiers
-                  },
-                  child: const Text('Add modifier'),
-                ),
-              ),
-            ),
+            // Padding(
+            //   padding: const EdgeInsets.all(8.0),
+            //   child: Center(
+            //     child: OutlinedButton(
+            //       style: ButtonStyle(
+            //         shape: WidgetStateProperty.all(
+            //           const RoundedRectangleBorder(
+            //             borderRadius: BorderRadius.zero,
+            //           ),
+            //         ),
+            //       ),
+            //       onPressed: () {
+            //         // TODO: add modifiers
+            //       },
+            //       child: const Text('Add modifier'),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
         ComponentSectionCard(

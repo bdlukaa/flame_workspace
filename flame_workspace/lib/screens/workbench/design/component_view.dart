@@ -315,7 +315,11 @@ class ComponentSectionCard extends StatelessWidget {
                 trailing!,
                 style: theme.textTheme.labelSmall,
               ),
-            if (trailingWidget != null) trailingWidget!,
+            if (trailingWidget != null)
+              DefaultTextStyle(
+                style: theme.textTheme.labelSmall!,
+                child: trailingWidget!,
+              ),
           ]),
           ...children,
         ]),

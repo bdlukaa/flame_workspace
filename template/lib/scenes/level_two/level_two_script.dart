@@ -18,7 +18,8 @@ import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart' hide Viewport;
 import 'level_two.dart';
 
-class SceneLevelTwo extends $SceneLevelTwo with HasGameRef {
+class SceneLevelTwo extends $SceneLevelTwo
+    with HasGameRef, HasCollisionDetection {
   @override
   Future<void> onLoad() async {
     super.onLoad();
