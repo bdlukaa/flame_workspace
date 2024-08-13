@@ -22,6 +22,7 @@ class SceneLevelTwo extends $SceneLevelTwo with HasGameRef {
   @override
   Future<void> onLoad() async {
     super.onLoad();
+    add(circleComponent);
   }
 
   @override

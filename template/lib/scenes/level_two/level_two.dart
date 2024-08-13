@@ -24,4 +24,9 @@ class $SceneLevelTwo extends FlameScene with $SceneLevelTwoMixin {
     super.sceneName = 'Level Two',
     super.backgroundColor = const Color(0xFF000000),
   });
+  CircleComponent circleComponent = CircleComponent(
+    key: FlameKey('circleComponent'),
+    radius: 50.0,
+    position: Vector2(20.0, 20.0),
+  );
 }
