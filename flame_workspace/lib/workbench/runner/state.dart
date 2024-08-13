@@ -74,11 +74,16 @@ class FlameProjectState with ChangeNotifier {
     });
   }
 
+  late var _currentSceneName = project.initialScene;
   final scenes = <IndexedScene>[];
   FlameSceneObject get currentScene => scenes.map((e) => e.$1).firstWhere(
-        (scene) => scene.name == project.initialScene,
+        (scene) => scene.name == _currentSceneName,
         orElse: () => scenes.first.$1,
       );
+  set currentScene(FlameSceneObject value) {
+    _currentSceneName = value.name;
+    notifyListeners();
+  }
 
   final components = <IndexedComponent>[];
 

@@ -178,6 +178,7 @@ class _SceneViewState extends State<SceneView> {
                             start: toggleBoxWidth,
                           ),
                           onTap: () {
+                            workbench.state.currentScene = scene;
                             workbench.runner.send(
                               WorkbenchMessages.setScene,
                               SceneChangedMessage(scene: scene.name).toMap(),
