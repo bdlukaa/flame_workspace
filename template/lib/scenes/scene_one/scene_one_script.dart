@@ -1,5 +1,3 @@
-// part of 'scene_one.dart';
-
 import 'package:flame/components.dart';
 
 import 'scene_one.dart';

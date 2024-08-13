@@ -19,8 +19,8 @@ import 'package:flame/sprite.dart';
 import 'package:flame/text.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart' hide Viewport;
-import 'package:template/scenes/scene_one.dart';
-import 'package:template/scenes/scene_one_script.dart';
+import 'package:template/scenes/scene_one/scene_one.dart';
+import 'package:template/scenes/scene_one/scene_one_script.dart';
 
 mixin $SceneLevelOneMixin on FlameScene {
   @override
