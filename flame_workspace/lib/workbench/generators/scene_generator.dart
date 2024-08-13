@@ -55,9 +55,10 @@ import 'package:recase/recase.dart';
 ///
 /// ```
 class SceneGenerator {
-  SceneGenerator._();
+  const SceneGenerator._();
 
-  static String generateForClassDeclaration(ClassDeclaration declaration) {
+  /// Generates the mixin for a class declaration.
+  static String _generateForClassDeclaration(ClassDeclaration declaration) {
     final className = declaration.name.lexeme;
 
     final buffer = StringBuffer();
@@ -114,6 +115,7 @@ class SceneGenerator {
     return buffer.toString();
   }
 
+  /// Writes the file that contains the mixin for the scene.
   static Future<void> writeForScene(
     FlameSceneObject scene,
     FlameProject project,
@@ -142,14 +144,15 @@ class SceneGenerator {
     );
     final classDeclaration = unitHelper.findClass(scene.name)!;
 
-    buffer.writeln(generateForClassDeclaration(classDeclaration));
+    buffer.writeln(_generateForClassDeclaration(classDeclaration));
 
     final file = File(
       path.join(
         project.location.path,
         'lib',
         'generated',
-        'scene_${scene.name.replaceAll(r'$', '').snakeCase}.dart',
+        'scenes',
+        '${scene.name.replaceAll(r'$', '').snakeCase}.dart',
       ),
     );
     if (!(await file.exists())) await file.create(recursive: true);
@@ -188,7 +191,7 @@ class SceneGenerator {
 
     for (final scene in scenes) {
       buffer.writeln(
-        "import 'package:${project.name}/generated/scene_${scene.name.replaceAll(r'$', '').snakeCase}.dart';",
+        "import 'package:${project.name}/generated/scenes/${scene.name.replaceAll(r'$', '').snakeCase}.dart';",
       );
     }
 
@@ -211,5 +214,71 @@ class SceneGenerator {
     );
     if (!(await file.exists())) await file.create(recursive: true);
     await Writer.writeFormatted(file, buffer.toString());
+  }
+
+  /// Creates a new scene file and its script.
+  static Future<void> createScene(FlameProject project, String name) async {
+    final sceneSink = StringBuffer();
+    sceneSink.writeAll([
+      '// ignore_for_file: unused_import',
+      defaultImports,
+      "import 'package:${project.name}/generated/scenes/scene_${name.snakeCase}.dart';",
+      '',
+      '@protected',
+      'class \$Scene${name.pascalCase} extends FlameScene with \$Scene${name.pascalCase}Mixin {',
+      '  \$Scene${name.pascalCase}({',
+      '    super.sceneName = \'$name\',',
+      '    super.backgroundColor = const Color(0xFF000000),',
+      '  });',
+      '',
+      '}',
+    ], '\n');
+
+    final sceneScriptSink = StringBuffer();
+    sceneScriptSink.writeAll([
+      '// ignore_for_file: unused_import',
+      defaultImports,
+      "import '${name.snakeCase}.dart';",
+      '',
+      'class Scene${name.pascalCase} extends \$Scene${name.pascalCase} with HasGameRef {',
+      '  @override',
+      '  Future<void> onLoad() async {',
+      '    super.onLoad();',
+      '    // TODO: Implement onLoad',
+      '  }',
+      '',
+      '  @override',
+      '  Future<void> update(dt) async {',
+      '    super.update(dt);',
+      '    // TODO: Implement update',
+      '  }',
+      '}',
+    ], '\n');
+
+    final sceneFile = File(path.join(
+      project.location.path,
+      'lib',
+      'scenes',
+      name.snakeCase,
+      '${name.snakeCase}.dart',
+    ));
+    final sceneScriptFile = File(path.join(
+      project.location.path,
+      'lib',
+      'scenes',
+      name.snakeCase,
+      '${name.snakeCase}_script.dart',
+    ));
+
+    await Future.wait([
+      if (!(await sceneFile.exists())) sceneFile.create(recursive: true),
+      if (!(await sceneScriptFile.exists()))
+        sceneScriptFile.create(recursive: true),
+    ]);
+
+    // Needs to write the script file first. Otherwise, the import on the
+    //generated file will fail.
+    await Writer.writeFormatted(sceneScriptFile, sceneScriptSink.toString());
+    await Writer.writeFormatted(sceneFile, sceneSink.toString());
   }
 }

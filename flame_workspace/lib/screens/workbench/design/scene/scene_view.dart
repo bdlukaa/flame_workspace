@@ -1,3 +1,4 @@
+import 'package:flame_workspace/workbench/generators/scene_generator.dart';
 import 'package:flame_workspace_core/communication/messages.dart';
 import 'package:flutter/material.dart';
 
@@ -6,6 +7,7 @@ import '../../../../workbench/project/objects/component.dart';
 import '../../../../widgets/tree_view.dart';
 import '../../workbench_view.dart';
 import 'add_component.dart';
+import 'create_scene.dart';
 
 /// Finds the icon for the given component type.
 ///
@@ -117,8 +119,15 @@ class _SceneViewState extends State<SceneView> {
                 message: 'Create scene',
                 child: InkWell(
                   child: const Icon(Icons.add),
-                  onTap: () {
-                    // TODO: create scene
+                  onTap: () async {
+                    final sceneName = await showCreateSceneDialog(context);
+
+                    if (sceneName != null && sceneName.isNotEmpty) {
+                      await SceneGenerator.createScene(
+                        workbench.project,
+                        sceneName,
+                      );
+                    }
                   },
                 ),
               )
