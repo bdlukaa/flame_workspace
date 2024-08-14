@@ -1,6 +1,4 @@
 import 'package:flame_workspace_core/flame_workspace_core.dart';
-import 'package:flutter/material.dart';
-import 'package:flame/game.dart';
 
 import 'game.dart';
 import 'generated/properties.dart';

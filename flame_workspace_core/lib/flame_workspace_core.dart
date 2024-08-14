@@ -7,6 +7,8 @@ export 'package:flame_workspace_core/creation/key.dart';
 export 'package:flame_workspace_core/communication/messages.dart';
 export 'package:flame_workspace_core/communication/state.dart';
 
+export 'package:flame_workspace_core/exports.dart';
+
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame_workspace_core/communication/state.dart';

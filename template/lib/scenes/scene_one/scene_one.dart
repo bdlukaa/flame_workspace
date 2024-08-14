@@ -1,7 +1,5 @@
-import 'package:flame/components.dart';
 import 'package:template/components/my_circle.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
-import 'package:flutter/widgets.dart';
 import 'package:template/generated/scenes/scene_scene_level_one.dart';
 
 @protected

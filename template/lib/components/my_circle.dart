@@ -1,7 +1,3 @@
-import 'dart:ui';
-
-import 'package:flame/components.dart';
-
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 
 class MyCircleComponent extends PositionComponent with FlameComponent {
