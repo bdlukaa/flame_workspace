@@ -2,6 +2,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flame_workspace/screens/workbench/design/modifiers_selector.dart';
 import 'package:flame_workspace/widgets/inked_icon_button.dart';
 import 'package:flame_workspace/workbench/generators/scene_generator.dart';
+import 'package:flame_workspace/workbench/parser/writer.dart';
 import 'package:flutter/material.dart';
 
 import '../component_view.dart';
@@ -82,7 +83,14 @@ class ScenePropertiesView extends StatelessWidget {
                     context,
                     scene.script!.modifiers.map((e) => e.name).toList(),
                   );
-                  if (modifier != null) {}
+                  if (modifier != null) {
+                    final writer = Writer(unit: scene.script!.unit.$2);
+                    await writer.writeMixinToClass(
+                      scene.script!.name,
+                      modifier.name,
+                      scene.script!.filePath,
+                    );
+                  }
                 },
               )
             ]),

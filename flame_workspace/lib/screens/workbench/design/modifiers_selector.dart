@@ -56,6 +56,8 @@ class ModifiersSelector extends StatefulWidget {
 class _ModifiersSelectorState extends State<ModifiersSelector> {
   final searchController = TextEditingController();
 
+  FlameMixin? selectedModifier;
+
   @override
   Widget build(BuildContext context) {
     final windowSize = MediaQuery.sizeOf(context);
@@ -64,9 +66,7 @@ class _ModifiersSelectorState extends State<ModifiersSelector> {
       size: Size(windowSize.width * 0.75, windowSize.height * 0.9),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () {
-          // desselect
-        },
+        onTap: () => setState(() => selectedModifier = null),
         child: Column(children: [
           Container(
             height: 48.0,
@@ -100,27 +100,43 @@ class _ModifiersSelectorState extends State<ModifiersSelector> {
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: FilledButton(
-                    onPressed: () {},
-                    // onPressed: selectedComponent == null ? null : onNext,
-                    child: const Text('Next'),
+                    onPressed: selectedModifier == null ? null : onDone,
+                    child: const Text('Done'),
                   ),
                 ),
               ),
             ]),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: builtInMixins.length,
-              itemBuilder: (context, index) {
-                final modifier = builtInMixins[index];
-                if (widget.alreadyAdded.contains(modifier.name)) {
-                  return const SizedBox();
-                }
-                return ListTile(
-                  title: Text(modifier.name),
-                  leading: Icon(iconForModifier(modifier.name)),
-                  onTap: () {
-                    // select
+            child: AnimatedBuilder(
+              animation: searchController,
+              builder: (context, child) {
+                final search = searchController.text.toLowerCase();
+                final mixins = search.isEmpty
+                    ? builtInMixins
+                    : builtInMixins
+                        .where((mixin) =>
+                            mixin.name.toLowerCase().contains(search))
+                        .toList();
+                return ListView.builder(
+                  itemCount: mixins.length,
+                  itemBuilder: (context, index) {
+                    final modifier = mixins[index];
+                    final alreadyAdded =
+                        widget.alreadyAdded.contains(modifier.name);
+                    return ListTile(
+                      leading: Icon(iconForModifier(modifier.name), size: 20.0),
+                      title: Text(modifier.name),
+                      subtitle:
+                          alreadyAdded ? const Text('Already added') : null,
+                      contentPadding: const EdgeInsetsDirectional.symmetric(
+                        horizontal: 24.0,
+                      ),
+                      minTileHeight: 28.0,
+                      selected: selectedModifier == modifier,
+                      enabled: !alreadyAdded,
+                      onTap: () => setState(() => selectedModifier = modifier),
+                    );
                   },
                 );
               },
@@ -129,5 +145,9 @@ class _ModifiersSelectorState extends State<ModifiersSelector> {
         ]),
       ),
     );
+  }
+
+  void onDone() {
+    Navigator.of(context).pop(selectedModifier);
   }
 }
