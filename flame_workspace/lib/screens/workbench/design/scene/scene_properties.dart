@@ -1,4 +1,5 @@
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:flame_workspace/screens/workbench/design/modifiers_selector.dart';
 import 'package:flame_workspace/widgets/inked_icon_button.dart';
 import 'package:flame_workspace/workbench/generators/scene_generator.dart';
 import 'package:flutter/material.dart';
@@ -76,8 +77,12 @@ class ScenePropertiesView extends StatelessWidget {
               InkedIconButton(
                 tooltip: 'Add',
                 icon: const Icon(Icons.add, size: 14.0),
-                onTap: () {
-                  // TODO: attach script
+                onTap: () async {
+                  final modifier = await showModifiersSelectorSheet(
+                    context,
+                    scene.script!.modifiers.map((e) => e.name).toList(),
+                  );
+                  if (modifier != null) {}
                 },
               )
             ]),
