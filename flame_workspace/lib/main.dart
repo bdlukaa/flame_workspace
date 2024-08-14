@@ -34,6 +34,26 @@ class FlameWorkspaceApp extends StatelessWidget {
           shape: RoundedRectangleBorder(),
           margin: EdgeInsets.zero,
         ),
+        outlinedButtonTheme: const OutlinedButtonThemeData(
+          style: ButtonStyle(
+            shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
+          ),
+        ),
+        filledButtonTheme: const FilledButtonThemeData(
+          style: ButtonStyle(
+            shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
+          ),
+        ),
+        elevatedButtonTheme: const ElevatedButtonThemeData(
+          style: ButtonStyle(
+            shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
+          ),
+        ),
+        textButtonTheme: const TextButtonThemeData(
+          style: ButtonStyle(
+            shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
+          ),
+        ),
       ),
       initialRoute: '/',
       routes: {
