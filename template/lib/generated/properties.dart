@@ -521,7 +521,7 @@ void setPropertyValueFlameGame(
 ) {
   switch (propertyName) {
     case 'world':
-      cls.world = value;
+      cls.world = value as dynamic;
       break;
     case 'camera':
       cls.camera = value as CameraComponent;

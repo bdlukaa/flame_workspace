@@ -217,7 +217,11 @@ class SceneGenerator {
   }
 
   /// Creates a new scene file and its script.
-  static Future<void> createScene(FlameProject project, String name) async {
+  static Future<void> createScene(
+    FlameProject project,
+    String name,
+    bool createScript,
+  ) async {
     final sceneSink = StringBuffer();
     sceneSink.writeAll([
       '// ignore_for_file: unused_import',
@@ -272,13 +276,15 @@ class SceneGenerator {
 
     await Future.wait([
       if (!(await sceneFile.exists())) sceneFile.create(recursive: true),
-      if (!(await sceneScriptFile.exists()))
+      if (createScript && !(await sceneScriptFile.exists()))
         sceneScriptFile.create(recursive: true),
     ]);
 
-    // Needs to write the script file first. Otherwise, the import on the
-    //generated file will fail.
-    await Writer.writeFormatted(sceneScriptFile, sceneScriptSink.toString());
+    if (createScript) {
+      // Needs to write the script file first. Otherwise, the import on the
+      // generated file will fail.
+      await Writer.writeFormatted(sceneScriptFile, sceneScriptSink.toString());
+    }
     await Writer.writeFormatted(sceneFile, sceneSink.toString());
   }
 }

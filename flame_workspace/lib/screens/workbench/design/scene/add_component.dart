@@ -311,7 +311,7 @@ class SelectComponentPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Components',
+                      'Flame Components',
                       style: theme.textTheme.labelLarge,
                     ),
                     Text(

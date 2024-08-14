@@ -43,9 +43,6 @@ class ComponentView extends StatelessWidget {
           !transformParameters.contains(p),
     );
 
-    // TODO: Add modifiers - Tappable, TapDetector, CollisionDetector
-    // https://docs.flame-engine.org/latest/flame/inputs/drag_events.html
-
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: ListView(children: [

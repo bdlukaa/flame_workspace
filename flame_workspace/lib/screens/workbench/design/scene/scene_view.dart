@@ -120,12 +120,13 @@ class _SceneViewState extends State<SceneView> {
                 child: InkWell(
                   child: const Icon(Icons.add),
                   onTap: () async {
-                    final sceneName = await showCreateSceneDialog(context);
+                    final response = await showCreateSceneDialog(context);
 
-                    if (sceneName != null && sceneName.isNotEmpty) {
+                    if (response != null) {
                       await SceneGenerator.createScene(
                         workbench.project,
-                        sceneName,
+                        response.name,
+                        response.createScript,
                       );
                     }
                   },

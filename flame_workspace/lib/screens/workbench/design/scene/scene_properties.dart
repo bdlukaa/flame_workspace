@@ -1,5 +1,6 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flame_workspace/widgets/inked_icon_button.dart';
+import 'package:flame_workspace/workbench/project/objects/mixin.dart';
 import 'package:flutter/material.dart';
 
 import '../component_view.dart';
@@ -78,31 +79,13 @@ class ScenePropertiesView extends StatelessWidget {
             )
           ]),
           children: [
-            for (final mixin in scene.script?.modifiers ?? [])
+            for (final mixin in scene.script?.modifiers ?? <FlameMixin>[])
               PropertyField(
                 name: 'Name',
                 value: mixin.name,
                 type: '$String',
                 editable: false,
               ),
-            // Padding(
-            //   padding: const EdgeInsets.all(8.0),
-            //   child: Center(
-            //     child: OutlinedButton(
-            //       style: ButtonStyle(
-            //         shape: WidgetStateProperty.all(
-            //           const RoundedRectangleBorder(
-            //             borderRadius: BorderRadius.zero,
-            //           ),
-            //         ),
-            //       ),
-            //       onPressed: () {
-            //         // TODO: add modifiers
-            //       },
-            //       child: const Text('Add modifier'),
-            //     ),
-            //   ),
-            // ),
           ],
         ),
         ComponentSectionCard(
