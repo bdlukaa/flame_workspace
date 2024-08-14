@@ -58,9 +58,11 @@ class SceneGenerator {
   const SceneGenerator._();
 
   /// Generates the mixin for a class declaration.
-  static String _generateForClassDeclaration(ClassDeclaration declaration) {
-    final className = declaration.name.lexeme;
-
+  static String _generateForClassesDeclaration(
+    ClassDeclaration sceneDeclaration,
+    ClassDeclaration? scriptDeclaration,
+  ) {
+    final className = sceneDeclaration.name.lexeme;
     final buffer = StringBuffer();
 
     buffer.writeln('mixin ${className}Mixin on FlameScene {');
@@ -69,7 +71,8 @@ class SceneGenerator {
     buffer.writeln('  void addComponent(String declarationName) {');
     buffer.writeln('    final scene = this as $className;');
     buffer.writeln('    switch (declarationName) {');
-    for (final field in declaration.members.whereType<FieldDeclaration>()) {
+    for (final field
+        in sceneDeclaration.members.whereType<FieldDeclaration>()) {
       final name = field.fields.variables.first.name.lexeme;
       if (name.startsWith('_')) continue;
       buffer.writeln('      case \'$name\':');
@@ -86,7 +89,8 @@ class SceneGenerator {
     buffer.writeln('  void removeComponent(String declarationName) {');
     buffer.writeln('    final scene = this as $className;');
     buffer.writeln('    switch (declarationName) {');
-    for (final field in declaration.members.whereType<FieldDeclaration>()) {
+    for (final field
+        in sceneDeclaration.members.whereType<FieldDeclaration>()) {
       final name = field.fields.variables.first.name.lexeme;
       if (name.startsWith('_')) continue;
       buffer.writeln('      case \'$name\':');
@@ -105,9 +109,11 @@ class SceneGenerator {
     buffer.writeln('  }');
     buffer.writeln('}');
     buffer.writeln();
-    buffer.writeln('  void setScene$className() {');
+
+    final scriptName = scriptDeclaration?.name.lexeme ?? className;
+    buffer.writeln('  void setScene$scriptName() {');
     buffer.writeln(
-      '    FlameWorkspaceCore.instance.currentScene = ${className.replaceAll(r'$', '')}();',
+      '    FlameWorkspaceCore.instance.currentScene = $scriptName();',
     );
     buffer.writeln('  }');
     buffer.writeln();
@@ -134,17 +140,28 @@ class SceneGenerator {
     buffer.writeln(
       "import 'package:${project.name}${scenePath.replaceAll(r'\', '/')}.dart';",
     );
-    buffer.writeln(
-      "import 'package:${project.name}${scenePath.replaceAll(r'\', '/')}_script.dart';",
-    );
+
+    if (scene.script != null) {
+      final scriptPath = scene.script!.filePath
+          .split(path.join(project.name, 'lib'))
+          .last
+          .replaceAll('.dart', '');
+      buffer.writeln(
+        "import 'package:${project.name}${scriptPath.replaceAll(r'\', '/')}.dart';",
+      );
+    }
 
     final unitHelper = CompilationUnitHelper(
       indexed: scene.unit.$1,
       unit: scene.unit.$2,
     );
     final classDeclaration = unitHelper.findClass(scene.name)!;
+    final scriptDeclaration = unitHelper.findClass(scene.script?.name);
 
-    buffer.writeln(_generateForClassDeclaration(classDeclaration));
+    buffer.writeln(_generateForClassesDeclaration(
+      classDeclaration,
+      scriptDeclaration,
+    ));
 
     final file = File(
       path.join(

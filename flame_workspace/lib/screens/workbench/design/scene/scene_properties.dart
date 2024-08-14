@@ -74,8 +74,10 @@ class ScenePropertiesView extends StatelessWidget {
             const SizedBox(width: 6.0),
             InkedIconButton(
               tooltip: 'Add',
-              icon: const Icon(Icons.add, size: 16.0),
-              onTap: () {},
+              icon: const Icon(Icons.add, size: 14.0),
+              onTap: () {
+                // TODO: attach script
+              },
             )
           ]),
           children: [
@@ -90,21 +92,33 @@ class ScenePropertiesView extends StatelessWidget {
         ),
         ComponentSectionCard(
           title: 'Script',
-          trailingWidget: InkedIconButton(
-            tooltip: 'Edit',
-            icon: const Padding(
-              padding: EdgeInsets.all(2.0),
-              child: Icon(Icons.edit, size: 14.0),
-            ),
-            onTap: workbench.onEditScript,
-          ),
+          trailingWidget: scene.script != null
+              ? InkedIconButton(
+                  tooltip: 'Edit',
+                  icon: const Padding(
+                    padding: EdgeInsets.all(2.0),
+                    child: Icon(Icons.edit, size: 14.0),
+                  ),
+                  onTap: workbench.onEditScript,
+                )
+              : InkedIconButton(
+                  tooltip: 'Add script',
+                  icon: const Padding(
+                    padding: EdgeInsets.all(2.0),
+                    child: Icon(Icons.add, size: 14.0),
+                  ),
+                  onTap: () {},
+                ),
           children: [
-            PropertyField(
-              name: 'Script class',
-              value: scene.scriptClassName,
-              type: '$String',
-              editable: false,
-            ),
+            if (scene.script == null)
+              const Text('No script attached')
+            else
+              PropertyField(
+                name: 'Script class',
+                value: scene.script!.name,
+                type: '$String',
+                editable: false,
+              ),
           ],
         ),
       ]),

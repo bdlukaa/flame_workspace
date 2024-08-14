@@ -22,7 +22,7 @@ class DesignView extends StatelessWidget {
         Expanded(
           child: ScriptEditor(
             key: scriptEditorKey,
-            scriptPath: workbench.state.currentScene.scriptPath,
+            scriptPath: workbench.state.currentScene.script!.filePath,
           ),
         ),
       ]);

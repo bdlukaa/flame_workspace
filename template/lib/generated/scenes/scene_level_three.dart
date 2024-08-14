@@ -20,7 +20,6 @@ import 'package:flame/text.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/widgets.dart' hide Viewport;
 import 'package:template/scenes/level_three/level_three.dart';
-import 'package:template/scenes/level_three/level_three_script.dart';
 
 mixin $SceneLevelThreeMixin on FlameScene {
   @override
@@ -54,5 +53,5 @@ mixin $SceneLevelThreeMixin on FlameScene {
 }
 
 void setScene$SceneLevelThree() {
-  FlameWorkspaceCore.instance.currentScene = SceneLevelThree();
+  FlameWorkspaceCore.instance.currentScene = $SceneLevelThree();
 }

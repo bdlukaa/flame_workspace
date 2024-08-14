@@ -21,8 +21,4 @@ class FlameSceneObject {
     required this.unit,
     this.modifiers = const [],
   });
-
-  String get scriptClassName => name.replaceFirst(r'$', '');
-
-  String get scriptPath => filePath.replaceFirst(r'.dart', '_script.dart');
 }

@@ -66,5 +66,5 @@ mixin $SceneLevelOneMixin on FlameScene {
 }
 
 void setScene$SceneLevelOne() {
-  FlameWorkspaceCore.instance.currentScene = SceneLevelOne();
+  FlameWorkspaceCore.instance.currentScene = $SceneLevelOne();
 }
