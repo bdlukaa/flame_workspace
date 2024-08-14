@@ -1,6 +1,6 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flame_workspace/widgets/inked_icon_button.dart';
-import 'package:flame_workspace/workbench/project/objects/mixin.dart';
+import 'package:flame_workspace/workbench/generators/scene_generator.dart';
 import 'package:flutter/material.dart';
 
 import '../component_view.dart';
@@ -66,30 +66,31 @@ class ScenePropertiesView extends StatelessWidget {
         ),
         const Spacer(),
         Text('Script', style: theme.textTheme.labelLarge),
-        ComponentSectionCard(
-          title: 'Modifiers',
-          // trailing: ,
-          trailingWidget: Row(children: [
-            Text('${scene.script?.modifiers.length ?? 0}'),
-            const SizedBox(width: 6.0),
-            InkedIconButton(
-              tooltip: 'Add',
-              icon: const Icon(Icons.add, size: 14.0),
-              onTap: () {
-                // TODO: attach script
-              },
-            )
-          ]),
-          children: [
-            for (final mixin in scene.script?.modifiers ?? <FlameMixin>[])
-              PropertyField(
-                name: 'Name',
-                value: mixin.name,
-                type: '$String',
-                editable: false,
-              ),
-          ],
-        ),
+        if (scene.script != null)
+          ComponentSectionCard(
+            title: 'Modifiers',
+            // trailing: ,
+            trailingWidget: Row(children: [
+              Text('${scene.script!.modifiers.length}'),
+              const SizedBox(width: 6.0),
+              InkedIconButton(
+                tooltip: 'Add',
+                icon: const Icon(Icons.add, size: 14.0),
+                onTap: () {
+                  // TODO: attach script
+                },
+              )
+            ]),
+            children: [
+              for (final mixin in scene.script!.modifiers)
+                PropertyField(
+                  name: 'Name',
+                  value: mixin.name,
+                  type: '$String',
+                  editable: false,
+                ),
+            ],
+          ),
         ComponentSectionCard(
           title: 'Script',
           trailingWidget: scene.script != null
@@ -107,7 +108,12 @@ class ScenePropertiesView extends StatelessWidget {
                     padding: EdgeInsets.all(2.0),
                     child: Icon(Icons.add, size: 14.0),
                   ),
-                  onTap: () {},
+                  onTap: () {
+                    SceneGenerator.createSceneScript(
+                      workbench.project,
+                      scene.sceneName,
+                    );
+                  },
                 ),
           children: [
             if (scene.script == null)
