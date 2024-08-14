@@ -50,6 +50,29 @@ class AssetsView extends StatelessWidget {
             },
           ),
         ),
+        Text('Game Scripts', style: theme.textTheme.titleMedium),
+        SizedBox(
+          height: 120.0,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: 10,
+            // itemExtent: 80.0,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: const EdgeInsetsDirectional.only(end: 8.0),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Expanded(
+                    child: AspectRatio(
+                      aspectRatio: 9 / 16,
+                      child: Placeholder(),
+                    ),
+                  ),
+                  Text('script_${index + 1}.dart'),
+                ]),
+              );
+            },
+          ),
+        ),
       ]),
     );
   }

@@ -1,3 +1,4 @@
+import 'package:flame_workspace/screens/workbench/project/create_component.dart';
 import 'package:flutter/material.dart';
 
 import '../../../workbench/parser/parser.dart';
@@ -18,26 +19,54 @@ class ProjectView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Project View', style: theme.textTheme.titleSmall),
-          const Expanded(
+          Expanded(
             child: Row(children: [
               Expanded(
                 child: Column(children: [
-                  Text('Top Level constants and variables'),
-                  Expanded(child: TopLevel()),
+                  Text(
+                    'Top Level constants and variables',
+                    style: theme.textTheme.labelLarge,
+                  ),
+                  const Expanded(child: TopLevel()),
                 ]),
               ),
-              VerticalDivider(width: 1.0),
+              const VerticalDivider(width: 1.0),
               Expanded(
                 child: Column(children: [
-                  Text('Components'),
-                  Expanded(child: ComponentsView()),
+                  Row(children: [
+                    const SizedBox(width: 16.0),
+                    Expanded(
+                      child: Text(
+                        'Components',
+                        style: theme.textTheme.labelLarge,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsetsDirectional.symmetric(
+                        vertical: 8.0,
+                        horizontal: 16.0,
+                      ),
+                      child: OutlinedButton(
+                        style: ButtonStyle(
+                          padding: WidgetStateProperty.all(
+                            const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                            ),
+                          ),
+                        ),
+                        onPressed: () => showCreateComponentDialog(context),
+                        child: const Text('Create component'),
+                      ),
+                    ),
+                  ]),
+                  const Expanded(child: ComponentsView()),
                 ]),
               ),
-              VerticalDivider(width: 1.0),
+              const VerticalDivider(width: 1.0),
               Expanded(
                 child: Column(children: [
-                  Text('Scenes'),
-                  Expanded(child: ScenesListView()),
+                  Text('Scenes', style: theme.textTheme.labelLarge),
+                  const Expanded(child: ScenesListView()),
                 ]),
               ),
             ]),

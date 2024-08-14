@@ -1,3 +1,4 @@
+import 'package:flame_workspace/screens/workbench/project/create_component.dart';
 import 'package:flame_workspace/widgets/inked_icon_button.dart';
 import 'package:flame_workspace_core/utils.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
@@ -300,6 +301,28 @@ class SelectComponentPage extends StatelessWidget {
                 ),
                 child: TreeView(nodes: projectComponents),
               ),
+            ),
+            SliverToBoxAdapter(
+              child: Row(children: [
+                const Expanded(child: const Divider()),
+                Padding(
+                  padding: const EdgeInsetsDirectional.symmetric(
+                    vertical: 8.0,
+                    horizontal: 16.0,
+                  ),
+                  child: OutlinedButton(
+                    style: ButtonStyle(
+                      padding: WidgetStateProperty.all(
+                        const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                        ),
+                      ),
+                    ),
+                    onPressed: () => showCreateComponentDialog(context),
+                    child: const Text('Create component'),
+                  ),
+                ),
+              ]),
             ),
             SliverToBoxAdapter(
               child: Padding(
