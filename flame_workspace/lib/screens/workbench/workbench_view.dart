@@ -242,7 +242,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
                     InkedIconButton(
                       onTap: editor?.isSaved ?? false ? null : editor?.save,
                       icon: const Icon(Icons.save, size: 16.0),
-                      tooltip: 'Quit editing',
+                      tooltip: 'Save',
                     ),
                     const SizedBox(width: 8.0),
                     InkedIconButton(

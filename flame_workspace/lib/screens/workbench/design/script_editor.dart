@@ -25,13 +25,13 @@ class ScriptEditorState extends State<ScriptEditor> {
   String? content;
   final controller = TextEditingController();
 
-  late StreamSubscription<FileSystemEvent> editSubscription;
+  StreamSubscription<FileSystemEvent>? editSubscription;
 
   @override
-  void initState() {
-    super.initState();
-
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     file = File(widget.scriptPath);
+    editSubscription?.cancel();
     editSubscription = file.watch().listen((event) {
       if (event is FileSystemModifyEvent && mounted) {
         setState(() {
@@ -47,7 +47,7 @@ class ScriptEditorState extends State<ScriptEditor> {
   @override
   void dispose() {
     controller.dispose();
-    editSubscription.cancel();
+    editSubscription?.cancel();
     super.dispose();
   }
 
