@@ -122,7 +122,7 @@ ${component.components.map(forComponent).join(',\n')}
 
 import 'component.dart';
 
-const builtInComponents = <FlameComponentObject>[
+final builtInComponents = <FlameComponentObject>[
   ${declarations.join(',\n')}
 ];
 ''');
@@ -148,6 +148,7 @@ const builtInComponents = <FlameComponentObject>[
   ],
   isComponentRestricted: ${mixin.isComponentRestricted},
   isSceneRestricted: ${mixin.isSceneRestricted},
+  on: [${mixin.on.map((e) => "'$e'").join(', ')}],
 )""";
   });
 
@@ -160,7 +161,7 @@ const builtInComponents = <FlameComponentObject>[
   await Writer.writeFormatted(mixinFile, '''$generatedFileNotice
 import 'mixin.dart';
 
-final builtInMixins = <FlameMixin>[
+const builtInMixins = <FlameMixin>[
   ${mixinDeclarations.join(',\n')}
 ];
 ''');

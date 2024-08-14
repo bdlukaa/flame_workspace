@@ -121,6 +121,7 @@ class ProjectIndexer {
                 }).toList(),
                 isComponentRestricted: false,
                 isSceneRestricted: false,
+                on: [],
               );
             }).toList(),
           ),
@@ -389,6 +390,7 @@ class ProjectIndexer {
             types: typeParameters,
             isComponentRestricted: false,
             isSceneRestricted: false,
+            on: mixin['on'] ?? [],
           ),
           indexedUnit,
           unit,

@@ -17,10 +17,14 @@ class FlameMixin {
   /// Whether the mixin is restricted to scenes.
   final bool isSceneRestricted;
 
+  /// Describe the classes that the mixin can be applied to.
+  final List<String> on;
+
   const FlameMixin({
     required this.name,
     required this.types,
     required this.isComponentRestricted,
     required this.isSceneRestricted,
+    required this.on,
   });
 }
