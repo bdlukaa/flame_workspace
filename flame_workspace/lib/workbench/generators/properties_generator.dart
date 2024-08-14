@@ -80,7 +80,8 @@ class PropertiesGenerator {
       if (type.startsWith('void Function')) continue;
 
       final name = propertiesNames[i];
-      if (type == 'T') type = 'dynamic';
+      // If type is a single letter, such as T, W, S, B, make it a dynamic type.
+      if (type.length == 1) type = 'dynamic';
       buffer.writeln('    case \'$name\':');
       buffer.writeln('      cls.$name = value as $type;');
       buffer.writeln('      break;');
