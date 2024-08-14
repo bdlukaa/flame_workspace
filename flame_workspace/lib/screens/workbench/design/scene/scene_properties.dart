@@ -79,10 +79,8 @@ class ScenePropertiesView extends StatelessWidget {
                 tooltip: 'Add',
                 icon: const Icon(Icons.add, size: 14.0),
                 onTap: () async {
-                  final modifier = await showModifiersSelectorSheet(
-                    context,
-                    scene.script!.modifiers.map((e) => e.name).toList(),
-                  );
+                  final modifier =
+                      await showModifiersSelectorSheet(context, scene);
                   if (modifier != null) {
                     final writer = Writer(unit: scene.script!.unit.$2);
                     await writer.writeMixinToClass(

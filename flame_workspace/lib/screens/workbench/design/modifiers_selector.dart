@@ -1,15 +1,16 @@
 import 'package:flame_workspace/workbench/project/objects/built_in_mixins.dart';
 import 'package:flame_workspace/workbench/project/objects/mixin.dart';
+import 'package:flame_workspace/workbench/project/objects/scene.dart';
 import 'package:flutter/material.dart';
 
 Future<FlameMixin?> showModifiersSelectorSheet(
   BuildContext context,
-  List<String> alreadyAdded,
+  FlameSceneObject target,
 ) async {
   return showModalBottomSheet<FlameMixin>(
     context: context,
     isScrollControlled: true,
-    builder: (context) => ModifiersSelector(alreadyAdded: alreadyAdded),
+    builder: (context) => ModifiersSelector(target: target),
   );
 }
 
@@ -45,9 +46,13 @@ IconData? iconForModifier(String modifier) {
 }
 
 class ModifiersSelector extends StatefulWidget {
-  final List<String> alreadyAdded;
+  final FlameSceneObject target;
 
-  const ModifiersSelector({super.key, required this.alreadyAdded});
+  ModifiersSelector({super.key, required this.target})
+      : assert(
+          target.script != null,
+          'Can only open modifiers selector on scripts',
+        );
 
   @override
   State<ModifiersSelector> createState() => _ModifiersSelectorState();
@@ -57,6 +62,10 @@ class _ModifiersSelectorState extends State<ModifiersSelector> {
   final searchController = TextEditingController();
 
   FlameMixin? selectedModifier;
+
+  List<String> get alreadyAdded {
+    return widget.target.script!.modifiers.map((e) => e.name).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -112,18 +121,17 @@ class _ModifiersSelectorState extends State<ModifiersSelector> {
               animation: searchController,
               builder: (context, child) {
                 final search = searchController.text.toLowerCase();
-                final mixins = search.isEmpty
-                    ? builtInMixins
-                    : builtInMixins
-                        .where((mixin) =>
-                            mixin.name.toLowerCase().contains(search))
-                        .toList();
+                final mixins = (search.isEmpty
+                        ? builtInMixins
+                        : builtInMixins.where((mixin) =>
+                            mixin.name.toLowerCase().contains(search)))
+                    .where((mixin) => mixin.on.contains('Component'));
                 return ListView.builder(
                   itemCount: mixins.length,
                   itemBuilder: (context, index) {
-                    final modifier = mixins[index];
+                    final modifier = mixins.elementAt(index);
                     final alreadyAdded =
-                        widget.alreadyAdded.contains(modifier.name);
+                        this.alreadyAdded.contains(modifier.name);
                     return ListTile(
                       leading: Icon(iconForModifier(modifier.name), size: 20.0),
                       title: Text(modifier.name),
