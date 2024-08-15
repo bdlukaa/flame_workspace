@@ -58,17 +58,21 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
   void initState() {
     super.initState();
     _updateComponents();
-    _searchController.addListener(() {
-      if (mounted) {
-        setState(_updateComponents);
-      }
-    });
+    _searchController.addListener(_listener);
+    widget.workbench.state.addListener(_listener);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    widget.workbench.state.removeListener(_listener);
     super.dispose();
+  }
+
+  void _listener() {
+    if (mounted) {
+      setState(_updateComponents);
+    }
   }
 
   void _updateComponents() {
@@ -192,6 +196,7 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
                 searchController: _searchController,
                 projectComponents: projectComponents,
                 rootComponents: rootComponents,
+                workbench: widget.workbench,
               ),
             1 => ComponentPropertiesPage(
                 selectedComponent: _selectedComponent!,
@@ -213,6 +218,7 @@ class SelectComponentPage extends StatelessWidget {
   final TextEditingController searchController;
   final Iterable<TreeNode> projectComponents;
   final Iterable<TreeNode> rootComponents;
+  final Workbench workbench;
 
   const SelectComponentPage({
     super.key,
@@ -222,6 +228,7 @@ class SelectComponentPage extends StatelessWidget {
     required this.searchController,
     required this.projectComponents,
     required this.rootComponents,
+    required this.workbench,
   });
 
   @override
@@ -318,7 +325,10 @@ class SelectComponentPage extends StatelessWidget {
                         ),
                       ),
                     ),
-                    onPressed: () => showCreateComponentDialog(context),
+                    onPressed: () => showCreateComponentDialog(
+                      context,
+                      workbench,
+                    ),
                     child: const Text('Create component'),
                   ),
                 ),
