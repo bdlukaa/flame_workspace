@@ -12,6 +12,7 @@ class ProjectView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final workbench = Workbench.of(context);
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -54,7 +55,10 @@ class ProjectView extends StatelessWidget {
                             ),
                           ),
                         ),
-                        onPressed: () => showCreateComponentDialog(context),
+                        onPressed: () => showCreateComponentDialog(
+                          context,
+                          workbench,
+                        ),
                         child: const Text('Create component'),
                       ),
                     ),

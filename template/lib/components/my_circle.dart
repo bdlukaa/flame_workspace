@@ -29,6 +29,11 @@ class MyCircleComponent extends PositionComponent with FlameComponent {
   }
 
   @override
+  Future<void> onLoad() async {
+    super.onLoad();
+  }
+
+  @override
   void render(Canvas canvas) {
     super.render(canvas);
     canvas.drawCircle(
