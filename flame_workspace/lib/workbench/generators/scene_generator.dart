@@ -6,6 +6,7 @@ import 'package:flame_workspace/workbench/generators/imports.dart';
 import 'package:flame_workspace/workbench/parser/writer.dart';
 import 'package:flame_workspace/workbench/project/objects/scene.dart';
 import 'package:flame_workspace/workbench/project/project.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import 'package:recase/recase.dart';
 
@@ -126,10 +127,8 @@ class SceneGenerator {
     FlameSceneObject scene,
     FlameProject project,
   ) async {
+    debugPrint('Writing scene for ${scene.name}');
     final buffer = StringBuffer();
-    buffer.writeln(generatedFileNotice);
-    buffer.writeln('// ignore_for_file: unused_import');
-    buffer.writeln(defaultImports);
 
     // scene import
     final sceneFilePath = scene.filePath;
@@ -137,9 +136,12 @@ class SceneGenerator {
         .split(path.join(project.name, 'lib'))
         .last
         .replaceAll('.dart', '');
-    buffer.writeln(
+    buffer.writeAll([
+      generatedFileNotice,
+      '// ignore_for_file: unused_import',
+      defaultImports,
       "import 'package:${project.name}${scenePath.replaceAll(r'\', '/')}.dart';",
-    );
+    ], '\n');
 
     if (scene.script != null) {
       final scriptPath = scene.script!.filePath
@@ -166,6 +168,7 @@ class SceneGenerator {
     final file = File(scene.debugPath);
     if (!(await file.exists())) await file.create(recursive: true);
     await Writer.writeFormatted(file, buffer.toString().trim());
+    debugPrint('  Written file ${file.path}');
 
     final writer = Writer(unit: scene.unit.$2);
     await writer.writeMixinToClass(
@@ -173,6 +176,7 @@ class SceneGenerator {
       '${scene.name}Mixin',
       scene.filePath,
     );
+    debugPrint('  Written mixin ${scene.name}Mixin to class ${scene.name}');
   }
 
   /// Writes the file that contains the function that sets the scenes.
@@ -192,11 +196,14 @@ class SceneGenerator {
     FlameProject project,
     Iterable<FlameSceneObject> scenes,
   ) async {
-    final buffer = StringBuffer();
+    debugPrint('Writing set scenes for project ${project.name}');
 
-    buffer.writeln(generatedFileNotice);
-    buffer.writeln('// ignore_for_file: unused_import');
-    buffer.writeln(defaultImports);
+    final buffer = StringBuffer();
+    buffer.writeAll([
+      generatedFileNotice,
+      '// ignore_for_file: unused_import',
+      defaultImports,
+    ], '\n');
 
     for (final scene in scenes) {
       buffer.writeln(
@@ -204,25 +211,30 @@ class SceneGenerator {
       );
     }
 
-    buffer.writeln();
-    buffer.writeln('void setScene(String sceneName) {');
-    buffer.writeln('  switch (sceneName) {');
-    for (final scene in scenes) {
-      buffer.writeln('    case r\'${scene.name}\':');
-      buffer.writeln('      setScene${scene.name}();');
-      buffer.writeln('      break;');
-    }
-    buffer.writeln('    default:');
-    buffer.writeln(
-        '      throw ArgumentError.value(sceneName, \'Scene not found\');');
-    buffer.writeln('  }');
-    buffer.writeln('}');
+    buffer.writeAll([
+      '',
+      'void setScene(String sceneName) {',
+      '  switch (sceneName) {',
+      ...scenes.map((scene) {
+        final name = scene.name;
+        return [
+          '    case r\'$name\':',
+          '      setScene$name();',
+          '      break;',
+        ].join('\n');
+      }),
+      '    default:',
+      '      throw ArgumentError.value(sceneName, \'Scene not found\');',
+      '  }',
+      '}',
+    ], '\n');
 
     final file = File(
       path.join(project.location.path, 'lib', 'generated', 'scenes.dart'),
     );
     if (!(await file.exists())) await file.create(recursive: true);
     await Writer.writeFormatted(file, buffer.toString());
+    debugPrint('  Written file ${file.path}');
   }
 
   /// Creates a new scene file and its script.
@@ -231,6 +243,7 @@ class SceneGenerator {
     String name,
     bool createScript,
   ) async {
+    debugPrint('Creating scene $name for project ${project.name}');
     final filePath = path.join(
       project.location.path,
       'lib',
@@ -271,12 +284,14 @@ class SceneGenerator {
     ]);
 
     await Writer.writeFormatted(sceneFile, sceneSink.toString());
+    debugPrint('  Written file ${sceneFile.path}');
   }
 
   static Future<void> createSceneScript(
     FlameProject project,
     String name,
   ) async {
+    debugPrint('Creating scene script $name for project ${project.name}');
     final sceneScriptSink = StringBuffer();
     sceneScriptSink.writeAll([
       '// ignore_for_file: unused_import',
@@ -310,5 +325,6 @@ class SceneGenerator {
     }
 
     await Writer.writeFormatted(sceneScriptFile, sceneScriptSink.toString());
+    debugPrint('  Written file ${sceneScriptFile.path}');
   }
 }

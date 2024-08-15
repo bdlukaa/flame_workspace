@@ -49,11 +49,7 @@ class FlameProjectState with ChangeNotifier {
           indexProject(includeOnly: [event.path]);
           break;
         case FileSystemEvent.delete:
-          indexed?.removeWhere((e) {
-            return Uri.file(e.$1['source']).toFilePath() ==
-                Uri.file(event.path).toFilePath();
-          });
-          notifyListeners();
+          indexProject();
           break;
       }
     });
@@ -142,57 +138,62 @@ class FlameProjectState with ChangeNotifier {
 
   static Future<(IndexedProject?, List<IndexedComponent>, List<IndexedScene>)>
       _indexProject(Map data) async {
-    final project = data['project'] as FlameProject;
-    final includeOnly = data['includeOnly'] as Iterable<String>?;
-    final onlyParse = data['onlyParse'] as bool;
-    var indexed = data['indexed'] as IndexedProject?;
-    var components = <IndexedComponent>[];
-    var scenes = <IndexedScene>[];
+    try {
+      final project = data['project'] as FlameProject;
+      final includeOnly = data['includeOnly'] as Iterable<String>?;
+      final onlyParse = data['onlyParse'] as bool;
+      var indexed = data['indexed'] as IndexedProject?;
+      var components = <IndexedComponent>[];
+      var scenes = <IndexedScene>[];
 
-    if (!onlyParse) {
-      final result = await ProjectIndexer.indexProject(
-        project.location,
-        includeOnly,
-      );
-      indexed ??= [];
-      if (includeOnly != null && includeOnly.isNotEmpty) {
-        indexed
-          ..removeWhere((e) => includeOnly.contains(e.$1['source']))
-          ..addAll(result);
-      } else {
-        indexed.clear();
-        indexed.addAll(result);
+      if (!onlyParse) {
+        final result = await ProjectIndexer.indexProject(
+          project.location,
+          includeOnly,
+        );
+        indexed ??= [];
+        if (includeOnly != null && includeOnly.isNotEmpty) {
+          indexed
+            ..removeWhere((e) => includeOnly.contains(e.$1['source']))
+            ..addAll(result);
+        } else {
+          indexed.clear();
+          indexed.addAll(result);
+        }
       }
-    }
-    if (indexed != null) {
-      components
-        ..clear()
-        ..addAll(ProjectIndexer.componentsFrom(indexed));
-      scenes
-        ..clear()
-        ..addAll(ProjectIndexer.scenesFrom(indexed));
-    }
-
-    if ((includeOnly == null || includeOnly.isEmpty) && !onlyParse) {
-      await PropertiesGenerator.writeForComponents(
-        [...components.map((e) => e.$1), ...builtInComponents],
-        project,
-      );
-
-      for (final scene in scenes) {
-        await SceneGenerator.writeForScene(scene.$1, project);
+      if (indexed != null) {
+        components
+          ..clear()
+          ..addAll(ProjectIndexer.componentsFrom(indexed));
+        scenes
+          ..clear()
+          ..addAll(ProjectIndexer.scenesFrom(indexed));
       }
-      await SceneGenerator.writeSetScenes(project, scenes.map((e) => e.$1));
-    } else if ((includeOnly != null && includeOnly.isNotEmpty) && !onlyParse) {
-      for (final scene in scenes) {
-        if (includeOnly.contains(scene.$1.filePath)) {
+
+      if ((includeOnly == null || includeOnly.isEmpty) && !onlyParse) {
+        await PropertiesGenerator.writeForComponents(
+          [...components.map((e) => e.$1), ...builtInComponents],
+          project,
+        );
+
+        for (final scene in scenes) {
           await SceneGenerator.writeForScene(scene.$1, project);
+        }
+      } else if ((includeOnly != null && includeOnly.isNotEmpty) &&
+          !onlyParse) {
+        for (final scene in scenes) {
+          if (includeOnly.contains(scene.$1.filePath)) {
+            await SceneGenerator.writeForScene(scene.$1, project);
+          }
         }
       }
       await SceneGenerator.writeSetScenes(project, scenes.map((e) => e.$1));
-    }
 
-    return (indexed, components, scenes);
+      return (indexed, components, scenes);
+    } catch (error, stack) {
+      debugPrint('Failed to index project: $error \n $stack');
+      return (null, <IndexedComponent>[], <IndexedScene>[]);
+    }
   }
 
   @override
