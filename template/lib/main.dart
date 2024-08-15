@@ -1,8 +1,8 @@
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 
 import 'game.dart';
-import 'generated/properties.dart';
-import 'generated/scenes.dart';
+import '.generated/properties.dart';
+import '.generated/scenes.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

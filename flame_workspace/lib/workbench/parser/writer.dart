@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:dart_style/dart_style.dart';
 
+const generatedFilesDirectory = '.generated';
+
 /// A class that modifies files.
 ///
 /// This is used by the IDE to make direct edits to the files.

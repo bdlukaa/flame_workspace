@@ -230,7 +230,12 @@ class SceneGenerator {
     ], '\n');
 
     final file = File(
-      path.join(project.location.path, 'lib', 'generated', 'scenes.dart'),
+      path.join(
+        project.location.path,
+        'lib',
+        generatedFilesDirectory,
+        'scenes.dart',
+      ),
     );
     if (!(await file.exists())) await file.create(recursive: true);
     await Writer.writeFormatted(file, buffer.toString());

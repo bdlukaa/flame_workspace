@@ -21,6 +21,7 @@
 /// ```
 library template;
 
+import 'package:flame_workspace/workbench/parser/writer.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:recase/recase.dart';
 
@@ -33,7 +34,7 @@ import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 
 import 'game.dart';
-import 'generated/properties.dart';
+import '$generatedFilesDirectory/properties.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -3,13 +3,9 @@
 
 // ignore_for_file: unused_import
 import 'package:flame_workspace_core/flame_workspace_core.dart';
-import 'package:template/generated/scenes/level_one.dart';
 
 void setScene(String sceneName) {
   switch (sceneName) {
-    case r'$SceneLevelOne':
-      setScene$SceneLevelOne();
-      break;
     default:
       throw ArgumentError.value(sceneName, 'Scene not found');
   }

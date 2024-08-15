@@ -160,7 +160,12 @@ class PropertiesGenerator {
     }
 
     final file = File(
-      path.join(project.location.path, 'lib', 'generated', 'properties.dart'),
+      path.join(
+        project.location.path,
+        'lib',
+        generatedFilesDirectory,
+        'properties.dart',
+      ),
     );
     if (!(await file.exists())) file.createSync(recursive: true);
 
