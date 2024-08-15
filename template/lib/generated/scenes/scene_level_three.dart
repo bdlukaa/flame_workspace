@@ -12,6 +12,9 @@ mixin $SceneLevelThreeMixin on FlameScene {
   void addComponent(String declarationName) {
     final scene = this as $SceneLevelThree;
     switch (declarationName) {
+      case 'myCircleComponent':
+        scene.add(scene.myCircleComponent);
+        break;
       default:
         throw ArgumentError(
           declarationName,
@@ -24,6 +27,9 @@ mixin $SceneLevelThreeMixin on FlameScene {
   void removeComponent(String declarationName) {
     final scene = this as $SceneLevelThree;
     switch (declarationName) {
+      case 'myCircleComponent':
+        scene.remove(scene.myCircleComponent);
+        break;
       default:
         throw ArgumentError(
           declarationName,

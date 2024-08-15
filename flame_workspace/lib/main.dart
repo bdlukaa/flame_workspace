@@ -54,6 +54,12 @@ class FlameWorkspaceApp extends StatelessWidget {
             shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
           ),
         ),
+        dialogTheme: const DialogTheme(
+          shape: RoundedRectangleBorder(),
+        ),
+        bottomSheetTheme: const BottomSheetThemeData(
+          shape: RoundedRectangleBorder(),
+        ),
       ),
       initialRoute: '/',
       routes: {

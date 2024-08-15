@@ -90,20 +90,22 @@ class Writer {
     }
   }
 
-  static Future<void> addImport(String importPath, String filePath) {
-    final file = File(filePath);
-    var text = file.readAsStringSync();
-
+  static String addImport(String text, String importPath) {
     final import = "import '$importPath';";
 
     // If there is already
-    if (text.contains(import)) return Future.value();
+    if (text.contains(import)) return text;
 
     final firstImport = text.indexOf('import');
     final beforeOffset = text.substring(0, firstImport);
     final afterOffset = text.substring(firstImport);
-    text = '$beforeOffset$import\n$afterOffset';
+    return '$beforeOffset$import\n$afterOffset';
+  }
 
-    return file.writeAsString(text);
+  static Future<void> writeImport(String importPath, String filePath) async {
+    final file = File(filePath);
+    var text = await file.readAsString();
+    text = addImport(text, importPath);
+    await file.writeAsString(text);
   }
 }

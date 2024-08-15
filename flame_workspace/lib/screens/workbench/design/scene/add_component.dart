@@ -15,7 +15,7 @@ import 'scene_view.dart';
 typedef AddIndexedComponent = (
   FlameComponentObject component,
   String declarationName,
-  Map<String, String> parameters
+  Map<String, String> parameters,
 );
 
 Future<AddIndexedComponent?> showAddComponentDialog(BuildContext context) {
@@ -311,7 +311,7 @@ class SelectComponentPage extends StatelessWidget {
             ),
             SliverToBoxAdapter(
               child: Row(children: [
-                const Expanded(child: const Divider()),
+                const Expanded(child: Divider()),
                 Padding(
                   padding: const EdgeInsetsDirectional.symmetric(
                     vertical: 8.0,

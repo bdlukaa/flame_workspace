@@ -5,6 +5,7 @@ import 'package:flame_workspace/compilation_unit_helper.dart';
 import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/project/objects/scene.dart';
 import 'package:flame_workspace/workbench/runner/runner.dart';
+import 'package:flame_workspace/workbench/runner/state.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flame_workspace_core/utils.dart';
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
@@ -77,7 +78,10 @@ class SceneHelper {
   ///
   /// This function will declare the component above the `onLoad` method and
   /// add the component in the `onLoad` method.
-  Future<void> declareComponent(AddIndexedComponent result) async {
+  Future<void> declareComponent(
+    AddIndexedComponent result,
+    FlameProjectState projectState,
+  ) async {
     final helper = CompilationUnitHelper(
       indexed: sceneResult.$2,
       unit: sceneResult.$3,
@@ -92,7 +96,6 @@ class SceneHelper {
     // The start and end should be before the "onLoad" method. If none, after
     // the last field declaration. If none, after the constructor declaration.
     // If none, after the class declaration.
-
     int componentEndOffset;
 
     final onLoadMethod = declaration.members.firstWhereOrNull(
@@ -131,9 +134,23 @@ class SceneHelper {
     final after = content.substring(componentEndOffset);
 
     final code = result.$1.toCode(result.$2, result.$3);
-    final newContent = '$before\n$code\n\n$after';
+    var finalContent = '$before\n$code\n\n$after';
 
-    await Writer.writeFormatted(file, newContent);
+    final componentFilePath = Uri.file(
+      projectState.components
+          .firstWhere((e) => e.$1.name == result.$1.name)
+          .$2['source'] as String,
+      windows: Platform.isWindows,
+    );
+    final componentPath = componentFilePath
+        .toFilePath(windows: false)
+        .split('${projectState.project.name}/lib/')
+        .last;
+
+    finalContent = Writer.addImport(
+        finalContent, 'package:${projectState.project.name}/$componentPath');
+
+    await Writer.writeFormatted(file, finalContent);
   }
 
   /// Adds a component to the scene.

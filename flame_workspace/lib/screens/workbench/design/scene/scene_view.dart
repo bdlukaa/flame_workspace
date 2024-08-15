@@ -142,7 +142,10 @@ class _SceneViewState extends State<SceneView> {
 
                     if (result != null && context.mounted) {
                       if (!sceneHelper.hasComponent(result.$2)) {
-                        await sceneHelper.declareComponent(result);
+                        await sceneHelper.declareComponent(
+                          result,
+                          workbench.state,
+                        );
                         sceneHelper.addComponent(result.$2);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
