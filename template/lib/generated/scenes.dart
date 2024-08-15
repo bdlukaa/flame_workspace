@@ -7,6 +7,7 @@ import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:template/generated/scenes/scene_level_two.dart';
 import 'package:template/generated/scenes/scene_level_one.dart';
 import 'package:template/generated/scenes/scene_level_three.dart';
+import 'package:template/generated/scenes/scene_level_four.dart';
 
 void setScene(String sceneName) {
   switch (sceneName) {
@@ -18,6 +19,9 @@ void setScene(String sceneName) {
       break;
     case r'$SceneLevelThree':
       setScene$SceneLevelThree();
+      break;
+    case r'$SceneLevelFour':
+      setScene$SceneLevelFour();
       break;
     default:
       throw ArgumentError.value(sceneName, 'Scene not found');

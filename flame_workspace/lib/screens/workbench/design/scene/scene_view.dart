@@ -1,4 +1,3 @@
-import 'package:flame_workspace/workbench/generators/scene_generator.dart';
 import 'package:flame_workspace_core/communication/messages.dart';
 import 'package:flutter/material.dart';
 
@@ -120,15 +119,7 @@ class _SceneViewState extends State<SceneView> {
                 child: InkWell(
                   child: const Icon(Icons.add),
                   onTap: () async {
-                    final response = await showCreateSceneDialog(context);
-
-                    if (response != null) {
-                      await SceneGenerator.createScene(
-                        workbench.project,
-                        response.name,
-                        response.createScript,
-                      );
-                    }
+                    await showCreateSceneDialog(context, workbench);
                   },
                 ),
               )
