@@ -49,7 +49,10 @@ class FlameProjectState with ChangeNotifier {
           indexProject(includeOnly: [event.path]);
           break;
         case FileSystemEvent.delete:
-          indexed?.removeWhere((e) => e.$1['source'] == event.path);
+          indexed?.removeWhere((e) {
+            return Uri.file(e.$1['source']).toFilePath() ==
+                Uri.file(event.path).toFilePath();
+          });
           notifyListeners();
           break;
       }

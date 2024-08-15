@@ -117,6 +117,15 @@ class TopLevel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final workbench = Workbench.of(context);
+
+    if (workbench.state.indexed == null) {
+      return const Center(
+        child: CircularProgressIndicator.adaptive(
+          strokeWidth: 2.0,
+        ),
+      );
+    }
+
     final topLevel = ProjectIndexer.topLevel(workbench.state.indexed!);
 
     if (topLevel.isEmpty) {

@@ -163,15 +163,7 @@ class SceneGenerator {
       scriptDeclaration,
     ));
 
-    final file = File(
-      path.join(
-        project.location.path,
-        'lib',
-        'generated',
-        'scenes',
-        '${scene.name.replaceAll(r'$', '').snakeCase}.dart',
-      ),
-    );
+    final file = File(scene.debugPath);
     if (!(await file.exists())) await file.create(recursive: true);
     await Writer.writeFormatted(file, buffer.toString().trim());
 

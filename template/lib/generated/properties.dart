@@ -5,6 +5,7 @@
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 
 import 'package:template/components/my_circle.dart';
+import 'package:template/components/my_square_component.dart';
 import 'package:template/game.dart';
 
 void setPropertyValue(
@@ -17,6 +18,10 @@ void setPropertyValue(
     case 'MyCircleComponent':
       setPropertyValueMyCircleComponent(
           cls as MyCircleComponent, propertyName, value);
+      break;
+    case 'MySquareComponent':
+      setPropertyValueMySquareComponent(
+          cls as MySquareComponent, propertyName, value);
       break;
     case 'AdvancedButtonComponent':
       setPropertyValueAdvancedButtonComponent(
@@ -187,6 +192,29 @@ void setPropertyValueMyCircleComponent(
       break;
     case 'radius':
       cls.radius = value as double;
+      break;
+    default:
+      throw ArgumentError.value(propertyName, 'Property not found');
+  }
+}
+
+void setPropertyValueMySquareComponent(
+  MySquareComponent cls,
+  String propertyName,
+  dynamic value,
+) {
+  switch (propertyName) {
+    case 'position':
+      cls.position = value as Vector2;
+      break;
+    case 'scale':
+      cls.scale = value as Vector2;
+      break;
+    case 'size':
+      cls.size = value as Vector2;
+      break;
+    case 'angle':
+      cls.angle = value as double;
       break;
     default:
       throw ArgumentError.value(propertyName, 'Property not found');

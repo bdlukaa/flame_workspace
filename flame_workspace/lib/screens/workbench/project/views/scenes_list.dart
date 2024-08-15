@@ -1,4 +1,5 @@
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
+import 'package:flame_workspace/workbench/generators/scene_generator.dart';
 import 'package:flame_workspace/workbench/parser/scene.dart';
 import 'package:flutter/material.dart';
 
@@ -21,10 +22,8 @@ class ScenesListView extends StatelessWidget {
           dense: true,
           title: Text(scene.sceneName),
           subtitle: Text(
-            Uri.file((sceneResult.$2['source'] as String))
-                .toFilePath()
-                .split(workbench.project.name)
-                .last,
+            '${Uri.file(scene.filePath).toFilePath().split(workbench.project.name).last}'
+            '${scene.script?.filePath != null ? '\n${Uri.file(scene.script!.filePath).toFilePath().split(workbench.project.name).last}' : ''}',
           ),
           children: [
             LayoutBuilder(builder: (context, constraints) {
@@ -50,9 +49,9 @@ class ScenesListView extends StatelessWidget {
                   onPressed: (i) {
                     final helper = SceneHelper.fromWorkbench(scene, workbench);
                     switch (i) {
-                      case 1: // Edit
+                      case 0: // Edit
                         break;
-                      case 2: // Delete
+                      case 1: // Delete
                         if (scenes.length == 1) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -65,11 +64,28 @@ class ScenesListView extends StatelessWidget {
                                 .firstWhere((s) => s.$1.name != scene.name)
                                 .$1,
                           );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Scene ${scene.sceneName} deleted.',
+                              ),
+                              action: SnackBarAction(
+                                label: 'Undo',
+                                onPressed: () {
+                                  SceneGenerator.createScene(
+                                    workbench.project,
+                                    scene.sceneName,
+                                    true,
+                                  );
+                                },
+                              ),
+                            ),
+                          );
                         }
                         break;
-                      case 3: // Duplicate
+                      case 2: // Duplicate
                         break;
-                      case 4: // Run
+                      case 3: // Run
                         break;
                       default:
                     }

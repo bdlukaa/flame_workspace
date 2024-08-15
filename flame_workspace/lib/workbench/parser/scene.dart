@@ -259,10 +259,18 @@ class SceneHelper {
   Future<void> delete(FlameSceneObject replacement) async {
     final sceneFile = File(scene.filePath);
     final sceneScript = File(scene.scriptPath);
+    final debugFile = File(scene.debugPath);
+
+    debugPrint('Deleting scene ${scene.name}');
+    debugPrint('  Deleting files:');
+    debugPrint('    - ${sceneFile.path}');
+    debugPrint('    - ${sceneScript.path}');
+    debugPrint('    - ${debugFile.path}');
 
     await Future.wait([
-      if ((await sceneFile.exists())) sceneFile.delete(),
-      if ((await sceneScript.exists())) sceneScript.delete(),
+      if (await sceneFile.exists()) sceneFile.delete(),
+      if (await sceneScript.exists()) sceneScript.delete(),
+      if (await debugFile.exists()) debugFile.delete(),
     ]);
 
     runner.send(
