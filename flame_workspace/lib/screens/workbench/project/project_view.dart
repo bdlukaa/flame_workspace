@@ -1,4 +1,6 @@
+import 'package:flame_workspace/screens/workbench/design/scene/create_scene.dart';
 import 'package:flame_workspace/screens/workbench/project/create_component.dart';
+import 'package:flame_workspace/screens/workbench/project/views/scenes_list.dart';
 import 'package:flutter/material.dart';
 
 import '../../../workbench/parser/parser.dart';
@@ -69,7 +71,35 @@ class ProjectView extends StatelessWidget {
               const VerticalDivider(width: 1.0),
               Expanded(
                 child: Column(children: [
-                  Text('Scenes', style: theme.textTheme.labelLarge),
+                  Row(children: [
+                    const SizedBox(width: 16.0),
+                    Expanded(
+                      child: Text(
+                        'Scenes',
+                        style: theme.textTheme.labelLarge,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsetsDirectional.symmetric(
+                        vertical: 8.0,
+                        horizontal: 16.0,
+                      ),
+                      child: OutlinedButton(
+                        style: ButtonStyle(
+                          padding: WidgetStateProperty.all(
+                            const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                            ),
+                          ),
+                        ),
+                        onPressed: () => showCreateSceneDialog(
+                          context,
+                          workbench,
+                        ),
+                        child: const Text('Create scene'),
+                      ),
+                    ),
+                  ]),
                   const Expanded(child: ScenesListView()),
                 ]),
               ),
@@ -143,39 +173,6 @@ class ComponentsView extends StatelessWidget {
           title: Text(component.name),
           subtitle: Text(
             (componentResult.$2['source'] as String)
-                .split(workbench.project.name)
-                .last,
-          ),
-          onTap: () {
-            // TODO: open in vscode
-          },
-        );
-      },
-    );
-  }
-}
-
-class ScenesListView extends StatelessWidget {
-  const ScenesListView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final workbench = Workbench.of(context);
-    final scenes = workbench.state.scenes;
-
-    assert(scenes.isNotEmpty, 'The project must have at least one scene.');
-
-    return ListView.builder(
-      itemCount: scenes.length,
-      itemBuilder: (context, index) {
-        final sceneResult = scenes.elementAt(index);
-        final scene = sceneResult.$1;
-
-        return ListTile(
-          dense: true,
-          title: Text(scene.name),
-          subtitle: Text(
-            (sceneResult.$2['source'] as String)
                 .split(workbench.project.name)
                 .last,
           ),

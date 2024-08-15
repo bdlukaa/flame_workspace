@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:flame_workspace/compilation_unit_helper.dart';
 import 'package:flame_workspace/workbench/project/objects/mixin.dart';
+import 'package:path/path.dart' as path;
+import 'package:recase/recase.dart';
 
 import 'component.dart';
 
@@ -23,4 +27,11 @@ class FlameSceneObject {
   });
 
   String get sceneName => name.replaceFirst(r'$Scene', '');
+  String get scriptPath {
+    if (script != null) return script!.filePath;
+
+    final sceneFile = File(filePath);
+    final sceneDirPath = sceneFile.parent.path;
+    return path.join(sceneDirPath, '${name.snakeCase}_script.dart');
+  }
 }

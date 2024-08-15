@@ -249,4 +249,25 @@ class SceneHelper {
       ComponentChangedMessage(component: declarationName).toMap(),
     );
   }
+
+  /// Deletes the scene.
+  ///
+  /// The scene will be deleted from the project and the scene file and script
+  /// file will be removed.
+  ///
+  /// The [replacement] scene will be set as the current scene.
+  Future<void> delete(FlameSceneObject replacement) async {
+    final sceneFile = File(scene.filePath);
+    final sceneScript = File(scene.scriptPath);
+
+    await Future.wait([
+      if ((await sceneFile.exists())) sceneFile.delete(),
+      if ((await sceneScript.exists())) sceneScript.delete(),
+    ]);
+
+    runner.send(
+      WorkbenchMessages.setScene,
+      SceneChangedMessage(scene: replacement.name).toMap(),
+    );
+  }
 }

@@ -126,6 +126,11 @@ class PropertyChangedMessage extends ComponentChangedMessage {
 }
 
 class SceneChangedMessage extends MessageData {
+  /// The name of the scene that has changed.
+  ///
+  /// This is not the name of the script.
+  ///
+  /// It usually starts with a '$'.
   final String scene;
 
   const SceneChangedMessage({

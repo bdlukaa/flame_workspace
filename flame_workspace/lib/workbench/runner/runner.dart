@@ -234,6 +234,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
         'id': id.name,
         ...data,
       }));
+      hotReload();
     }
   }
 
