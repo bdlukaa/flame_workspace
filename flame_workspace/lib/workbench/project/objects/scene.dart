@@ -38,8 +38,13 @@ class FlameSceneObject {
   String get debugPath {
     final sceneFile = File(filePath);
     // final sceneDirPath = sceneFile.parent.path;
-    final libPath = sceneFile.path.split('lib').first;
+    final projectPath = sceneFile.path.split('lib').first;
     return path.join(
-        libPath, 'generated', 'scenes' '${sceneName.snakeCase}.dart');
+      projectPath,
+      'lib',
+      'generated',
+      'scenes',
+      '${sceneName.snakeCase}.dart',
+    );
   }
 }

@@ -4,20 +4,14 @@
 // ignore_for_file: unused_import
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 
-import 'package:template/scenes/scene_one/scene_one.dart';
-import 'package:template/scenes/scene_one/scene_one_script.dart';
+import 'package:template/scenes/level_one/level_one.dart';
+import 'package:template/scenes/level_one/level_one_script.dart';
 
 mixin $SceneLevelOneMixin on FlameScene {
   @override
   void addComponent(String declarationName) {
     final scene = this as $SceneLevelOne;
     switch (declarationName) {
-      case 'circle':
-        scene.add(scene.circle);
-        break;
-      case 'myComp':
-        scene.add(scene.myComp);
-        break;
       default:
         throw ArgumentError(
           declarationName,
@@ -30,12 +24,6 @@ mixin $SceneLevelOneMixin on FlameScene {
   void removeComponent(String declarationName) {
     final scene = this as $SceneLevelOne;
     switch (declarationName) {
-      case 'circle':
-        scene.remove(scene.circle);
-        break;
-      case 'myComp':
-        scene.remove(scene.myComp);
-        break;
       default:
         throw ArgumentError(
           declarationName,
