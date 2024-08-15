@@ -200,7 +200,7 @@ class SceneGenerator {
 
     for (final scene in scenes) {
       buffer.writeln(
-        "import 'package:${project.name}/generated/scenes/${scene.name.replaceAll(r'$', '').snakeCase}.dart';",
+        "import 'package:${project.name}/${scene.debugImportPath}';",
       );
     }
 
@@ -231,11 +231,26 @@ class SceneGenerator {
     String name,
     bool createScript,
   ) async {
+    final filePath = path.join(
+      project.location.path,
+      'lib',
+      'scenes',
+      name.snakeCase,
+      '${name.snakeCase}.dart',
+    );
+    final sceneFile = File(filePath);
+
+    final scene = FlameSceneObject(
+      name: name,
+      components: [],
+      filePath: filePath,
+    );
+
     final sceneSink = StringBuffer();
     sceneSink.writeAll([
       '// ignore_for_file: unused_import',
       defaultImports,
-      "import 'package:${project.name}/generated/scenes/scene_${name.snakeCase}.dart';",
+      "import 'package:${project.name}/${scene.debugImportPath}';",
       '',
       '@protected',
       'class \$Scene${name.pascalCase} extends FlameScene with \$Scene${name.pascalCase}Mixin {',
@@ -246,14 +261,6 @@ class SceneGenerator {
       '',
       '}',
     ], '\n');
-
-    final sceneFile = File(path.join(
-      project.location.path,
-      'lib',
-      'scenes',
-      name.snakeCase,
-      '${name.snakeCase}.dart',
-    ));
 
     await Future.wait([
       if (!(await sceneFile.exists())) sceneFile.create(recursive: true),

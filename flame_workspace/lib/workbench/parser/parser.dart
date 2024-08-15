@@ -105,7 +105,7 @@ class ProjectIndexer {
               fields,
             ),
             filePath: file['source'],
-            unit: index,
+            indexedUnit: index,
             modifiers:
                 (d['with'] as List<String>? ?? []).map<FlameMixin>((mixin) {
               return FlameMixin(

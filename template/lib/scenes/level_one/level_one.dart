@@ -1,7 +1,7 @@
 // ignore_for_file: unused_import
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 
-import 'package:template/generated/scenes/scene_level_one.dart';
+import 'package:template/generated/scenes/level_one.dart';
 
 @protected
 class $SceneLevelOne extends FlameScene with $SceneLevelOneMixin {

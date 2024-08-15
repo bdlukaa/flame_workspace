@@ -4,13 +4,13 @@
 // ignore_for_file: unused_import
 import 'package:flame_workspace_core/flame_workspace_core.dart';
 
-import 'package:template/scenes/level_one/level_one.dart';
-import 'package:template/scenes/level_one/level_one_script.dart';
+import 'package:template/scenes/level_two/level_two.dart';
+import 'package:template/scenes/level_two/level_two_script.dart';
 
-mixin $SceneLevelOneMixin on FlameScene {
+mixin $SceneLevelTwoMixin on FlameScene {
   @override
   void addComponent(String declarationName) {
-    final scene = this as $SceneLevelOne;
+    final scene = this as $SceneLevelTwo;
     switch (declarationName) {
       default:
         throw ArgumentError(
@@ -22,7 +22,7 @@ mixin $SceneLevelOneMixin on FlameScene {
 
   @override
   void removeComponent(String declarationName) {
-    final scene = this as $SceneLevelOne;
+    final scene = this as $SceneLevelTwo;
     switch (declarationName) {
       default:
         throw ArgumentError(
@@ -38,6 +38,6 @@ mixin $SceneLevelOneMixin on FlameScene {
   }
 }
 
-void setScene$SceneLevelOne() {
-  FlameWorkspaceCore.instance.currentScene = $SceneLevelOne();
+void setScene$SceneLevelTwo() {
+  FlameWorkspaceCore.instance.currentScene = $SceneLevelTwo();
 }

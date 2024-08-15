@@ -14,7 +14,7 @@ class FlameSceneObject {
   final List<FlameMixin> modifiers;
 
   final String filePath;
-  final (IndexedUnit indexed, CompilationUnit unit) unit;
+  final (IndexedUnit indexed, CompilationUnit unit)? indexedUnit;
 
   FlameSceneObject? script;
 
@@ -22,9 +22,14 @@ class FlameSceneObject {
     required this.name,
     required this.components,
     required this.filePath,
-    required this.unit,
+    this.indexedUnit,
     this.modifiers = const [],
   });
+
+  (IndexedUnit indexed, CompilationUnit unit) get unit {
+    assert(indexedUnit != null, 'This scene was not indexed properly.');
+    return indexedUnit!;
+  }
 
   String get sceneName => name.replaceFirst(r'$Scene', '');
   String get scriptPath {
@@ -32,9 +37,12 @@ class FlameSceneObject {
 
     final sceneFile = File(filePath);
     final sceneDirPath = sceneFile.parent.path;
-    return path.join(sceneDirPath, '${name.snakeCase}_script.dart');
+    return path.join(sceneDirPath, '${sceneName.snakeCase}_script.dart');
   }
 
+  /// The path to the generated scene file.
+  ///
+  /// This contains all the methods and properties needed to make the scene work.
   String get debugPath {
     final sceneFile = File(filePath);
     // final sceneDirPath = sceneFile.parent.path;
@@ -47,4 +55,7 @@ class FlameSceneObject {
       '${sceneName.snakeCase}.dart',
     );
   }
+
+  /// Import dart "import" path for the scene file.
+  String get debugImportPath => debugPath.split('lib').last;
 }
