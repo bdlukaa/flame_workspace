@@ -67,7 +67,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
 
   IOWebSocketChannel? _channel;
 
-  GameState _gameState = GameState.initial();
+  GameState _gameState = const GameState.initial();
   GameState get gameState => _gameState;
   set gameState(GameState state) {
     _gameState = state;

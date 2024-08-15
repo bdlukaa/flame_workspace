@@ -1,21 +1,21 @@
 library flame_workspace_core;
 
-export 'package:flame_workspace_core/creation/flame_component.dart';
-export 'package:flame_workspace_core/creation/scene.dart';
-export 'package:flame_workspace_core/creation/parser_values.dart';
-export 'package:flame_workspace_core/creation/key.dart';
-export 'package:flame_workspace_core/communication/messages.dart';
-export 'package:flame_workspace_core/communication/state.dart';
-
-export 'package:flame_workspace_core/exports.dart';
-
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
-import 'package:flame_workspace_core/communication/state.dart';
 import 'package:flutter/foundation.dart';
 
-import 'creation/scene.dart';
+import 'package:flame_workspace_core/communication/state.dart';
+
 import 'communication/debug_server.dart' as ds;
+import 'game/scene.dart';
+
+export 'package:flame_workspace_core/communication/messages.dart';
+export 'package:flame_workspace_core/communication/parser_values.dart';
+export 'package:flame_workspace_core/communication/state.dart';
+export 'package:flame_workspace_core/exports.dart';
+export 'package:flame_workspace_core/game/flame_component.dart';
+export 'package:flame_workspace_core/game/key.dart';
+export 'package:flame_workspace_core/game/scene.dart';
 
 typedef SetPropertyValue = void Function(
   String className,

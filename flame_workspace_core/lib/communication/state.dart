@@ -1,11 +1,11 @@
 class GameState {
   final bool paused;
 
-  GameState({
+  const GameState({
     required this.paused,
   });
 
-  GameState.initial({
+  const GameState.initial({
     this.paused = false,
   });
 
