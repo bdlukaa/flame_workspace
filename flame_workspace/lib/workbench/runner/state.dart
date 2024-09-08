@@ -178,16 +178,17 @@ class FlameProjectState with ChangeNotifier {
 
         for (final scene in scenes) {
           await SceneGenerator.writeForScene(scene.$1, project);
+          await SceneGenerator.writeSetScenes(project, [scene.$1]);
         }
       } else if ((includeOnly != null && includeOnly.isNotEmpty) &&
           !onlyParse) {
         for (final scene in scenes) {
           if (includeOnly.contains(scene.$1.filePath)) {
             await SceneGenerator.writeForScene(scene.$1, project);
+            await SceneGenerator.writeSetScenes(project, [scene.$1]);
           }
         }
       }
-      await SceneGenerator.writeSetScenes(project, scenes.map((e) => e.$1));
 
       return (indexed, components, scenes);
     } catch (error, stack) {
