@@ -44,6 +44,8 @@ dependencies:
   flame_workspace_core:
     path: ../flame_workspace_core
   web_socket_channel: ^2.4.0
+  flame_workspace_communication_bridge:
+    path: ../flame_workspace_communication_bridge
 
 dev_dependencies:
   flutter_test:
