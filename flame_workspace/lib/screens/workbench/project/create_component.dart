@@ -1,4 +1,5 @@
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
+import 'package:flame_workspace/utils/script_open.dart';
 import 'package:flame_workspace/workbench/generators/component_generator.dart';
 import 'package:flutter/material.dart';
 import 'package:recase/recase.dart';
@@ -30,6 +31,7 @@ class _CreateComponentDialogState extends State<CreateComponentDialog> {
   final _nameController = TextEditingController();
   var _loading = false;
   var _alreadyExist = false;
+  var openInEditor = true;
 
   @override
   void dispose() {
@@ -77,6 +79,14 @@ class _CreateComponentDialogState extends State<CreateComponentDialog> {
                   _formKey.currentState?.validate();
                 },
               ),
+              const SizedBox(height: 16.0),
+              CheckboxListTile(
+                title: const Text('Open in editor'),
+                value: openInEditor,
+                dense: true,
+                onChanged: (value) =>
+                    setState(() => openInEditor = value ?? false),
+              ),
             ]),
           ),
         ),
@@ -93,13 +103,20 @@ class _CreateComponentDialogState extends State<CreateComponentDialog> {
               }
 
               setState(() => _loading = true);
-              await ComponentGenerator.createComponent(
+              await ComponentGenerator.writeComponent(
                 widget.workbench.project,
                 _nameController.text,
               );
               if (context.mounted) {
                 setState(() => _loading = false);
                 Navigator.of(context).pop();
+              }
+
+              if (openInEditor) {
+                await ScriptOpen.openVSCode(
+                  widget.workbench.project,
+                  'lib/components/${_nameController.text.snakeCase}.dart',
+                );
               }
             },
             child: const Text('Create'),

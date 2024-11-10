@@ -6,10 +6,16 @@ import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:path/path.dart' as path;
 import 'package:recase/recase.dart';
 
+/// A generator for creating a new Flame component.
 class ComponentGenerator {
   const ComponentGenerator._();
 
-  static Future<void> createComponent(FlameProject project, String name) async {
+  /// Generates the component file content.
+  ///
+  /// Use [name] to define the component name.
+  ///
+  /// Returns the component file content.
+  static String generateComponent(String name) {
     name = name.trim().replaceAll('  ', ' ').pascalCase;
     final componentSink = StringBuffer();
     componentSink.writeAll([
@@ -38,6 +44,14 @@ class ComponentGenerator {
       '}',
     ], '\n');
 
+    return componentSink.toString();
+  }
+
+  /// Writes the component file to the project.
+  ///
+  /// Use [project] to define the project where the component will be created.
+  static Future<void> writeComponent(FlameProject project, String name) async {
+    final component = generateComponent(name);
     final componentFile = File(path.join(
       project.location.path,
       'lib',
@@ -48,6 +62,6 @@ class ComponentGenerator {
       await componentFile.create(recursive: true);
     }
 
-    await Writer.writeFormatted(componentFile, componentSink.toString());
+    await Writer.writeFormatted(componentFile, component);
   }
 }
