@@ -44,7 +44,6 @@ class ProjectIndexer {
   ]) async {
     // avoiding print because we can not import flutter to use it on the /bin folder
     // ignore: avoid_print
-    print('Indexing project at ${libDir.path} including only $includeOnly');
     final IndexedProject files = <(IndexedUnit, CompilationUnit)>[];
 
     libDir = Directory(path.join(libDir.path, 'lib'));
@@ -62,6 +61,11 @@ class ProjectIndexer {
       final unit = dartdoc.serializeCompilationUnit(parsed.unit);
       unit['source'] = file.path;
       files.add((unit, parsed.unit));
+    }
+
+    if (files.isNotEmpty) {
+      // ignore: avoid_print
+      print('Indexed ${files.length} files');
     }
 
     return files;

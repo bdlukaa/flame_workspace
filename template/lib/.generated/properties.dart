@@ -166,10 +166,6 @@ void setPropertyValue(
       setPropertyValueToggleButtonComponent(
           cls as ToggleButtonComponent, propertyName, value);
       break;
-    case 'ViewportAwareBoundsBehavior':
-      setPropertyValueViewportAwareBoundsBehavior(
-          cls as ViewportAwareBoundsBehavior, propertyName, value);
-      break;
     default:
       throw ArgumentError.value(className, 'Class not found');
   }
@@ -1285,20 +1281,6 @@ void setPropertyValueToggleButtonComponent(
       break;
     case 'priority':
       cls.priority = value as dynamic;
-      break;
-    default:
-      throw ArgumentError.value(propertyName, 'Property not found');
-  }
-}
-
-void setPropertyValueViewportAwareBoundsBehavior(
-  ViewportAwareBoundsBehavior cls,
-  String propertyName,
-  dynamic value,
-) {
-  switch (propertyName) {
-    case 'boundsShape':
-      cls.boundsShape = value as Shape;
       break;
     default:
       throw ArgumentError.value(propertyName, 'Property not found');

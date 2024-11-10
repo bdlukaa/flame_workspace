@@ -15,7 +15,7 @@ dependencies:
     sdk: flutter
 
   # Required dependencies
-  flame: ^1.18.0
+  flame: ^1.21.0
   flame_workspace_core:
     path: ../flame_workspace_core
   flame_audio: 2.1.1

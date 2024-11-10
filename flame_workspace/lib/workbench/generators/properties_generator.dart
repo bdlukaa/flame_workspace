@@ -51,6 +51,7 @@ class PropertiesGenerator {
       'AnchorEffect',
       'GlowEffect',
       'MoveEffect',
+      'ViewportAwareBoundsBehavior',
     ].contains(component.name)) return '';
 
     final className = component.name;
