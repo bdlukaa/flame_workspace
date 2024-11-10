@@ -136,19 +136,24 @@ class SceneHelper {
     final code = result.$1.toCode(result.$2, result.$3);
     var finalContent = '$before\n$code\n\n$after';
 
-    final componentFilePath = Uri.file(
-      projectState.components
-          .firstWhere((e) => e.$1.name == result.$1.name)
-          .$2['source'] as String,
-      windows: Platform.isWindows,
-    );
-    final componentPath = componentFilePath
-        .toFilePath(windows: false)
-        .split('${projectState.project.name}/lib/')
-        .last;
+    try {
+      final componentFilePath = Uri.file(
+        projectState.components
+            .firstWhere((component) => component.$1.name == result.$1.name)
+            .$2['source'] as String,
+        windows: Platform.isWindows,
+      );
+      final componentPath = componentFilePath
+          .toFilePath(windows: false)
+          .split('${projectState.project.name}/lib/')
+          .last;
 
-    finalContent = Writer.addImport(
-        finalContent, 'package:${projectState.project.name}/$componentPath');
+      finalContent = Writer.addImport(
+          finalContent, 'package:${projectState.project.name}/$componentPath');
+    } catch (e) {
+      // Ignore because the component is not a project component, and is probably
+      // imported from another library.
+    }
 
     await Writer.writeFormatted(file, finalContent);
   }

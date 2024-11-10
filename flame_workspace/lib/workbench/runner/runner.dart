@@ -4,12 +4,14 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:ffi/ffi.dart';
-import 'package:flame_workspace_core/flame_workspace_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_view/flutter_native_view.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:win32/win32.dart';
 import 'package:window_manager/window_manager.dart';
+
+import 'package:flame_workspace_communication_bridge/workspace.dart';
+import 'package:flame_workspace_core/flame_workspace_core.dart';
 
 import '../project/project.dart';
 
@@ -67,6 +69,12 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
 
   IOWebSocketChannel? _channel;
 
+  late VM vm;
+
+  String get isolateId {
+    return vm.isolates!.first.id!;
+  }
+
   GameState _gameState = const GameState.initial();
   GameState get gameState => _gameState;
   set gameState(GameState state) {
@@ -74,7 +82,11 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
     send(WorkbenchMessages.setGameState, state.toMap());
   }
 
-  void pause() => gameState = gameState.copyWith(paused: true);
+  void pause() {
+    gameState = gameState.copyWith(paused: true);
+    vmService?.pause(isolateId);
+  }
+
   void resume() => gameState = gameState.copyWith(paused: false);
 
   bool _ready = false;
@@ -128,6 +140,26 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
         );
         setScene?.call();
         _ready = true;
+      } else if (line
+          .trim()
+          .contains('The Flutter DevTools debugger and profiler on')) {
+        final url = Uri.parse(line
+            .trim()
+            .split(
+              'The Flutter DevTools debugger and profiler on Windows is available at:',
+            )
+            .last
+            .trim());
+
+        final wsUrl = url.queryParameters['uri']!;
+        // is is necessary to add the "ws" to the end of the url
+        final wsUri = '${Uri.parse(wsUrl).replace(scheme: 'ws')}ws';
+        debugPrint('VM service at $wsUri');
+
+        await registerWorkspace(wsUri.toString());
+        vm = await vmService!.getVM();
+
+        notifyListeners();
       } else if (line.trim().contains('flutter: Serving at ')) {
         final url = line.trim().split('flutter: Serving at').last.trim();
         debugPrint('Connecting to $url');
@@ -163,7 +195,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
   }
 
   Completer? _hotReloadCompleter;
-  Future<void> hotReload() {
+  Future<void> hotReload() async {
     _hotReloadCompleter = Completer();
     emitInput('r');
     return _hotReloadCompleter!.future;
@@ -199,6 +231,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
     _errorSubscription = null;
 
     _channel?.sink.close();
+    _channel = null;
 
     notifyListeners();
   }
@@ -229,6 +262,10 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
 
   /// Sends a message to the game preview.
   void send(WorkbenchMessages id, Map data) {
+    if (_channel == null || _channel!.closeCode != null) {
+      emitLog('Channel is closed. Closing app.', kWorkspaceLogPrefix);
+      return;
+    }
     if (isReady) {
       _channel!.sink.add(json.encode(<String, dynamic>{
         'id': id.name,

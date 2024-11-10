@@ -22,7 +22,11 @@ Future<HttpServer> createServer() async {
     );
   });
 
-  var server = await io.serve(handler, 'localhost', 8080);
+  var server = await io.serve(
+    handler,
+    'localhost',
+    8020,
+  );
 
   print('Serving at ws://${server.address.host}:${server.port}');
 

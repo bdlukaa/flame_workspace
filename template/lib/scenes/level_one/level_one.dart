@@ -9,4 +9,7 @@ class $SceneLevelOne extends FlameScene with $SceneLevelOneMixin {
     super.sceneName = 'Level One',
     super.backgroundColor = const Color(0xFF000000),
   });
+  CircleComponent circleComponent = CircleComponent(
+    key: FlameKey('circleComponent'),
+  );
 }

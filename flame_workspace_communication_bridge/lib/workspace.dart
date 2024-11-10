@@ -5,9 +5,14 @@ import 'dart:developer';
 import 'package:vm_service/vm_service.dart';
 import 'package:vm_service/vm_service_io.dart';
 
+export 'dart:developer' hide Timeline;
+
+export 'package:vm_service/vm_service.dart';
+export 'package:vm_service/vm_service_io.dart';
+
 VmService? vmService;
 
-void registerWorkspace(String wsUri) async {
+Future<void> registerWorkspace(String wsUri) async {
   vmService = await vmServiceConnectUri(wsUri);
 
   log('Connected to workspace at $wsUri');
