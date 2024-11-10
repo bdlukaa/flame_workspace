@@ -298,13 +298,13 @@ class _WorkbenchViewState extends State<WorkbenchView> {
       Expanded(
         child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
           InkedIconButton(
-            onTap: !runner.isReady ? null : runner.hotReload,
+            onTap: !runner.isViewReady ? null : runner.hotReload,
             tooltip: 'Hot reload',
             icon: Icon(Icons.bolt, color: theme.colorScheme.primary),
           ),
           const SizedBox(width: 8.0),
           InkedIconButton(
-            onTap: !runner.isReady ? null : runner.hotRestart,
+            onTap: !runner.isViewReady ? null : runner.hotRestart,
             tooltip: 'Hot restart',
             icon: Icon(
               Icons.local_fire_department,
@@ -323,7 +323,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
           ),
           const SizedBox(width: 8.0),
           InkedIconButton(
-            onTap: !runner.isReady || runner.gameState.paused
+            onTap: !runner.isViewReady || runner.gameState.paused
                 ? null
                 : runner.pause,
             tooltip: 'Pause',
@@ -356,7 +356,7 @@ class NotificationsField extends StatelessWidget {
         return (true, 'Indexing project');
       }
       if (workbench.runner.isRunning) {
-        if (!workbench.runner.isReady) {
+        if (!workbench.runner.isViewReady) {
           return (true, 'Loading game');
         }
         if (workbench.runner.isHotRestarting) {

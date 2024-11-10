@@ -1,13 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:io';
 
-import 'package:ffi/ffi.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_native_view/flutter_native_view.dart';
+import 'package:flame_workspace/workbench/runner/logs.dart';
+import 'package:flame_workspace/workbench/runner/view.dart';
 import 'package:web_socket_channel/io.dart';
-import 'package:win32/win32.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'package:flame_workspace_communication_bridge/workspace.dart';
@@ -24,7 +21,7 @@ const kInitialLog = '$kWorkspaceLogPrefix' 'Project not running';
 /// This classes starts the game preview and handles the communication with it.
 /// The game preview creates a http server, which this class connects to. With
 /// this connection, it is possible to send and receives messages from the game.
-class FlameProjectRunner with ChangeNotifier, WindowListener {
+class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   /// The project to run.
   final FlameProject project;
 
@@ -61,9 +58,8 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
   /// Whether the project is running.
   bool get isRunning => _isRunning;
 
-  final _viewKey = GlobalKey();
-  NativeViewController? _viewController;
   Process? _runProcess;
+  Process? get runProcess => _runProcess;
   StreamSubscription<String>? _outputSubscription;
   StreamSubscription<String>? _errorSubscription;
 
@@ -89,25 +85,13 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
 
   void resume() => gameState = gameState.copyWith(paused: false);
 
-  bool _ready = false;
+  Future<void> connectChannel(String url) async {
+    final channel = IOWebSocketChannel.connect(url);
+    await channel.ready;
+    _channel = channel;
+    setScene?.call();
 
-  /// Whether the app has started
-  bool get isReady => _ready;
-
-  void emitLog(String log, String prefix) {
-    final lines = log.split('\n').where((line) => line.trim().isNotEmpty);
-    if (lines.length > 1) logs.add('');
-    for (final line in lines) {
-      logs.add(prefix + line);
-    }
-    if (lines.length > 1) logs.add('');
     notifyListeners();
-  }
-
-  void emitInput(String input) {
-    if (isReady) {
-      _runProcess?.stdin.writeln(input);
-    }
   }
 
   /// Runs the project.
@@ -128,57 +112,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
     );
 
     _outputSubscription =
-        _runProcess!.stdout.transform(utf8.decoder).listen((line) async {
-      if (line.trim().isEmpty) return;
-
-      emitLog(line, kPreviewLogPrefix);
-
-      if (line.trim().contains('Flutter run key commands.')) {
-        _viewController = NativeViewController(
-          handle: FindWindow(nullptr, project.name.toNativeUtf16()),
-          hitTestBehavior: HitTestBehavior.translucent,
-        );
-        setScene?.call();
-        _ready = true;
-      } else if (line
-          .trim()
-          .contains('The Flutter DevTools debugger and profiler on')) {
-        final url = Uri.parse(line
-            .trim()
-            .split(
-              'The Flutter DevTools debugger and profiler on Windows is available at:',
-            )
-            .last
-            .trim());
-
-        final wsUrl = url.queryParameters['uri']!;
-        // is is necessary to add the "ws" to the end of the url
-        final wsUri = '${Uri.parse(wsUrl).replace(scheme: 'ws')}ws';
-        debugPrint('VM service at $wsUri');
-
-        await registerWorkspace(wsUri.toString());
-        vm = await vmService!.getVM();
-
-        notifyListeners();
-      } else if (line.trim().contains('flutter: Serving at ')) {
-        final url = line.trim().split('flutter: Serving at').last.trim();
-        debugPrint('Connecting to $url');
-        final channel = IOWebSocketChannel.connect(url);
-        await channel.ready;
-        _channel = channel;
-        setScene?.call();
-
-        notifyListeners();
-      } else if (line.trim().contains('Reloaded ')) {
-        _hotReloadCompleter?.complete();
-        _hotReloadCompleter = null;
-      } else if (line.trim().contains('Restarted application in ')) {
-        _hotRestartCompleter?.complete();
-        _hotRestartCompleter = null;
-      } else if (line.trim().contains('Exited ')) {
-        stop();
-      }
-    });
+        _runProcess!.stdout.transform(utf8.decoder).listen(onReceiveLog);
 
     _errorSubscription =
         _runProcess!.stderr.transform(utf8.decoder).listen((line) {
@@ -201,6 +135,11 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
     return _hotReloadCompleter!.future;
   }
 
+  void completeHotReload() {
+    _hotReloadCompleter?.complete();
+    _hotReloadCompleter = null;
+  }
+
   bool get isHotReloading =>
       _hotReloadCompleter != null && !_hotReloadCompleter!.isCompleted;
 
@@ -209,6 +148,11 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
     _hotRestartCompleter = Completer();
     emitInput('R');
     return _hotRestartCompleter!.future;
+  }
+
+  void completeHotRestart() {
+    _hotRestartCompleter?.complete();
+    _hotRestartCompleter = null;
   }
 
   bool get isHotRestarting =>
@@ -223,8 +167,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
     }
 
     _isRunning = false;
-    _viewController?.dispose();
-    _viewController = null;
+    disposeView();
     _outputSubscription?.cancel();
     _outputSubscription = null;
     _errorSubscription?.cancel();
@@ -236,43 +179,17 @@ class FlameProjectRunner with ChangeNotifier, WindowListener {
     notifyListeners();
   }
 
-  Widget buildPreview() {
-    return LayoutBuilder(builder: ((context, constraints) {
-      final theme = Theme.of(context);
-      if (_viewController == null) {
-        if (_isRunning) {
-          return Center(
-            child: Text(
-              'Game Preview starting...',
-              style: theme.textTheme.titleMedium,
-            ),
-          );
-        }
-
-        return const SizedBox.shrink();
-      }
-      return NativeView(
-        key: _viewKey,
-        controller: _viewController!,
-        width: constraints.maxWidth,
-        height: constraints.maxHeight,
-      );
-    }));
-  }
-
   /// Sends a message to the game preview.
   void send(WorkbenchMessages id, Map data) {
     if (_channel == null || _channel!.closeCode != null) {
       emitLog('Channel is closed. Closing app.', kWorkspaceLogPrefix);
       return;
     }
-    if (isReady) {
-      _channel!.sink.add(json.encode(<String, dynamic>{
-        'id': id.name,
-        ...data,
-      }));
-      hotReload();
-    }
+    _channel!.sink.add(json.encode(<String, dynamic>{
+      'id': id.name,
+      ...data,
+    }));
+    hotReload();
   }
 
   @override

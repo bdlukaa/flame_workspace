@@ -136,8 +136,12 @@ class FlameProjectState with ChangeNotifier {
     notifyListeners();
   }
 
-  static Future<(IndexedProject?, List<IndexedComponent>, List<IndexedScene>)>
-      _indexProject(Map data) async {
+  static Future<
+      (
+        IndexedProject?,
+        List<IndexedComponent>,
+        List<IndexedScene>,
+      )> _indexProject(Map data) async {
     try {
       final project = data['project'] as FlameProject;
       final includeOnly = data['includeOnly'] as Iterable<String>?;
