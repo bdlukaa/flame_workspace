@@ -26,6 +26,7 @@ extension RunnerLogs on FlameProjectRunner {
     emitLog(line, kPreviewLogPrefix);
 
     if (line.trim().contains('Flutter run key commands.')) {
+      setupView(project);
     } else if (line
         .trim()
         .contains('The Flutter DevTools debugger and profiler on')) {
