@@ -207,3 +207,7 @@ The generated template keeps the existing minimal runtime dependency set (`flame
 `flame_workspace/lib/workbench/model/semantic_model.dart` now contains the first widget-independent semantic model. `WorkspaceProject` owns `SceneDefinition` objects, which own `ComponentInstance` hierarchies. Instances reference a `ComponentType`, stable deterministic IDs, editable properties, and a `WorkspaceTransform` containing position, size, angle, and anchor data plus priority.
 
 `WorkspaceModelMapper` copies the existing Analyzer/indexer results into this model for the current simple fixture path. The model does not retain AST nodes; the existing indexer DTOs remain a compatibility boundary until later editor migration work. Persistence and Scene View editing are intentionally not implemented yet.
+
+## Cross-platform project runner
+
+`flame_workspace/lib/workbench/runner/project_runner.dart` now owns Flutter process execution behind `ProjectProcessLauncher` and `ProjectProcess` abstractions. `FlutterTarget` represents an explicit device discovered from `flutter devices --machine`, while omitting a target lets Flutter select its normal default. The runner owns start/stop, output streams, `r`/`R` commands, exit state, and cleanup; the existing preview channel and native view remain unchanged for a later preview migration.

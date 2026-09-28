@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flame_workspace/workbench/runner/logs.dart';
+import 'package:flame_workspace/workbench/runner/project_runner.dart';
 import 'package:flame_workspace/workbench/runner/view.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:window_manager/window_manager.dart';
@@ -14,7 +14,9 @@ import '../project/project.dart';
 
 const kWorkspaceLogPrefix = 'flame_workspace: ';
 const kPreviewLogPrefix = 'preview: ';
-const kInitialLog = '$kWorkspaceLogPrefix' 'Project not running';
+const kInitialLog =
+    '$kWorkspaceLogPrefix'
+    'Project not running';
 
 /// Runs a flame project.
 ///
@@ -44,6 +46,10 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   /// Called when the app starts or hot restart.
   final VoidCallback? setScene;
 
+  late final FlutterProjectRunner processRunner = FlutterProjectRunner(
+    projectDirectory: project.location,
+  );
+
   FlameProjectRunner(
     this.project, {
     this.hostname = '0.0.0.0',
@@ -58,10 +64,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   /// Whether the project is running.
   bool get isRunning => _isRunning;
 
-  Process? _runProcess;
-  Process? get runProcess => _runProcess;
-  StreamSubscription<String>? _outputSubscription;
-  StreamSubscription<String>? _errorSubscription;
+  ProjectRunnerState get runnerState => processRunner.state;
 
   IOWebSocketChannel? _channel;
 
@@ -95,43 +98,39 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   }
 
   /// Runs the project.
-  Future<void> run() async {
+  Future<void> run({FlutterTarget? target}) async {
     if (_isRunning) {
       throw Exception('Project is already running');
     }
 
     _isRunning = true;
-
     emitLog('Running preview', kWorkspaceLogPrefix);
 
-    _runProcess = await Process.start(
-      'flutter',
-      ['run', '-d', 'windows'],
-      runInShell: true,
-      workingDirectory: project.location.path,
-    );
-
-    _outputSubscription =
-        _runProcess!.stdout.transform(utf8.decoder).listen(onReceiveLog);
-
-    _errorSubscription =
-        _runProcess!.stderr.transform(utf8.decoder).listen((line) {
-      emitLog(line, kPreviewLogPrefix);
-    });
-
-    _runProcess!.exitCode.then((exitCode) {
-      emitLog(
-        '${project.name} exited with exit code $exitCode',
-        kPreviewLogPrefix,
+    try {
+      await processRunner.start(
+        target: target,
+        onStdout: (line) => unawaited(onReceiveLog(line)),
+        onStderr: (line) => emitLog(line, kPreviewLogPrefix),
+        onExit: (exitCode) {
+          emitLog(
+            '${project.name} exited with exit code $exitCode',
+            kPreviewLogPrefix,
+          );
+          stop();
+        },
       );
-      stop();
-    });
+      notifyListeners();
+    } catch (_) {
+      _isRunning = false;
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Completer? _hotReloadCompleter;
   Future<void> hotReload() async {
     _hotReloadCompleter = Completer();
-    emitInput('r');
+    await processRunner.hotReload();
     return _hotReloadCompleter!.future;
   }
 
@@ -144,9 +143,9 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
       _hotReloadCompleter != null && !_hotReloadCompleter!.isCompleted;
 
   Completer? _hotRestartCompleter;
-  Future<void> hotRestart() {
+  Future<void> hotRestart() async {
     _hotRestartCompleter = Completer();
-    emitInput('R');
+    await processRunner.hotRestart();
     return _hotRestartCompleter!.future;
   }
 
@@ -158,24 +157,13 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   bool get isHotRestarting =>
       _hotRestartCompleter != null && !_hotRestartCompleter!.isCompleted;
 
-  void stop() {
-    if (_runProcess != null) {
-      emitLog('Stopping preview', kWorkspaceLogPrefix);
-      // Process.killPid(_runProcess!.pid);
-      emitInput('q');
-      _runProcess = null;
-    }
-
+  Future<void> stop() async {
+    if (_isRunning) emitLog('Stopping preview', kWorkspaceLogPrefix);
+    await processRunner.stop();
     _isRunning = false;
     disposeView();
-    _outputSubscription?.cancel();
-    _outputSubscription = null;
-    _errorSubscription?.cancel();
-    _errorSubscription = null;
-
-    _channel?.sink.close();
+    await _channel?.sink.close();
     _channel = null;
-
     notifyListeners();
   }
 
@@ -185,16 +173,13 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
       emitLog('Channel is closed. Closing app.', kWorkspaceLogPrefix);
       return;
     }
-    _channel!.sink.add(json.encode(<String, dynamic>{
-      'id': id.name,
-      ...data,
-    }));
+    _channel!.sink.add(json.encode(<String, dynamic>{'id': id.name, ...data}));
     hotReload();
   }
 
   @override
   void dispose() {
-    stop();
+    unawaited(stop());
     windowManager.setPreventClose(false);
     super.dispose();
   }

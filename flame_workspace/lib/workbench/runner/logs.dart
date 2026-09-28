@@ -18,7 +18,7 @@ extension RunnerLogs on FlameProjectRunner {
   }
 
   void emitInput(String input) {
-    runProcess?.stdin.writeln(input);
+    unawaited(processRunner.sendCommand(input));
   }
 
   Future<void> onReceiveLog(String line) async {
@@ -27,16 +27,18 @@ extension RunnerLogs on FlameProjectRunner {
 
     if (line.trim().contains('Flutter run key commands.')) {
       setupView(project);
-    } else if (line
-        .trim()
-        .contains('The Flutter DevTools debugger and profiler on')) {
-      final url = Uri.parse(line
-          .trim()
-          .split(
-            'The Flutter DevTools debugger and profiler on Windows is available at:',
-          )
-          .last
-          .trim());
+    } else if (line.trim().contains(
+      'The Flutter DevTools debugger and profiler on',
+    )) {
+      final url = Uri.parse(
+        line
+            .trim()
+            .split(
+              'The Flutter DevTools debugger and profiler on Windows is available at:',
+            )
+            .last
+            .trim(),
+      );
 
       final wsUrl = url.queryParameters['uri']!;
       // is is necessary to add the "ws" to the end of the url
