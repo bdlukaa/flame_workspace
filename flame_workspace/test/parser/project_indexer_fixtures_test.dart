@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/parser/type_resolver.dart';
+import 'package:flame_workspace/workbench/parser/workspace_model_mapper.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -38,6 +39,23 @@ void main() {
       final names = components.map((component) => component.$1.name);
       expect(names, containsAll(<String>['Player', 'PlayerSprite']));
       expect(names, isNot(contains('NotAComponent')));
+
+      final model = WorkspaceModelMapper.fromIndexed(
+        indexed,
+        resolver: resolver,
+        projectName: 'basic_components',
+      );
+      expect(model.scenes, hasLength(1));
+      expect(
+        model.scenes.single.components.map((component) => component.type.name),
+        containsAll(<String>['PositionComponent', 'SpriteComponent']),
+      );
+      expect(
+        model.scenes.single.components.every((component) {
+          return component.id.isNotEmpty && component.sourcePath != null;
+        }),
+        isTrue,
+      );
     },
   );
 

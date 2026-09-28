@@ -201,3 +201,9 @@ flame_workspace ───────┐
 - `flame_workspace_core` remains as a compatibility facade that depends only on protocol/runtime; it no longer points back to `flame_workspace`. New templates use `flame_workspace_runtime` directly.
 
 The generated template keeps the existing minimal runtime dependency set (`flame`, `flame_workspace_runtime`, and `window_manager`). No dependency override or runtime/editor cycle is present. The legacy WebSocket/native-window preview implementation remains intentionally unchanged for a later preview migration.
+
+## Initial semantic scene model
+
+`flame_workspace/lib/workbench/model/semantic_model.dart` now contains the first widget-independent semantic model. `WorkspaceProject` owns `SceneDefinition` objects, which own `ComponentInstance` hierarchies. Instances reference a `ComponentType`, stable deterministic IDs, editable properties, and a `WorkspaceTransform` containing position, size, angle, and anchor data plus priority.
+
+`WorkspaceModelMapper` copies the existing Analyzer/indexer results into this model for the current simple fixture path. The model does not retain AST nodes; the existing indexer DTOs remain a compatibility boundary until later editor migration work. Persistence and Scene View editing are intentionally not implemented yet.
