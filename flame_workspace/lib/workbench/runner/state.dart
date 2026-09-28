@@ -10,8 +10,8 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 
 import '../parser/parser.dart';
-import '../project/objects/built_in_components.dart';
 import '../project/objects/component.dart';
+import '../project/objects/mixin.dart';
 import '../project/objects/scene.dart';
 import '../project/project.dart';
 
@@ -89,6 +89,8 @@ class FlameProjectState with ChangeNotifier {
   }
 
   final components = <IndexedComponent>[];
+  final flameComponents = <FlameComponentObject>[];
+  final flameMixins = <FlameMixin>[];
 
   FlameComponentObject? _selectedComponent;
   FlameComponentObject? get selectedComponent => _selectedComponent;
@@ -115,15 +117,18 @@ class FlameProjectState with ChangeNotifier {
     if (includeOnly == null || includeOnly.isEmpty) indexed = null;
     notifyListeners();
 
-    final (indexedResult, componentsResult, scenesResult) = await compute(
-      _indexProject,
-      {
-        'project': project,
-        'indexed': indexed,
-        'includeOnly': includeOnly,
-        'onlyParse': onlyParse,
-      },
-    );
+    final (
+      indexedResult,
+      componentsResult,
+      scenesResult,
+      flameComponentsResult,
+      flameMixinsResult,
+    ) = await compute(_indexProject, {
+      'project': project,
+      'indexed': indexed,
+      'includeOnly': includeOnly,
+      'onlyParse': onlyParse,
+    });
 
     indexed = indexedResult;
     components
@@ -134,12 +139,26 @@ class FlameProjectState with ChangeNotifier {
         ..clear()
         ..addAll(scenesResult);
     }
+    flameComponents
+      ..clear()
+      ..addAll(flameComponentsResult);
+    flameMixins
+      ..clear()
+      ..addAll(flameMixinsResult);
 
     isIndexing = false;
     notifyListeners();
   }
 
-  static Future<(IndexedProject?, List<IndexedComponent>, List<IndexedScene>)>
+  static Future<
+    (
+      IndexedProject?,
+      List<IndexedComponent>,
+      List<IndexedScene>,
+      List<FlameComponentObject>,
+      List<FlameMixin>,
+    )
+  >
   _indexProject(Map data) async {
     try {
       final project = data['project'] as FlameProject;
@@ -148,6 +167,8 @@ class FlameProjectState with ChangeNotifier {
       var indexed = data['indexed'] as IndexedProject?;
       var components = <IndexedComponent>[];
       var scenes = <IndexedScene>[];
+      var flameComponents = <FlameComponentObject>[];
+      var flameMixins = <FlameMixin>[];
 
       if (!onlyParse) {
         final result = await ProjectIndexer.indexProject(
@@ -172,13 +193,15 @@ class FlameProjectState with ChangeNotifier {
         scenes
           ..clear()
           ..addAll(ProjectIndexer.scenesFrom(indexed, resolver: resolver));
+        flameComponents = resolver.flameComponents;
+        flameMixins = resolver.flameMixins;
         await resolver.dispose();
       }
 
       if ((includeOnly == null || includeOnly.isEmpty) && !onlyParse) {
         await PropertiesGenerator.writeForComponents([
           ...components.map((e) => e.$1),
-          ...builtInComponents,
+          ...flameComponents,
         ], project);
 
         for (final scene in scenes) {
@@ -195,10 +218,16 @@ class FlameProjectState with ChangeNotifier {
         }
       }
 
-      return (indexed, components, scenes);
+      return (indexed, components, scenes, flameComponents, flameMixins);
     } catch (error, stack) {
       debugPrint('Failed to index project: $error \n $stack');
-      return (null, <IndexedComponent>[], <IndexedScene>[]);
+      return (
+        null,
+        <IndexedComponent>[],
+        <IndexedScene>[],
+        <FlameComponentObject>[],
+        <FlameMixin>[],
+      );
     }
   }
 

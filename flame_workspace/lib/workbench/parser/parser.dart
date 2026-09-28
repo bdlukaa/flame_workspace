@@ -12,7 +12,7 @@ import 'package:path/path.dart' as path;
 import 'package:flame_workspace_runtime/utils.dart';
 
 import '../../compilation_unit_helper.dart';
-import '../project/objects/built_in_components.dart';
+
 import 'type_resolver.dart';
 
 typedef IndexedProject = List<(IndexedUnit indexed, CompilationUnit unit)>;
@@ -188,6 +188,7 @@ class ProjectIndexer {
                   components: _componentsFromClassFields(
                     components!.map((e) => e.$1),
                     fields,
+                    resolver.flameComponents,
                   ),
                   filePath: file['source'],
                   indexedUnit: index,
@@ -247,8 +248,9 @@ class ProjectIndexer {
   static List<FlameComponentObject> _componentsFromClassFields(
     Iterable<FlameComponentObject> components,
     Iterable<Map> fields,
+    Iterable<FlameComponentObject> flameComponents,
   ) {
-    components = [...builtInComponents, ...components];
+    components = [...flameComponents, ...components];
     return fields
         .where((field) {
           return components.any((component) => field['type'] == component.name);
@@ -275,6 +277,8 @@ class ProjectIndexer {
     FlameTypeResolver? resolver,
   }) {
     final components = <IndexedComponent>[];
+    final flameComponents =
+        resolver?.flameComponents ?? const <FlameComponentObject>[];
 
     for (final index in indexed) {
       final indexedUnit = index.$1;
@@ -294,7 +298,7 @@ class ProjectIndexer {
                         sourcePath: sourcePath,
                         className: className,
                       ) ??
-                      builtInComponents.any(
+                      flameComponents.any(
                         (component) => component.name == d['extends'],
                       ));
             })
@@ -331,7 +335,7 @@ class ProjectIndexer {
                           );
                           superComponent = [
                             ...components.map((e) => e.$1),
-                            ...builtInComponents,
+                            ...flameComponents,
                           ].firstWhereOrNull((c) => c.name == superclass);
 
                           superParameter = superComponent?.parameters
@@ -390,6 +394,19 @@ class ProjectIndexer {
                 }
               }
 
+              if (resolver != null) {
+                final inheritedFields = resolver.inheritedComponentFields(
+                  sourcePath: indexedUnit['source'] as String,
+                  className: d['name'] as String,
+                );
+                for (final field in inheritedFields) {
+                  if (componentParameters.any((p) => p.name == field.name)) {
+                    continue;
+                  }
+                  componentParameters.add(field);
+                }
+              }
+
               return (
                 FlameComponentObject(
                   name: d['name'],
@@ -415,7 +432,11 @@ class ProjectIndexer {
 
         if (fields.isEmpty) continue;
 
-        final childComponents = _componentsFromClassFields(components, fields);
+        final childComponents = _componentsFromClassFields(
+          components,
+          fields,
+          flameComponents,
+        );
 
         if (childComponents.any((c) => c.name == parent.name)) {
           throw Exception(

@@ -1,4 +1,3 @@
-import 'package:flame_workspace/workbench/project/objects/built_in_mixins.dart';
 import 'package:flame_workspace/workbench/project/objects/mixin.dart';
 import 'package:flame_workspace/workbench/project/objects/scene.dart';
 import 'package:flutter/material.dart';
@@ -6,11 +5,12 @@ import 'package:flutter/material.dart';
 Future<FlameMixin?> showModifiersSelectorSheet(
   BuildContext context,
   FlameSceneObject target,
+  Iterable<FlameMixin> mixins,
 ) async {
   return showModalBottomSheet<FlameMixin>(
     context: context,
     isScrollControlled: true,
-    builder: (context) => ModifiersSelector(target: target),
+    builder: (context) => ModifiersSelector(target: target, mixins: mixins),
   );
 }
 
@@ -47,8 +47,9 @@ IconData? iconForModifier(String modifier) {
 
 class ModifiersSelector extends StatefulWidget {
   final FlameSceneObject target;
+  final Iterable<FlameMixin> mixins;
 
-  ModifiersSelector({super.key, required this.target})
+  ModifiersSelector({super.key, required this.target, required this.mixins})
       : assert(
           target.script != null,
           'Can only open modifiers selector on scripts',
@@ -122,8 +123,8 @@ class _ModifiersSelectorState extends State<ModifiersSelector> {
               builder: (context, child) {
                 final search = searchController.text.toLowerCase();
                 final mixins = (search.isEmpty
-                        ? builtInMixins
-                        : builtInMixins.where((mixin) =>
+                        ? widget.mixins
+                        : widget.mixins.where((mixin) =>
                             mixin.name.toLowerCase().contains(search)))
                     .where((mixin) => mixin.on.contains('Component'));
                 return ListView.builder(

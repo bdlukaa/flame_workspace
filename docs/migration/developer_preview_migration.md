@@ -258,3 +258,11 @@ ext.flameWorkspace.*
         ▼
 flame_workspace_runtime → Flame World/component tree
 ```
+
+## Analyzer-backed Flame API discovery
+
+The editor now discovers Flame classes, constructors, constructor parameters, inherited properties, supertypes, and mixins from the Flame package resolved in each opened project's `.dart_tool/package_config.json`. `FlameApiDiscovery` uses the existing resolved Analyzer session and returns plain metadata models; Analyzer elements do not cross into UI or project model state. Results are cached in `FlameApiCatalog` for the lifetime of the project resolver.
+
+Component classification remains semantic: project classes are resolved through their actual type hierarchy, so direct and multi-level descendants such as `Enemy`, `Boss`, and `FinalBoss` are recognized without matching source text. Broken or unresolved files produce `TypeResolutionDiagnostic` entries and do not abort indexing.
+
+The old `built_in_components.dart`, `built_in_mixins.dart`, and hardcoded/network-backed `built_in_directives.dart` snapshot path have been removed. The base editor package no longer carries the HTTP dependency that existed only for that generator. Fixture tests cover the resolved `PositionComponent`, `SpriteComponent`, and `World` metadata, mixin discovery, inherited transform properties, and exclusion of unrelated classes.

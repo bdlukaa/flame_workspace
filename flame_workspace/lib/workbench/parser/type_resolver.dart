@@ -6,6 +6,10 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:path/path.dart' as path;
 
+import '../project/objects/component.dart';
+import '../project/objects/mixin.dart';
+import 'flame_api.dart';
+
 /// A diagnostic produced while resolving a project's Dart types.
 class TypeResolutionDiagnostic {
   final String path;
@@ -26,6 +30,7 @@ class FlameTypeResolver {
   final Map<String, ClassElement> _classes;
 
   final List<TypeResolutionDiagnostic> diagnostics;
+  late final FlameApiCatalog flameApi;
 
   FlameTypeResolver._(this._contexts, this._classes, this.diagnostics);
 
@@ -42,7 +47,50 @@ class FlameTypeResolver {
     );
     final resolver = FlameTypeResolver._(contexts, {}, []);
     await resolver._resolveDirectory(Directory(path.join(root, 'lib')));
+    resolver.flameApi = await FlameApiDiscovery.resolve(
+      contexts: contexts,
+      projectRoot: root,
+      diagnostics: resolver.diagnostics,
+    );
     return resolver;
+  }
+
+  /// Flame component metadata discovered from the project's resolved package.
+  List<FlameComponentObject> get flameComponents => flameApi.componentObjects;
+
+  /// Flame mixin metadata discovered from the project's resolved package.
+  List<FlameMixin> get flameMixins => flameApi.mixins;
+
+  /// Returns transform properties inherited from Flame ancestors of a project
+  /// component. Analyzer elements remain private to this resolver.
+  List<FlameComponentField> inheritedComponentFields({
+    required String sourcePath,
+    required String className,
+  }) {
+    final element = _classes[_key(sourcePath, className)];
+    if (element == null) return const [];
+
+    final fields = <String, FlameComponentField>{};
+    for (final supertype in element.allSupertypes) {
+      if (!_isFlameLibrary(supertype.element.library)) continue;
+      final metadata = flameApi.classFor(supertype.element.name ?? '');
+      if (metadata == null) continue;
+      for (final property in metadata.transformProperties) {
+        fields.putIfAbsent(
+          property.name,
+          () => FlameComponentField(
+            property.name,
+            property.type,
+            null,
+            ['PositionComponent'],
+            false,
+            false,
+            property.hasSetter,
+          ),
+        );
+      }
+    }
+    return fields.values.toList();
   }
 
   /// Releases Analyzer resources owned by this resolver.

@@ -4,7 +4,6 @@ import 'package:flame_workspace/screens/workbench/project/views/scenes_list.dart
 import 'package:flutter/material.dart';
 
 import '../../../workbench/parser/parser.dart';
-import '../../../workbench/project/objects/built_in_components.dart';
 import '../design/scene/scene_view.dart';
 import '../workbench_view.dart';
 
@@ -167,8 +166,11 @@ class ComponentsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final workbench = Workbench.of(context);
-    final projectComponents = workbench.state.components
-        .where((c) => !builtInComponents.contains(c.$1));
+    final projectComponents = workbench.state.components.where(
+      (c) => !workbench.state.flameComponents.any(
+        (flameComponent) => flameComponent.name == c.$1.name,
+      ),
+    );
 
     return ListView.builder(
       itemCount: projectComponents.length,

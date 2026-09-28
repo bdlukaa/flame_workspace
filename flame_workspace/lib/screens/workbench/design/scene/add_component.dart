@@ -5,7 +5,6 @@ import 'package:flame_workspace/workbench/parser/values.dart';
 import 'package:flutter/material.dart';
 import 'package:recase/recase.dart';
 
-import '../../../../workbench/project/objects/built_in_components.dart';
 import '../../../../workbench/project/objects/component.dart';
 import '../../../../widgets/tree_view.dart';
 import '../component_view.dart';
@@ -154,12 +153,12 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
 
     rootComponents = componentsFor(
       types: ['Component'],
-      components: builtInComponents,
+      components: widget.workbench.state.flameComponents,
     ).toList()
       ..sort(sorter);
 
     projectComponents = componentsFor(
-      types: builtInComponents.map((e) => e.type),
+      types: widget.workbench.state.flameComponents.map((e) => e.type),
       components: components.map((e) => e.$1),
     ).toList()
       ..sort(sorter);
@@ -348,7 +347,7 @@ class SelectComponentPage extends StatelessWidget {
                       style: theme.textTheme.labelLarge,
                     ),
                     Text(
-                      '${builtInComponents.length}',
+                      '${workbench.state.flameComponents.length}',
                       style: theme.textTheme.bodySmall,
                     ),
                   ],

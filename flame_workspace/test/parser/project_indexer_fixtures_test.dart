@@ -72,6 +72,42 @@ void main() {
       components.map((component) => component.$1.name),
       containsAll(<String>['Enemy', 'Boss', 'FinalBoss']),
     );
+
+    final finalBoss = components
+        .firstWhere((component) => component.$1.name == 'FinalBoss')
+        .$1;
+    final position = finalBoss.parameters.firstWhere(
+      (parameter) => parameter.name == 'position',
+    );
+    expect(position.superComponents, contains('PositionComponent'));
+  });
+
+  test('discovers resolved Flame APIs and caches component metadata', () async {
+    final (project, resolver, indexed) = await _resolvedFixture(
+      'basic_components',
+    );
+    addTearDown(resolver.dispose);
+    addTearDown(() => project.delete(recursive: true));
+    expect(indexed, isNotEmpty);
+
+    final position = resolver.flameApi.classFor('PositionComponent');
+    final sprite = resolver.flameApi.classFor('SpriteComponent');
+    final world = resolver.flameApi.classFor('World');
+
+    expect(position, isNotNull);
+    expect(sprite, isNotNull);
+    expect(world, isNotNull);
+    expect(position!.constructors, isNotEmpty);
+    expect(
+      position.properties.map((property) => property.name),
+      containsAll(<String>['position', 'size', 'angle', 'anchor']),
+    );
+    expect(resolver.flameMixins, isNotEmpty);
+    expect(resolver.flameComponents, same(resolver.flameComponents));
+    expect(
+      resolver.flameApi.componentObjects,
+      same(resolver.flameApi.componentObjects),
+    );
   });
 
   test('discovers multiple FlameScene worlds', () async {

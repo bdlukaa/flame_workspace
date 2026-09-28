@@ -17,7 +17,7 @@ dependencies:
 
   # Project indexer/analyzer
   analyzer: ^10.2.0
-  http: ^1.6.0
+
   recase: ^4.1.0
   dart_style: ^3.1.7
 
