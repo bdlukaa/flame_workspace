@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flame_workspace_runtime/utils.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
 
@@ -53,7 +52,7 @@ class RuntimeValuesParser {
 
   static dynamic parse(String type, String value) {
     if (value == '${null}') return null;
-    if (type.contains('<')) type = type.removeGenerics();
+    if (type.contains('<')) type = type.split('<').first;
     value = value.replaceAll('?', '');
 
     final result = switch (type) {

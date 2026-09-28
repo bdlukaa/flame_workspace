@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flame/game.dart';
 import 'package:flame_workspace/workbench/project/objects/component.dart';
-import 'package:flame_workspace_runtime/utils.dart';
+
 import 'package:flutter/widgets.dart';
 
 /// A class that parse values of parameters and components into an actual class.
@@ -82,7 +82,7 @@ class ValuesParser {
       //  * `Map<String, dynamic>` -> `Map`;
       //  * `List<int>` -> `List`;
       //  * `List<Map<String, dynamic>>` -> `List`.
-      type = type.removeGenerics();
+      type = type.split('<').first;
     }
 
     value = value.replaceAll('?', '');

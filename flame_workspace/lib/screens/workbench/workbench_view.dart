@@ -427,14 +427,16 @@ class _WorkbenchViewState extends State<WorkbenchView> {
               ),
               const SizedBox(width: 8.0),
               InkedIconButton(
-                onTap: !runner.canControlRuntime ? null : runner.hotReload,
+                onTap: !runner.canHotReload ? null : runner.hotReload,
                 tooltip: 'Hot reload',
                 icon: Icon(Icons.bolt, color: theme.colorScheme.primary),
               ),
               const SizedBox(width: 8.0),
               InkedIconButton(
                 onTap: !runner.canControlRuntime ? null : runner.hotRestart,
-                tooltip: 'Hot restart',
+                tooltip: runner.isPreviewRunning
+                    ? 'Hot restart is available on Run targets only'
+                    : 'Hot restart',
                 icon: Icon(
                   Icons.local_fire_department,
                   color: theme.colorScheme.tertiary,
@@ -455,7 +457,9 @@ class _WorkbenchViewState extends State<WorkbenchView> {
                 onTap: !runner.canControlRuntime || runner.gameState.paused
                     ? null
                     : runner.pause,
-                tooltip: 'Pause',
+                tooltip: runner.isPreviewRunning
+                    ? 'Pause is available on Run targets only'
+                    : 'Pause',
                 icon: const Icon(Icons.pause),
               ),
               const SizedBox(width: 8.0),

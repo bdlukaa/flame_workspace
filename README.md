@@ -20,19 +20,32 @@ implemented and covered by package and fixture tests:
 - generate deterministic additive adapters under `lib/.generated/`;
 - inspect and edit basic transforms and supported properties;
 - discover Flutter targets and run through the cross-platform project runner;
-- launch a web-server preview through the `PreviewSurface` abstraction;
-- connect native runs to the stable `ext.flameWorkspace.*` VM Service API;
-- hot reload, hot restart, log, and clean up Flutter processes.
+- launch the actual game in a web-server preview through the platform-neutral
+  `PreviewSurface` abstraction;
+- inspect and control runtime state through `ext.flameWorkspace.*` on compatible
+  Run targets with a VM Service;
+- hot reload the web preview, and hot reload/restart, log, and clean up Run
+  processes.
+
+Scene composition has one source of truth: Analyzer-discovered developer code is
+read-only to the indexer, Workspace edits are persisted under
+`.flame_workspace/scenes/`, and `ScenePersistenceGenerator` writes additive
+adapters under `lib/.generated/`. Scene scaffolding creates new source files but
+does not inject mixins into existing classes.
 
 ### Experimental and platform-limited
 
-- The embedded CEF preview surface is currently supported by the checked-in
-  Windows desktop host. macOS and Linux host integration still require native
-  runner setup and CEF toolchain validation.
-- Flutter `web-server` preview reaches a usable localhost URL in the current
-  environment, but Flutter does not expose a VM Service URL there without the
-  Dart Debug Chrome extension. The end-to-end test records this as an explicit
-  capability skip rather than claiming web runtime synchronization works.
+- Embedded CEF Preview is implemented for Windows and macOS. The macOS host
+  requires the documented CEF/CocoaPods setup in
+  [`docs/macos_host.md`](docs/macos_host.md); verify its rendering and input
+  behavior with the manual checklist on a macOS machine. Linux host integration
+  still requires validation.
+- Embedded Web Preview is visual/input iteration, not a VM Service debugging
+  target. Flutter's web-server debug attachment depends on its browser debugging
+  tooling and may require the Dart Debug Chrome extension; Workspace does not
+  assume that extension is installed inside an arbitrary embedded surface.
+  Pause/resume, scene switching, and live runtime mutation are therefore Run-only.
+  Preview hot reload remains available through Flutter's process controls.
 - Native child-window embedding is retained only for the existing Windows
   Native Run path. Other discovered targets run in their normal Flutter host or
   device window.
@@ -77,9 +90,10 @@ must remain recoverable in that case.
 - `flame_workspace_protocol/` — lightweight runtime request/response models and
   stable VM Service extension names.
 - `flame_workspace_runtime/` — Flame `World`/component integration and runtime
-  VM Service extensions installed into user games.
+  VM Service extensions installed into user games. It depends on protocol, never
+  on the editor.
 - `flame_workspace_communication_bridge/` — editor-side VM Service connection
-  and invocation helpers.
+  and invocation helpers; it depends on protocol.
 - `flame_workspace_core/` — compatibility facade for projects that still import
   the former package; new projects should depend on
   `flame_workspace_runtime`.
@@ -101,17 +115,35 @@ Workspace semantic scene model
         ├── JSON persistence and deterministic adapters
         └── project generation
 
-Game Preview or Native Run
-        │
-        ▼
-Flutter process runner
-        │
-        ▼
-Dart VM Service
-        │
-        ▼
-flame_workspace_runtime → Flame World/component tree
+Embedded Web Preview                  Run target
+(actual game, visual/input)           (native or compatible target)
+          │                                        │
+          ▼                                        ▼
+Flutter process runner                    Flutter process runner
+          │                                        │
+          ▼                                        ▼
+PreviewSurface                         Dart VM Service
+                                                   │
+                                                   ▼
+                                  flame_workspace_runtime → Flame World
 ```
+
+Package dependencies are acyclic and point toward shared contracts:
+
+```text
+flame_workspace ──────→ flame_workspace_communication_bridge ──→ protocol
+       └──────────────────────────────────────────────────────→ protocol
+flame_workspace_runtime ──────────────────────────────────────→ protocol
+flame_workspace_core (compatibility facade) ──────────────────→ runtime
+user game ────────────────────────────────────────────────────→ runtime
+```
+
+The editor has no direct runtime-package dependency. Editor-side VM Service
+communication goes through the bridge and protocol; user game projects depend on
+`flame_workspace_runtime` for Flame integration. The protocol contains only
+runtime-neutral messages and extension names. Workspace generation may emit
+runtime imports into a user's game source, but that does not create an editor
+package dependency.
 
 Workspace communicates with a running game through stable structured extensions
 such as `ext.flameWorkspace.getState`, `getComponentTree`, `setProperty`, and
@@ -121,4 +153,6 @@ of the active architecture.
 See [`docs/migration/developer_preview_migration.md`](docs/migration/developer_preview_migration.md)
 for the modernization record and
 [`docs/migration/developer_preview_readiness.md`](docs/migration/developer_preview_readiness.md)
-for the current readiness report.
+for the current readiness report and
+[`docs/decisions/embedded-preview-runtime-debugging.md`](docs/decisions/embedded-preview-runtime-debugging.md)
+for the embedded-preview runtime-debugging contract.

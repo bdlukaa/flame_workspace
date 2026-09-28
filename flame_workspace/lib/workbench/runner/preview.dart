@@ -72,6 +72,10 @@ class PreviewProjectRunner {
 
   bool get isRunning => state == PreviewState.running;
 
+  /// Web-server preview is for execution and visual/input iteration only.
+  /// Runtime inspection and mutation are supported on Run targets instead.
+  bool get supportsRuntimeDebugging => false;
+
   Future<Uri> start({
     void Function(String line)? onOutput,
     void Function(String line)? onError,

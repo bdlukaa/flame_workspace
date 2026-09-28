@@ -220,19 +220,6 @@ class ProjectCreator {
     ).writeAsString(template.properties$dart(dartProjectName, 'MyComponent'));
     await File(path.join(generatedDirectory.path, 'scenes.dart'))
         .writeAsString(template.scenes$dart(dartProjectName, dartSceneName));
-
-    final generatedScenesDirectory = Directory(
-      path.join(generatedDirectory.path, 'scenes'),
-    );
-    await generatedScenesDirectory.create(recursive: true);
-    await File(
-      path.join(
-        generatedScenesDirectory.path,
-        '${dartSceneName.snakeCase}.dart',
-      ),
-    ).writeAsString(
-      template.sceneGenerated$dart(dartProjectName, dartSceneName),
-    );
   }
 
   Future<void> _removeFlutterSampleTest() async {

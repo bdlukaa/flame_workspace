@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:flame_workspace/compilation_unit_helper.dart';
 import 'package:flame_workspace/workbench/parser/writer.dart';
-import 'package:flame_workspace/workbench/project/objects/mixin.dart';
+
 import 'package:path/path.dart' as path;
 import 'package:recase/recase.dart';
 
@@ -14,7 +14,6 @@ class FlameSceneObject({
   required final Iterable<FlameComponentObject> components,
   required final String filePath,
   final (IndexedUnit indexed, CompilationUnit unit)? indexedUnit,
-  final List<FlameMixin> modifiers = const [],
 }) {
   FlameSceneObject? script;
 

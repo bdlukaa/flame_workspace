@@ -9,10 +9,4 @@ class SceneLevelOne extends $SceneLevelOne with HasGameReference<FlameGame> {
     await super.onLoad();
     // TODO: Implement onLoad
   }
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    // TODO: Implement update
-  }
 }

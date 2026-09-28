@@ -1,6 +1,8 @@
+import 'dart:ui' show AppExitResponse;
+
 import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
-import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
+
 import 'package:flame_workspace/workbench/runner/view.dart';
 import 'package:flutter/material.dart';
 
@@ -10,12 +12,30 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeRunnerView();
 
-  FlameWorkspaceCore.isGame = false;
-
   runApp(const FlameWorkspaceApp());
 }
 
-class const FlameWorkspaceApp({super.key}) extends StatelessWidget {
+class const FlameWorkspaceApp({super.key}) extends StatefulWidget {
+  @override
+  State<FlameWorkspaceApp> createState() => _FlameWorkspaceAppState();
+}
+
+class _FlameWorkspaceAppState extends State<FlameWorkspaceApp> {
+  late final AppLifecycleListener _lifecycleListener = AppLifecycleListener(
+    onExitRequested: _shutdownPreviewSurface,
+  );
+
+  Future<AppExitResponse> _shutdownPreviewSurface() async {
+    await shutdownRunnerView();
+    return AppExitResponse.exit;
+  }
+
+  @override
+  void dispose() {
+    _lifecycleListener.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

@@ -1,40 +1,84 @@
-# macOS editor host
+# macOS editor host and Game Preview
 
-The `flame_workspace` Flutter app now has a standard macOS host under
-`flame_workspace/macos/`. Its generated bundle identifier follows the existing
-Flutter template identity (`com.example.flameWorkspace`), and the application
-name remains `flame_workspace`.
+The editor has a standard Flutter macOS host under `flame_workspace/macos/`.
+Embedded Game Preview uses `CefPreviewSurface`, the same platform-neutral
+`PreviewSurface` implementation used by the Windows editor host. It loads the
+URL served by the user's real application via `flutter run -d web-server` into
+CEF's off-screen texture; it is not a native child-window embedding.
 
-## Platform boundary
+## Requirements
 
-`lib/workbench/runner/view.dart` is the shared import boundary for the
-`RunnerView` mixin. The non-I/O stub does not depend on native preview APIs;
-I/O desktop hosts select `view_io.dart`. That implementation keeps the legacy
-Win32 `FindWindow` + `flutter_native_view` embedding together and checks
-`Platform.isWindows` before creating a native view. On macOS the Game Preview
-panel reports that preview is unsupported instead of starting or embedding a
-game. The current `webview_cef` macOS pod setup also invokes CMake to prepare
-CEF, even though this host does not use the preview surface; CMake must be
-available for the current native build until that dependency is isolated or
-replaced.
+- macOS 12.0 or newer (required by `webview_cef` 0.6.2 / CEF 149).
+- Flutter 3.47+ and CocoaPods.
+- Xcode command-line tools and a C++20-capable Apple Clang toolchain.
+- `cmake` on `PATH`; `ninja` is recommended. Install with `brew install cmake ninja`.
+- Network access on first dependency setup: CocoaPods' `webview_cef` prepare step
+downloads CEF and builds `libcef_dll_wrapper`. The first setup/build can take
+several minutes and needs several GB of free disk space.
 
-The app entry point initializes native-view support through the runner-view
-boundary only on Windows. Starting the editor on macOS does not initialize the
-Windows native-view plugin.
+The macOS deployment target is 12.0 and Runner uses C++20. The Podfile's
+`post_install` installs the plugin's CEF helper-app embedding build phase. This
+is required for the supported multi-process CEF configuration; omitting it
+falls back to unsupported single-process mode. Debug and release entitlements
+allow the sandboxed app to make network client connections to the local preview
+server. CEF remains enabled in release builds because the editor's embedded
+preview is a product feature.
 
-## Remaining Windows-only functionality
+From `flame_workspace/`:
 
-- `lib/workbench/runner/view_io.dart` contains the Win32 lookup and
-  `flutter_native_view` usage. It remains for the existing Windows host and is
-  not a cross-platform preview implementation.
-- `windows/` contains the Windows runner and generated Windows plugin setup.
-- `win32`, `ffi`, and `flutter_native_view` remain declared in
-  `pubspec.yaml` because the retained Windows embedding still uses them.
-- `window_manager` remains in use for desktop window close handling. It is a
-  plugin integration rather than the native game embedding boundary.
+```sh
+flutter pub get
+cd macos && pod install && cd ..
+flutter run -d macos
+```
 
-The later cross-platform preview work should replace this legacy native
-embedding with the platform-neutral `PreviewSurface` and actual game served
-through Flutter's web-server target, then remove `flutter_native_view`, Win32
-and FFI dependencies if nothing else requires them. This task does not implement
-that preview migration.
+Flutter normally runs CocoaPods automatically, but running `pod install`
+explicitly makes the CEF helper integration and initial CEF download visible.
+To build:
+
+```sh
+flutter build macos
+```
+
+By default CEF prepares the host architecture (`arm64` on Apple Silicon,
+`x86_64` on Intel). To prepare a universal binary, set
+`WEBVIEW_CEF_MACOS_ARCH=universal` when running `pod install`; this downloads
+and compiles both architecture slices and needs substantially more disk space.
+
+## Runtime behavior and ownership
+
+- `PreviewSurface` owns loading, reload, widget rendering, and per-preview
+  controller disposal. Its texture follows Flutter's layout constraints and
+  receives pointer/keyboard focus through the CEF plugin.
+- `FlameProjectRunner` owns the Flutter web-server process. Stopping Preview
+  stops that process and disposes the surface controller. The CEF manager is
+  quit through the runner-view platform boundary when the editor receives an
+  exit request, so CEF helper processes are not left behind.
+- Runtime inspection and mutation are not provided by embedded web Preview;
+  see [`decisions/embedded-preview-runtime-debugging.md`](decisions/embedded-preview-runtime-debugging.md).
+- Native Run is separate: supported targets launch in their normal Flutter
+  window/device. The legacy native child-window embedding remains Windows-only.
+
+The editor code does not call macOS APIs directly. macOS-specific CEF setup is
+limited to the package's documented CocoaPods/Xcode configuration and the
+platform runner implementation.
+
+## Manual validation checklist
+
+Automated package analysis/tests cannot establish OS-level focus, rendering, or
+helper process behavior. On macOS, verify:
+
+1. Build and launch the editor with `flutter run -d macos` on macOS 12+.
+2. Open a valid Flame project, start **Run Preview**, and confirm the live game
+   appears inside the Preview panel rather than a separate browser window.
+3. Resize the editor and Preview panel repeatedly; verify the game surface
+   tracks the available bounds without stale-size areas or clipping.
+4. Click/drag inside the game and verify pointer input reaches it. Click a game
+   text field and verify keyboard input and focus work; test an IME if available.
+5. Trigger **Reload preview** and confirm the embedded page reloads.
+6. Stop Preview, start it again, then close the editor while Preview is active.
+   Confirm the web-server process and CEF helper processes exit.
+7. Use **Run on selected target** separately and verify it remains a normal
+   native/browser target launch, not embedded through CEF.
+8. Repeat on Apple Silicon and Intel if both architectures are supported by the
+   release being validated; test universal builds separately if enabled.

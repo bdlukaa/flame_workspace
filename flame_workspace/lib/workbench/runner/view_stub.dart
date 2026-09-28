@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 Future<void> initializeRunnerView() async {}
 
+Future<void> shutdownRunnerView() async {}
+
 mixin RunnerView {
   bool get isViewReady => false;
 

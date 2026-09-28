@@ -109,17 +109,31 @@ class FlameWorkspaceRuntimeBridge {
     }
 
     final component = _findComponent(componentId);
+    SetPropertyValue handler;
     try {
-      core.setPropertyValue(
+      handler = core.setPropertyValue;
+    } on StateError {
+      throw const _RuntimeCommandException(
+        'property_handler_unavailable',
+        'The game has not registered a property handler.',
+      );
+    }
+    try {
+      handler(
         component.runtimeType.toString(),
         component,
         property,
         _propertyValue(arguments),
       );
-    } on StateError {
+    } on ArgumentError {
       throw const _RuntimeCommandException(
-        'property_handler_unavailable',
-        'The game has not registered a property handler.',
+        'property_not_found',
+        'The selected component does not expose that property.',
+      );
+    } on TypeError {
+      throw const _RuntimeCommandException(
+        'invalid_property_value',
+        'The value is not valid for the selected property.',
       );
     }
     return <String, dynamic>{};
@@ -177,9 +191,9 @@ class FlameWorkspaceRuntimeBridge {
         'The transform argument must be a JSON object.',
       );
     }
-    final transform = WorkspaceTransformData.fromMap(
-      Map<String, dynamic>.from(transformValue),
-    );
+    final transformMap = Map<String, dynamic>.from(transformValue);
+    _validateTransform(transformMap);
+    final transform = WorkspaceTransformData.fromMap(transformMap);
 
     if (transform.position case final position?) {
       component.position = Vector2(position['x']!, position['y']!);
@@ -208,6 +222,39 @@ class FlameWorkspaceRuntimeBridge {
     return <String, dynamic>{};
   }
 
+  void _validateTransform(Map<String, dynamic> transform) {
+    for (final field in ['position', 'size']) {
+      final value = transform[field];
+      if (value == null) continue;
+      if (value is! Map || value['x'] is! num || value['y'] is! num) {
+        throw _RuntimeCommandException(
+          'invalid_transform',
+          'The $field transform must contain numeric x and y values.',
+        );
+      }
+    }
+    for (final field in ['angle', 'priority']) {
+      final value = transform[field];
+      if (value != null &&
+          (field == 'priority' ? value is! int : value is! num)) {
+        throw _RuntimeCommandException(
+          'invalid_transform',
+          'The $field transform must be numeric.',
+        );
+      }
+    }
+    final anchor = transform['anchor'];
+    if (anchor != null &&
+        (anchor is! Map ||
+            (anchor['name'] is! String &&
+                (anchor['x'] is! num || anchor['y'] is! num)))) {
+      throw const _RuntimeCommandException(
+        'invalid_transform',
+        'The anchor transform must contain a name or numeric x and y values.',
+      );
+    }
+  }
+
   dynamic _addComponent(Map<String, dynamic> arguments) {
     final declarationName = _requiredString(
       arguments,
@@ -221,6 +268,11 @@ class FlameWorkspaceRuntimeBridge {
       throw const _RuntimeCommandException(
         'component_mutation_unavailable',
         'The current scene does not expose generated component mutation hooks.',
+      );
+    } on ArgumentError {
+      throw _RuntimeCommandException(
+        'component_not_found',
+        'The current scene does not declare "$declarationName".',
       );
     }
     return <String, dynamic>{};
@@ -239,6 +291,11 @@ class FlameWorkspaceRuntimeBridge {
       throw const _RuntimeCommandException(
         'component_mutation_unavailable',
         'The current scene does not expose generated component mutation hooks.',
+      );
+    } on ArgumentError {
+      throw _RuntimeCommandException(
+        'component_not_found',
+        'The current scene does not declare "$declarationName".',
       );
     }
     return <String, dynamic>{};

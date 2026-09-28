@@ -9,10 +9,9 @@
 Developer Preview is a coherent development workflow on the validated macOS
 host, but it is not yet a cross-platform release. The semantic editor path,
 generated-project path, native VM Service path, and process cleanup are working.
-Embedded web preview reaches a usable URL, but the current Flutter web-server
-configuration does not expose the VM Service without the Dart Debug Chrome
-extension. CEF host integration is only present in the checked-in Windows
-editor host.
+Embedded web preview reaches a usable URL. By product decision it provides the
+actual game for visual/input iteration, not runtime VM Service controls; CEF host
+integration is only present in the checked-in Windows editor host.
 
 ## Implemented and verified
 
@@ -61,14 +60,14 @@ stopped it. The runner ended in `stopped` with `isRunning == false`.
 
 ### Web preview workflow
 
-The real `flutter run -d web-server` process started, reported a localhost URL,
-and was stopped through `PreviewProjectRunner`. The test intentionally skips
-only the VM-specific portion when Flutter prints:
-
-> The web-server device requires the Dart Debug Chrome extension for debugging.
-
-This is an observed tooling capability limitation, not a simulated runtime
-success.
+The real `flutter run -d web-server` process starts the actual user application,
+reports a localhost URL, and is stopped through `PreviewProjectRunner`. The
+embedded preview contract is intentionally visual/input-only. The Flutter
+web-server can require the Dart Debug Chrome extension for browser debugging
+and does not consistently provide a VM Service endpoint usable by Workspace's
+embedded surface. The editor therefore does not claim or attempt runtime
+introspection in Web Preview. Native/compatible Run targets retain the VM
+Service workflow.
 
 ## Validation results
 
@@ -100,8 +99,9 @@ success.
 - Embedded CEF preview is currently validated only by the checked-in Windows
   desktop host. macOS and Linux native editor host projects and CEF toolchain
   setup are not present.
-- Web-server preview does not provide runtime VM Service synchronization in the
-  current environment without the Dart Debug Chrome extension.
+- Embedded Web Preview is execution/visual/input-only; runtime introspection and
+  mutation are Run-target capabilities. See
+  [`../decisions/embedded-preview-runtime-debugging.md`](../decisions/embedded-preview-runtime-debugging.md).
 - Native child-window embedding remains Windows-only and is separate from the
   platform-neutral web Preview abstraction. Other targets run in their normal
   Flutter host/device window.
@@ -138,10 +138,9 @@ success.
 1. Replace the 22 deprecated Analyzer AST accessor usages with the current
    Analyzer APIs, then make editor analysis clean without suppressing real
    diagnostics.
-2. Establish a supported web runtime-debug path: either document and integrate
-   the Dart Debug Chrome extension/structured Flutter tooling or provide a
-   tested web preview target that exposes the VM Service while preserving the
-   single VM Service bridge.
+2. Revisit web runtime debugging only if Flutter supports a reliable external
+   attachment path for the embedded target; preserve VM Service as the single
+   runtime protocol.
 3. Complete and validate non-Windows desktop host setup for the CEF Preview
    surface, then exercise target discovery and native Run on at least one
    additional desktop platform.

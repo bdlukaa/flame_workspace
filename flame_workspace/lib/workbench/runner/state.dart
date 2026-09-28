@@ -13,6 +13,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 
 import '../parser/parser.dart';
+import '../parser/writer.dart';
 import '../project/objects/component.dart';
 import '../project/objects/mixin.dart';
 import '../project/objects/scene.dart';
@@ -66,10 +67,11 @@ class FlameProjectState with ChangeNotifier {
                 unawaited(refreshAssets());
               }
 
-              // Only index dart files and ignore generated files.
-              if (!event.path.endsWith('.dart') ||
-                  event.path.contains(
-                    path.join(project.name, 'lib', 'generated'),
+              // Only index developer-owned Dart files.
+              if (path.extension(event.path) != '.dart' ||
+                  isWorkspaceGeneratedDartFile(
+                    event.path,
+                    projectPath: project.location.path,
                   )) {
                 return;
               }

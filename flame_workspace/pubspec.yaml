@@ -41,8 +41,7 @@ dependencies:
   # Connection
   flame_workspace_protocol:
     path: ../flame_workspace_protocol
-  flame_workspace_runtime:
-    path: ../flame_workspace_runtime
+
 
   flame_workspace_communication_bridge:
     path: ../flame_workspace_communication_bridge

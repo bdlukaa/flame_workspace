@@ -21,11 +21,6 @@ class MyGame extends FlameGame with SingleGameInstance, WindowListener {
   }
 
   @override
-  void update(double dt) {
-    super.update(dt);
-  }
-
-  @override
   void onDispose() {
     windowManager.removeListener(this);
   }

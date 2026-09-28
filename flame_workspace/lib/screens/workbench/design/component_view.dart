@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
-import 'package:flame_workspace_runtime/utils.dart';
+import 'package:flame_workspace/workbench/extensions.dart';
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
 import 'package:flame_workspace/workbench/model/semantic_property_editor.dart';
 import 'package:flame_workspace/workbench/parser/values.dart';

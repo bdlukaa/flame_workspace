@@ -12,9 +12,4 @@ class MySquareComponent({
   Future<void> onLoad() async {
     await super.onLoad();
   }
-
-  @override
-  void render(Canvas canvas) {
-    super.render(canvas);
-  }
 }

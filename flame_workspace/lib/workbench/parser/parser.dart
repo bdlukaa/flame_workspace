@@ -9,9 +9,10 @@ import 'package:flame_workspace/workbench/project/objects/mixin.dart';
 import 'package:flame_workspace/workbench/project/objects/scene.dart';
 import 'package:path/path.dart' as path;
 
-import 'package:flame_workspace_runtime/utils.dart';
+import 'package:flame_workspace/workbench/extensions.dart';
 
 import '../../compilation_unit_helper.dart';
+import 'writer.dart';
 
 import 'type_resolver.dart';
 
@@ -41,7 +42,7 @@ Map<String, dynamic> serializeCompilationUnit(CompilationUnit unit) {
       declarations.add({
         'kind': 'mixin',
         'name': declaration.name.lexeme,
-        'members': declaration.members.map(_serializeMember).toList(),
+        'members': declaration.body.members.map(_serializeMember).toList(),
       });
     } else if (declaration is TopLevelVariableDeclaration) {
       for (final variable in declaration.variables.variables) {
@@ -61,11 +62,13 @@ Map<String, dynamic> _serializeClass(ClassDeclaration declaration) {
   final withClause = declaration.withClause;
   return {
     'kind': 'class',
-    'name': declaration.name.lexeme,
+    'name': declaration.namePart.typeName.lexeme,
     if (extendsClause != null) 'extends': extendsClause.superclass.toSource(),
     if (withClause != null)
       'with': withClause.mixinTypes.map((type) => type.toSource()).toList(),
-    'members': declaration.members.map(_serializeMember).toList(),
+    'members': (declaration.body as BlockClassBody).members
+        .map(_serializeMember)
+        .toList(),
   };
 }
 
@@ -127,6 +130,12 @@ class ProjectIndexer {
         in libDir
             .list(recursive: true)
             .where((f) => f is File && path.extension(f.path) == '.dart')) {
+      if (isWorkspaceGeneratedDartFile(
+        file.path,
+        projectPath: libDir.parent.path,
+      )) {
+        continue;
+      }
       if (includeOnly != null && !includeOnly.contains(file.path)) continue;
 
       final parsed = parseFile(
@@ -192,25 +201,6 @@ class ProjectIndexer {
                   ),
                   filePath: file['source'],
                   indexedUnit: (file, unit),
-                  modifiers: (d['with'] as List<String>? ?? []).map<FlameMixin>(
-                    (mixin) {
-                      return FlameMixin(
-                        name: mixin,
-                        types: mixin.split('<').map((e) {
-                          final name = e.split(' ').last;
-                          final extendsIndex = name.indexOf('extends');
-                          if (extendsIndex == -1) return (name, null);
-                          return (
-                            name.substring(0, extendsIndex),
-                            name.substring(extendsIndex + 7),
-                          );
-                        }).toList(),
-                        isComponentRestricted: false,
-                        isSceneRestricted: false,
-                        on: [],
-                      );
-                    },
-                  ).toList(),
                 ),
                 file,
                 unit,

@@ -154,4 +154,66 @@ void main() {
     expect(scene.lastAdded, 'player');
     expect(scene.lastRemoved, 'player');
   });
+
+  test('mutation failures return stable structured codes', () async {
+    Future<void> expectCode(
+      String method,
+      Map<String, dynamic> args,
+      String code,
+    ) async {
+      final response = await bridge.dispatch(method, args);
+      expect(response.ok, isFalse);
+      expect(response.error?.code, code);
+    }
+
+    await expectCode(WorkspaceExtensionNames.setProperty, const {
+      'componentId': 'missing',
+      'property': 'enabled',
+      'value': true,
+    }, 'component_not_found');
+    await expectCode(WorkspaceExtensionNames.setTransform, const {
+      'componentId': 'player',
+      'transform': {
+        'position': {'x': 'bad', 'y': 2},
+      },
+    }, 'invalid_transform');
+    await expectCode(WorkspaceExtensionNames.setProperty, const {
+      'componentId': 'player',
+      'property': 'enabled',
+      'value': true,
+    }, 'property_handler_unavailable');
+
+    core.setPropertyValue = (_, __, ___, ____) =>
+        throw ArgumentError('Unknown property');
+    await expectCode(WorkspaceExtensionNames.setProperty, const {
+      'componentId': 'player',
+      'property': 'unknown',
+      'value': true,
+    }, 'property_not_found');
+    core.setPropertyValue = (_, __, ___, ____) => throw TypeError();
+    await expectCode(WorkspaceExtensionNames.setProperty, const {
+      'componentId': 'player',
+      'property': 'enabled',
+      'value': 'not a bool',
+    }, 'invalid_property_value');
+
+    final plain = Component(key: FlameKey('plain'));
+    scene.add(plain);
+    await expectCode(WorkspaceExtensionNames.setTransform, const {
+      'componentId': 'plain',
+      'transform': {},
+    }, 'not_position_component');
+
+    final baseScene = FlameScene(
+      sceneName: 'base',
+      backgroundColor: const Color(0),
+    );
+    core.currentScene = baseScene;
+    await expectCode(WorkspaceExtensionNames.addComponent, const {
+      'declarationName': 'missingHook',
+    }, 'component_mutation_unavailable');
+    await expectCode(WorkspaceExtensionNames.removeComponent, const {
+      'declarationName': 'missingHook',
+    }, 'component_mutation_unavailable');
+  });
 }

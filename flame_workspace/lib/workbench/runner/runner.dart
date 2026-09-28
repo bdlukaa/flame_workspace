@@ -9,7 +9,9 @@ import 'package:flame_workspace/workbench/runner/view.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'package:flame_workspace_communication_bridge/workspace.dart';
-import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
+import 'package:flame_workspace_protocol/runtime.dart';
+import 'package:flame_workspace_protocol/state.dart';
+import 'package:flutter/foundation.dart';
 
 import '../model/semantic_model.dart';
 import '../project/project.dart';
@@ -99,7 +101,8 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   Uri? get previewUrl => previewRunner.url;
   bool get isPreviewRunning => previewRunner.isRunning;
   bool get isNativeRunning => _isRunning && !isPreviewRunning;
-  bool get canControlRuntime => processRunner.isRunning || isPreviewRunning;
+  bool get canControlRuntime => processRunner.isRunning;
+  bool get canHotReload => canControlRuntime || isPreviewRunning;
   bool get canEmbedNativeView {
     final target = selectedTarget;
     return target?.id == 'windows' ||

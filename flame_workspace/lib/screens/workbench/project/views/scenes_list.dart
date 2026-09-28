@@ -1,5 +1,5 @@
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
-import 'package:flame_workspace/workbench/generators/scene_generator.dart';
+import 'package:flame_workspace/workbench/generators/scene_scaffolder.dart';
 import 'package:flame_workspace/workbench/parser/scene.dart';
 import 'package:flutter/material.dart';
 
@@ -77,7 +77,7 @@ class ScenesListView extends StatelessWidget {
                                 action: SnackBarAction(
                                   label: 'Undo',
                                   onPressed: () {
-                                    SceneGenerator.createScene(
+                                    SceneScaffolder.createScene(
                                       workbench.project,
                                       scene.sceneName,
                                       true,

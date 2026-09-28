@@ -39,4 +39,18 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_macos_build_settings(target)
   end
+  require File.expand_path(
+    'Flutter/ephemeral/.symlinks/plugins/webview_cef/macos/embed_cef_helpers.rb', __dir__)
+  WebviewCEF.install_helper_phase(installer)
+
+  # CocoaPods splits the spaces in CEF's framework name across OTHER_LDFLAGS.
+  # Remove this compatibility patch when webview_cef emits a valid framework flag.
+  Dir.glob(File.join(__dir__, 'Pods/Target Support Files/Pods-Runner/Pods-Runner.*.xcconfig')).each do |xcconfig|
+    contents = File.read(xcconfig)
+    contents.gsub!(
+      '-ObjC Embedded Framework -framework "Chromium"',
+      '-ObjC -framework "Chromium Embedded Framework"',
+    )
+    File.write(xcconfig, contents)
+  end
 end

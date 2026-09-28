@@ -1,6 +1,6 @@
 import 'package:flame_workspace/screens/workbench/project/create_component.dart';
 import 'package:flame_workspace/widgets/inked_icon_button.dart';
-import 'package:flame_workspace_runtime/utils.dart';
+import 'package:flame_workspace/workbench/extensions.dart';
 import 'package:flame_workspace/workbench/parser/values.dart';
 import 'package:flutter/material.dart';
 import 'package:recase/recase.dart';

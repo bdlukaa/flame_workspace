@@ -8,7 +8,7 @@ import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/project/objects/scene.dart';
 import 'package:flame_workspace/workbench/runner/runner.dart';
 import 'package:flame_workspace/workbench/runner/state.dart';
-import 'package:flame_workspace_runtime/utils.dart';
+import 'package:flame_workspace/workbench/extensions.dart';
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
 
 import '../../screens/workbench/design/scene/add_component.dart';
@@ -74,8 +74,8 @@ class SceneHelper {
     final file = File(source);
     final content = await file.readAsString();
 
-    final start = declaration.name.offset;
-    final end = declaration.name.end;
+    final start = declaration.namePart.offset;
+    final end = declaration.namePart.end;
 
     final before = content.substring(0, start);
     final after = content.substring(end);
@@ -119,9 +119,10 @@ class SceneHelper {
     // If none, after the class declaration.
     int componentEndOffset;
 
-    final onLoadMethod = declaration.members.firstWhereOrNull(
-      (e) => e is MethodDeclaration && e.name.lexeme == 'onLoad',
-    );
+    final onLoadMethod = (declaration.body as BlockClassBody).members
+        .firstWhereOrNull(
+          (e) => e is MethodDeclaration && e.name.lexeme == 'onLoad',
+        );
 
     if (onLoadMethod != null) {
       // Insert the add clause to the onLoad method
@@ -133,23 +134,23 @@ class SceneHelper {
       final addClause = 'add($declarationName);';
       content = '$before\n$addClause\n\n$after';
     } else {
-      final lastFieldDeclaration = declaration.members.lastWhereOrNull((
-        member,
-      ) {
-        if (member is FieldDeclaration) return !member.isStatic;
+      final lastFieldDeclaration = (declaration.body as BlockClassBody).members
+          .lastWhereOrNull((member) {
+            if (member is FieldDeclaration) return !member.isStatic;
 
-        return false;
-      });
+            return false;
+          });
       if (lastFieldDeclaration != null) {
         componentEndOffset = lastFieldDeclaration.end;
       } else {
-        final constructorDeclaration = declaration.members.firstWhereOrNull(
-          (e) => e is ConstructorDeclaration,
-        );
+        final constructorDeclaration = (declaration.body as BlockClassBody)
+            .members
+            .firstWhereOrNull((e) => e is ConstructorDeclaration);
         if (constructorDeclaration != null) {
           componentEndOffset = constructorDeclaration.end;
         } else {
-          componentEndOffset = declaration.leftBracket.end;
+          componentEndOffset =
+              (declaration.body as BlockClassBody).leftBracket.end;
         }
       }
     }

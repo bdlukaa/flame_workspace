@@ -23,6 +23,29 @@ void main() {
       contains('EmptyGame'),
     );
     expect(ProjectIndexer.componentsFrom(indexed, resolver: resolver), isEmpty);
+
+    final generatedDirectory = Directory(
+      path.join(project.path, 'lib', '.generated'),
+    );
+    await generatedDirectory.create();
+    await File(path.join(generatedDirectory.path, 'workspace.g.dart'))
+        .writeAsString('class WorkspaceGenerated {}');
+    final developerDirectory = Directory(
+      path.join(project.path, 'lib', 'generated_helpers'),
+    );
+    await developerDirectory.create();
+    final developerFile = File(
+      path.join(developerDirectory.path, 'helper.dart'),
+    );
+    await developerFile.writeAsString('class DeveloperHelper {}');
+
+    final refreshed = await ProjectIndexer.indexProject(project);
+    final indexedPaths = refreshed.map((entry) {
+      final (indexedUnit, _) = entry;
+      return indexedUnit['source'] as String;
+    });
+    expect(indexedPaths, contains(developerFile.path));
+    expect(indexedPaths, isNot(contains(contains('.generated'))));
   });
 
   test(

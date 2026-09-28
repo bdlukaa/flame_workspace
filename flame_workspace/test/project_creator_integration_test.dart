@@ -34,6 +34,38 @@ void main() {
       );
       await creator.createProject();
 
+      final sceneSource = File(
+        path.join(
+          creator.projectDirectory.path,
+          'lib',
+          'scenes',
+          'level_one',
+          'level_one.dart',
+        ),
+      );
+      final sceneContents = await sceneSource.readAsString();
+      expect(
+        sceneContents,
+        contains('void addComponent(String declarationName)'),
+      );
+      expect(
+        sceneContents,
+        contains('void removeComponent(String declarationName)'),
+      );
+      expect(sceneContents, isNot(contains('Mixin')));
+      expect(
+        await File(
+          path.join(
+            creator.projectDirectory.path,
+            'lib',
+            '.generated',
+            'scenes',
+            'level_one.dart',
+          ),
+        ).exists(),
+        isFalse,
+      );
+
       final analyze = await Process.run(
         'flutter',
         ['analyze'],

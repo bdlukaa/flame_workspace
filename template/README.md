@@ -21,9 +21,11 @@ pubspec.yaml                        Flutter/Flame dependencies
 ```
 
 The scene is a Flame `World` through `FlameScene`. Scene composition is kept in
-Workspace's semantic scene document and generated adapters; behavior remains in
-Dart scene scripts and components. Generated files are marked and should not be
-edited manually.
+Workspace's semantic scene document and additive adapters; behavior remains in
+Dart scene scripts and components. The starter scene implements its add/remove
+runtime hooks directly in developer-owned source. Generated scene dispatch and
+adapters are additive files; Workspace does not inject mixins into scene classes.
+Generated files are marked and should not be edited manually.
 
 ## Lifecycle conventions
 

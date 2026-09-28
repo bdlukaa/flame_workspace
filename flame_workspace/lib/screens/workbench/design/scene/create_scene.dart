@@ -1,5 +1,5 @@
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
-import 'package:flame_workspace/workbench/generators/scene_generator.dart';
+import 'package:flame_workspace/workbench/generators/scene_scaffolder.dart';
 import 'package:flutter/material.dart';
 
 Future<void> showCreateSceneDialog(BuildContext context, Workbench workbench) {
@@ -83,7 +83,7 @@ class _CreateSceneDialogState extends State<CreateSceneDialog> {
             onPressed: () async {
               if (_formKey.currentState?.validate() ?? false) {
                 setState(() => _loading = true);
-                await SceneGenerator.createScene(
+                await SceneScaffolder.createScene(
                   widget.workbench.project,
                   _nameController.text,
                   _createScript,

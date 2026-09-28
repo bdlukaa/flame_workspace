@@ -37,10 +37,6 @@ class ComponentGenerator {
       '    await super.onLoad();',
       '  }',
       '',
-      '  @override',
-      '  void render(Canvas canvas) {',
-      '    super.render(canvas);',
-      '  }',
       '}',
     ], '\n');
 

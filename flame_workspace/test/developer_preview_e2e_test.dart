@@ -12,6 +12,7 @@ import 'package:flame_workspace/workbench/project/import.dart';
 import 'package:flame_workspace/workbench/project/project_creator.dart';
 import 'package:flame_workspace/workbench/runner/preview.dart';
 import 'package:flame_workspace/workbench/runner/project_runner.dart';
+import 'package:flame_workspace/workbench/runner/state.dart';
 import 'package:flame_workspace_communication_bridge/workspace.dart';
 import 'package:flame_workspace_protocol/runtime.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,7 +23,18 @@ void main() {
     final project = await _createProject('developer_preview_model');
     addTearDown(() => project.parent.delete(recursive: true));
 
+    final sceneSource = File(
+      path.join(project.path, 'lib', 'scenes', 'level_one', 'level_one.dart'),
+    );
+    final originalSceneSource = await sceneSource.readAsString();
     final imported = await ProjectImporter.import(project);
+    final state = FlameProjectState(imported);
+    addTearDown(state.dispose);
+    await state.ready;
+    await state.saveWorkspace();
+    await state.indexProject();
+    expect(await sceneSource.readAsString(), originalSceneSource);
+
     final resolver = await FlameTypeResolver.forProject(project);
     addTearDown(resolver.dispose);
 
@@ -84,6 +96,10 @@ void main() {
     );
     expect(await persistenceFile.exists(), isTrue);
     expect(await generatedFile.exists(), isTrue);
+    final firstGeneratedOutput = await generatedFile.readAsString();
+    expect(firstGeneratedOutput, contains('populateLevelOneWorkspaceScene'));
+    await ScenePersistenceGenerator.writeForScene(scene, imported);
+    expect(await generatedFile.readAsString(), firstGeneratedOutput);
 
     await _runChecked(
       'dart',
@@ -133,7 +149,7 @@ void main() {
   }, timeout: const Timeout(Duration(minutes: 10)));
 
   test(
-    'Developer Preview starts web preview and communicates through VM Service',
+    'Developer Preview starts web preview without runtime debugging',
     () async {
       final devices = await _discoverFlutterTargets();
       if (!devices.any((target) => target.platform == 'web-javascript')) {
@@ -182,6 +198,12 @@ void main() {
 
         expect(previewUrl.scheme, anyOf('http', 'https'));
         expect(preview.state, PreviewState.running);
+        expect(preview.supportsRuntimeDebugging, isFalse);
+        if (!preview.supportsRuntimeDebugging) {
+          await preview.stop();
+          expect(preview.state, PreviewState.stopped);
+          return;
+        }
 
         final serviceEndpoint =
             await Future.any<Uri?>([
@@ -362,6 +384,17 @@ void main() {
           11,
         );
 
+        await client.invoke(
+          WorkspaceExtensionNames.removeComponent,
+          arguments: {'declarationName': 'myComponent'},
+        );
+        await _waitForRuntimeComponent(client, 'myComponent', present: false);
+        await client.invoke(
+          WorkspaceExtensionNames.addComponent,
+          arguments: {'declarationName': 'myComponent'},
+        );
+        await _waitForRuntimeComponent(client, 'myComponent', present: true);
+
         await runner.hotReload();
         await reloadReady.future.timeout(
           const Duration(minutes: 3),
@@ -374,6 +407,14 @@ void main() {
         expect(
           await client.invoke(WorkspaceExtensionNames.getState),
           isA<Map>(),
+        );
+        final afterReload = await client.invoke(
+          WorkspaceExtensionNames.getComponentTree,
+        );
+        expect(
+          (_findRuntimeComponent(afterReload, 'myComponent')!['transform']
+              as Map)['priority'],
+          11,
         );
       } finally {
         await runner.stop();
@@ -477,6 +518,22 @@ ComponentInstance? _findComponent(SceneDefinition scene, String id) {
   }
 
   return find(scene.components);
+}
+
+Future<void> _waitForRuntimeComponent(
+  WorkspaceRuntimeClient client,
+  String id, {
+  required bool present,
+}) async {
+  final deadline = DateTime.now().add(const Duration(seconds: 10));
+  while (DateTime.now().isBefore(deadline)) {
+    final tree = await client.invoke(WorkspaceExtensionNames.getComponentTree);
+    if ((_findRuntimeComponent(tree, id) != null) == present) return;
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+  }
+  throw TimeoutException(
+    'Runtime component "$id" did not become ${present ? 'present' : 'absent'}.',
+  );
 }
 
 Map<String, dynamic>? _findRuntimeComponent(dynamic tree, String id) {

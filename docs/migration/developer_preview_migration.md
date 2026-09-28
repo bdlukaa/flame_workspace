@@ -250,7 +250,9 @@ ext.flameWorkspace.resume
 
 The runner's pause/resume controls use this client when a VM Service connection is available. The runner no longer owns a second game communication transport; runtime operations use the VM Service client described above.
 
-The checked-in template already calls `FlameWorkspaceCore.ensureInitialized` during startup, so generated/template games register the runtime extensions without requiring a second scene system. Generic component creation/removal still requires generated scene hooks, and generic property mutation still requires the project's generated property callback. The Developer Preview end-to-end test now validates fresh project creation, generated-project analysis/tests, web-server startup/cleanup, and a native VM Service runtime operation; the current Flutter web-server environment does not expose a VM Service URL without the Dart Debug Chrome extension.
+The checked-in template calls `FlameWorkspaceCore.ensureInitialized` during startup, registering the runtime extensions without a second scene system. Generic add/remove operations require scene hooks, and generic property mutation requires the generated property callback. These compile-time generated callbacks are the intended adapter boundary for live editing: they provide explicit, statically checked access to user component types without reflection or rewriting developer source. Scene composition remains separately persisted and generated additively. Projects without an adapter receive structured `component_mutation_unavailable` or `property_handler_unavailable` errors rather than an opaque exception.
+
+Mutation errors use stable codes: `component_not_found`, `not_position_component`, `invalid_transform`, `property_handler_unavailable`, `property_not_found`, `invalid_property_value`, and `component_mutation_unavailable`, alongside general request/scene/runtime errors. Runtime mutation tests exercise the bridge's real Flame tree and error envelope. The native Developer Preview end-to-end test validates generated property/add/remove hooks and verifies the edited property remains observable after hot reload. The current Flutter web-server environment does not expose a VM Service URL without the Dart Debug Chrome extension.
 
 ## Legacy transport removal
 
@@ -284,6 +286,12 @@ The old `built_in_components.dart`, `built_in_mixins.dart`, and hardcoded/networ
 `ScenePersistenceGenerator` writes additive adapters to `lib/.generated/scenes/*.workspace.dart`. Each adapter is generated only from the persisted semantic scene and exposes a `populate...WorkspaceScene(World world)` function; it imports project component source files and adds components in persisted hierarchy order. It does not rewrite developer-owned scene or behavior classes. The project indexing flow loads existing Workspace documents instead of overwriting them, creates missing documents from the analyzed model, and regenerates the adapter deterministically.
 
 `WorkspaceEditorModel` is now the mutable editor source of truth. `FlameProjectState` owns it and exposes semantic current-scene and selection accessors; hierarchy, property, transform, and priority changes mutate semantic instances and mark the model dirty. Explicit save writes every scene document and regenerates adapters, while reset reloads persisted documents. Analyzer/indexer refreshes preserve unsaved scene data and selected IDs when those IDs remain valid. The legacy indexed objects remain only for source-editing and component-catalog compatibility paths.
+
+### Scene generation architecture (current)
+
+There is one scene-composition pipeline: Analyzer discovers developer-owned scene/component types; `WorkspaceScenePersistence` owns editable composition in `.flame_workspace/scenes/`; and `ScenePersistenceGenerator` writes deterministic additive adapters under `lib/.generated/scenes/`. Indexing, saving, and generation do not rewrite developer-owned scene or script source. `SceneScaffolder` is only a creation-time convenience for adding new scene/script source files; it does not generate mixins or edit an existing class. The former `SceneGenerator.writeForScene`/`writeSetScenes` code path and `Writer.writeMixinToClass` API have been removed.
+
+The project bootstrap still emits a small generated `setScene` dispatcher as runtime wiring. Scene add/remove hooks for the checked-in starter component are implemented directly in its starter scene source, not injected as a generated mixin. These hooks preserve the starter project's VM Service behavior; they are not an alternate scene-composition store. Semantic scene composition and its adapters remain authoritative for Workspace editing.
 
 ## Basic Scene View
 

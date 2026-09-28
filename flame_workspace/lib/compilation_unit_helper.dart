@@ -1,5 +1,5 @@
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:flame_workspace_runtime/utils.dart';
+import 'package:flame_workspace/workbench/extensions.dart';
 
 typedef IndexedUnit = Map<String, dynamic>;
 
@@ -9,29 +9,33 @@ class CompilationUnitHelper({
 }) {
   ClassDeclaration? findClass(String? className) {
     return unit.declarations.whereType<ClassDeclaration>().firstWhereOrNull(
-      (c) => c.name.lexeme == className,
+      (c) => c.namePart.typeName.lexeme == className,
     );
   }
 
   MethodDeclaration? findMethod(ClassDeclaration? cls, String methodName) {
-    return cls?.members.whereType<MethodDeclaration>().firstWhereOrNull(
-      (m) => m.name.lexeme == methodName,
-    );
+    return (cls?.body as BlockClassBody?)?.members
+        .whereType<MethodDeclaration>()
+        .firstWhereOrNull((m) => m.name.lexeme == methodName);
   }
 
   FieldDeclaration? findField(ClassDeclaration? cls, String fieldName) {
-    return cls?.members.whereType<FieldDeclaration>().firstWhereOrNull(
-      (m) => m.fields.variables.any((v) => v.name.lexeme == fieldName),
-    );
+    return (cls?.body as BlockClassBody?)?.members
+        .whereType<FieldDeclaration>()
+        .firstWhereOrNull(
+          (m) => m.fields.variables.any((v) => v.name.lexeme == fieldName),
+        );
   }
 
   VariableDeclaration? findProperty(
     ClassDeclaration? cls,
     String propertyName,
   ) {
-    final field = cls?.members.whereType<FieldDeclaration>().firstWhereOrNull(
-      (m) => m.fields.variables.any((v) => v.name.lexeme == propertyName),
-    );
+    final field = (cls?.body as BlockClassBody?)?.members
+        .whereType<FieldDeclaration>()
+        .firstWhereOrNull(
+          (m) => m.fields.variables.any((v) => v.name.lexeme == propertyName),
+        );
 
     if (field == null) return null;
     return field.fields.variables.firstWhere(
@@ -46,15 +50,15 @@ class CompilationUnitHelper({
   }
 
   FunctionDeclaration? findSetter(ClassDeclaration? cls, String name) {
-    return cls?.members.whereType<FunctionDeclaration>().firstWhereOrNull(
-      (v) => v.isSetter && v.name.lexeme == name,
-    );
+    return (cls?.body as BlockClassBody?)?.members
+        .whereType<FunctionDeclaration>()
+        .firstWhereOrNull((v) => v.isSetter && v.name.lexeme == name);
   }
 
   FunctionDeclaration? findGetter(ClassDeclaration? cls, String name) {
-    return cls?.members.whereType<FunctionDeclaration>().firstWhereOrNull(
-      (v) => v.isGetter && v.name.lexeme == name,
-    );
+    return (cls?.body as BlockClassBody?)?.members
+        .whereType<FunctionDeclaration>()
+        .firstWhereOrNull((v) => v.isGetter && v.name.lexeme == name);
   }
 
   /// Tries to parse a value from an expression.

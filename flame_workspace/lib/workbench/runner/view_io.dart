@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
 import 'package:flame_workspace/workbench/project/project.dart';
+import 'package:flame_workspace/workbench/runner/cef_preview_surface.dart';
 import 'package:flame_workspace/workbench/runner/preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_view/flutter_native_view.dart';
@@ -11,6 +12,12 @@ import 'package:win32/win32.dart';
 
 Future<void> initializeRunnerView() async {
   if (Platform.isWindows) await FlutterNativeView.ensureInitialized();
+}
+
+Future<void> shutdownRunnerView() async {
+  if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+    await shutdownCefPreviewSurface();
+  }
 }
 
 mixin RunnerView {
@@ -29,11 +36,6 @@ mixin RunnerView {
   }
 
   Widget buildPreview() {
-    if (!Platform.isWindows) {
-      return const Center(
-        child: Text('Game Preview is not supported on this host yet.'),
-      );
-    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final theme = Theme.of(context);
@@ -79,6 +81,12 @@ mixin RunnerView {
             onRetry: runner.previewState != PreviewState.stopped
                 ? runner.retryPreview
                 : runner.runSafely,
+          );
+        }
+
+        if (!Platform.isWindows) {
+          return const Center(
+            child: Text('Native Run embedding is supported on Windows only.'),
           );
         }
 

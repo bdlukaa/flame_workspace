@@ -8,9 +8,17 @@ import 'preview.dart';
 /// The controller is created lazily when a preview URL is available. The CEF
 /// manager is initialized once for the application, while each preview owns
 /// and disposes its own controller.
-class CefPreviewSurface implements PreviewSurface {
-  static Future<void>? _managerInitialization;
+Future<void> shutdownCefPreviewSurface() async {
+  if (_CefPreviewSurfaceLifecycle.initialization == null) return;
+  await WebviewManager().quit();
+  _CefPreviewSurfaceLifecycle.initialization = null;
+}
 
+class _CefPreviewSurfaceLifecycle {
+  static Future<void>? initialization;
+}
+
+class CefPreviewSurface implements PreviewSurface {
   WebViewController? _controller;
 
   @override
@@ -77,13 +85,16 @@ class CefPreviewSurface implements PreviewSurface {
   }
 
   Future<void> _initializeManager() async {
-    final initialization = _managerInitialization ??= WebviewManager()
-        .initialize();
+    final initialization = _CefPreviewSurfaceLifecycle.initialization ??=
+        WebviewManager().initialize();
     try {
       await initialization;
     } catch (_) {
-      if (identical(_managerInitialization, initialization)) {
-        _managerInitialization = null;
+      if (identical(
+        _CefPreviewSurfaceLifecycle.initialization,
+        initialization,
+      )) {
+        _CefPreviewSurfaceLifecycle.initialization = null;
       }
       rethrow;
     }
