@@ -46,6 +46,7 @@ dependencies:
 
   flame_workspace_communication_bridge:
     path: ../flame_workspace_communication_bridge
+  webview_cef: ^0.6.2
 
 dev_dependencies:
   flutter_lints: ^6.0.0

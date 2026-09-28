@@ -4,6 +4,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../workbench/model/semantic_model.dart';
 import '../../workbench/project/project.dart';
+import '../../workbench/runner/preview.dart';
 import '../../workbench/runner/runner.dart';
 import '../../workbench/runner/state.dart';
 import '../../widgets/inked_icon_button.dart';
@@ -317,6 +318,12 @@ class _WorkbenchViewState extends State<WorkbenchView> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               InkedIconButton(
+                onTap: !runner.isPreviewRunning ? null : runner.reloadPreview,
+                tooltip: 'Reload preview',
+                icon: const Icon(Icons.refresh),
+              ),
+              const SizedBox(width: 8.0),
+              InkedIconButton(
                 onTap: !runner.canControlRuntime ? null : runner.hotReload,
                 tooltip: 'Hot reload',
                 icon: Icon(Icons.bolt, color: theme.colorScheme.primary),
@@ -376,18 +383,40 @@ class NotificationsField extends StatelessWidget {
       if (workbench.state.isIndexing) {
         return (true, 'Indexing project');
       }
-      if (workbench.runner.isRunning) {
-        if (!workbench.runner.isViewReady) {
+      final runner = workbench.runner;
+      switch (runner.previewState) {
+        case PreviewState.starting:
+          return (true, 'Starting web preview');
+        case PreviewState.stopping:
+          return (true, 'Stopping web preview');
+        case PreviewState.failed:
+          return (false, 'Preview failed');
+        case PreviewState.crashed:
+          return (false, 'Preview crashed');
+        case PreviewState.running:
+          if (runner.isHotRestarting) {
+            return (true, 'Hot restarting');
+          }
+          if (runner.isHotReloading) {
+            return (true, 'Hot reloading');
+          }
+          return (true, 'Running preview');
+        case PreviewState.stopped:
+          break;
+      }
+
+      if (runner.isRunning) {
+        if (!runner.isViewReady) {
           return (true, 'Loading game');
         }
-        if (workbench.runner.isHotRestarting) {
+        if (runner.isHotRestarting) {
           return (true, 'Hot restarting');
         }
-        if (workbench.runner.isHotReloading) {
+        if (runner.isHotReloading) {
           return (true, 'Hot reloading');
         }
 
-        return (true, 'Running preview');
+        return (true, 'Running game');
       }
 
       return (false, 'No activity');

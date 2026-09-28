@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flame_workspace/workbench/runner/logs.dart';
+import 'package:flame_workspace/workbench/runner/cef_preview_surface.dart';
 import 'package:flame_workspace/workbench/runner/preview.dart';
 import 'package:flame_workspace/workbench/runner/project_runner.dart';
 import 'package:flame_workspace/workbench/runner/view.dart';
@@ -48,7 +49,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     PreviewSurface? previewSurface,
   }) : previewRunner = PreviewProjectRunner(
          runner: FlutterProjectRunner(projectDirectory: project.location),
-         surface: previewSurface ?? UnavailablePreviewSurface(),
+         surface: previewSurface ?? CefPreviewSurface(),
        ) {
     windowManager.setPreventClose(true);
   }
@@ -231,6 +232,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
 
     _isRunning = true;
     emitLog('Starting web preview', kWorkspaceLogPrefix);
+    notifyListeners();
     try {
       await previewRunner.start(
         onOutput: (line) => emitLog(line, kPreviewLogPrefix),
@@ -285,6 +287,14 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
 
   bool get isHotRestarting =>
       _hotRestartCompleter != null && !_hotRestartCompleter!.isCompleted;
+
+  Future<void> reloadPreview() async {
+    try {
+      await previewRunner.reload();
+    } finally {
+      notifyListeners();
+    }
+  }
 
   Future<void> stop() async {
     if (_isRunning) emitLog('Stopping preview', kWorkspaceLogPrefix);

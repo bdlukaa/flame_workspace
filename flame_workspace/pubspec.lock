@@ -562,6 +562,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.5.1"
+  webview_cef:
+    dependency: "direct main"
+    description:
+      name: webview_cef
+      sha256: "1e028859e6fe4f52a82349a0acaa6594c1bd8317738df5764fd4365d6aebf6cc"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.2"
   win32:
     dependency: "direct main"
     description:

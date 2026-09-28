@@ -1,10 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
+
 import 'project_runner.dart';
 
-enum PreviewState { stopped, starting, running, stopping, failed }
+enum PreviewState { stopped, starting, running, stopping, failed, crashed }
 
 abstract interface class PreviewSurface {
+  Widget build(BuildContext context);
   Future<void> load(Uri uri);
   Future<void> reload();
   Future<void> dispose();
@@ -15,6 +18,14 @@ abstract interface class PreviewSurface {
 class UnavailablePreviewSurface implements PreviewSurface {
   Uri? uri;
   bool disposed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(
+      color: Color(0xFF101010),
+      child: Center(child: Text('Embedded preview is unavailable.')),
+    );
+  }
 
   @override
   Future<void> load(Uri value) async {
@@ -66,7 +77,9 @@ class PreviewProjectRunner {
     void Function(String line)? onError,
     void Function(int exitCode)? onExit,
   }) async {
-    if (state != PreviewState.stopped && state != PreviewState.failed) {
+    if (state != PreviewState.stopped &&
+        state != PreviewState.failed &&
+        state != PreviewState.crashed) {
       throw StateError('Preview is already running.');
     }
 
@@ -99,7 +112,14 @@ class PreviewProjectRunner {
               ),
             );
           } else if (state != PreviewState.stopping) {
-            state = exitCode == 0 ? PreviewState.stopped : PreviewState.failed;
+            if (exitCode == 0) {
+              state = PreviewState.stopped;
+            } else {
+              state = PreviewState.crashed;
+              error = StateError(
+                'Preview exited unexpectedly (exit $exitCode).',
+              );
+            }
           }
           onExit?.call(exitCode);
         },
@@ -129,6 +149,7 @@ class PreviewProjectRunner {
       error = exception;
       _completeError(ready, exception);
       await stop();
+      state = PreviewState.failed;
     }
   }
 
@@ -136,16 +157,39 @@ class PreviewProjectRunner {
 
   Future<void> hotRestart() => runner.hotRestart();
 
+  Future<void> reload() async {
+    if (state != PreviewState.running) {
+      throw StateError('Preview is not running.');
+    }
+    try {
+      await surface.reload();
+    } catch (exception) {
+      error = exception;
+      await stop();
+      state = PreviewState.failed;
+      rethrow;
+    }
+  }
+
   Future<void> stop() async {
-    state = PreviewState.stopping;
     final ready = _ready;
     if (ready != null && !ready.isCompleted) {
       _completeError(ready, StateError('Preview stopped before it was ready.'));
     }
-    await runner.stop();
-    await surface.dispose();
-    url = null;
-    state = PreviewState.stopped;
+
+    if (state != PreviewState.stopped) {
+      state = PreviewState.stopping;
+    }
+    try {
+      await runner.stop();
+    } finally {
+      try {
+        await surface.dispose();
+      } finally {
+        url = null;
+        state = PreviewState.stopped;
+      }
+    }
   }
 
   Future<void> dispose() => stop();

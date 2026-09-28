@@ -212,7 +212,13 @@ The generated template keeps the existing minimal runtime dependency set (`flame
 
 `flame_workspace/lib/workbench/runner/project_runner.dart` now owns Flutter process execution behind `ProjectProcessLauncher` and `ProjectProcess` abstractions. `FlutterTarget` represents an explicit device discovered from `flutter devices --machine`, while omitting a target lets Flutter select its normal default. The runner owns start/stop, output streams, `r`/`R` commands, exit state, and cleanup.
 
-`preview.dart` adds a separate web-server preview path using `flutter run -d web-server`, robust URL extraction, preview lifecycle state, and the platform-neutral `PreviewSurface` contract. The current fallback surface records the URL and the Workspace UI displays it; no embedded browser dependency is currently configured, and the legacy native view remains limited to native Run rather than being extended for web preview.
+`preview.dart` adds a separate web-server preview path using `flutter run -d web-server`, robust URL extraction, preview lifecycle state, and the platform-neutral `PreviewSurface` contract. The editor now uses `webview_cef` as its desktop embedded surface: CEF renders into a Flutter texture, so clipping, resizing, pointer input, keyboard focus, and IME handling remain inside the Flutter layout rather than requiring native child-window parenting. `flutter_native_view` remains limited to native Run. `PreviewState.crashed` distinguishes an unexpected nonzero process exit from a normal stop, and surface failures remain visible after cleanup.
+
+## Embedded Game Preview
+
+The preview implementation is in `flame_workspace/lib/workbench/runner/cef_preview_surface.dart`. `CefPreviewSurface` initializes the process-wide CEF manager once, creates one controller per preview session, loads the URL reported by `flutter run -d web-server`, exposes the controller's Flutter widget, and disposes the controller on stop. Surface reload is separate from Flutter hot reload/hot restart; all three operations are available through the runner boundary.
+
+`webview_cef` 0.6.2 requires Flutter >=3.27, Dart >=3.6, and a C++20 toolchain. The checked-in editor is currently a Windows desktop project, so its Windows runner now initializes CEF helper processes and forwards the Windows message loop to CEF. macOS and Linux native runner projects are not present in this repository and remain platform setup work; the Dart surface stays platform-neutral and reports initialization/build failures through the existing failed-preview state rather than falling back to native child-window embedding. macOS requires a deployment target of at least 12.0 and the plugin's helper Podfile hook; Linux requires the desktop CEF toolchain and runtime libraries. The first native build downloads and compiles a large CEF distribution.
 
 ## VM Service runtime bridge
 

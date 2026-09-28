@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flame_workspace/workbench/runner/preview.dart';
 import 'package:flame_workspace/workbench/runner/project_runner.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -90,6 +91,38 @@ void main() {
     expect(preview.state, PreviewState.failed);
   });
 
+  test('reports an unexpected process exit as a crash', () async {
+    final surface = FakePreviewSurface();
+    launcher.process.stdoutController.onListen = () {
+      launcher.process.stdoutController.add(
+        utf8.encode('Web Server is available at http://127.0.0.1:4567\n'),
+      );
+    };
+    final preview = PreviewProjectRunner(runner: runner, surface: surface);
+
+    await preview.start();
+    launcher.process.exitCompleter.complete(1);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(preview.state, PreviewState.crashed);
+    expect(preview.error, isA<StateError>());
+  });
+
+  test('reloads the loaded preview surface', () async {
+    final surface = FakePreviewSurface();
+    launcher.process.stdoutController.onListen = () {
+      launcher.process.stdoutController.add(
+        utf8.encode('Web Server is available at http://127.0.0.1:4567\n'),
+      );
+    };
+    final preview = PreviewProjectRunner(runner: runner, surface: surface);
+
+    await preview.start();
+    await preview.reload();
+
+    expect(surface.reloadCount, 1);
+  });
+
   test('reports failed startup and preserves the failure', () async {
     launcher.startError = StateError('unable to start');
 
@@ -140,12 +173,16 @@ class FakeLauncher implements ProjectProcessLauncher {
 class FakePreviewSurface implements PreviewSurface {
   Uri? loaded;
   bool disposed = false;
+  int reloadCount = 0;
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 
   @override
   Future<void> load(Uri uri) async => loaded = uri;
 
   @override
-  Future<void> reload() async {}
+  Future<void> reload() async => reloadCount++;
 
   @override
   Future<void> dispose() async => disposed = true;
