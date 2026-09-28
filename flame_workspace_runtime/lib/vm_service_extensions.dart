@@ -129,6 +129,13 @@ class FlameWorkspaceRuntimeBridge {
     final value = arguments['value'];
     final type = arguments['type'];
     if (type is! String) return value;
+    if (value is String) {
+      try {
+        return RuntimeValuesParser.parse(type, value);
+      } on Object {
+        return value;
+      }
+    }
 
     final baseType = type.replaceAll('?', '').split('<').first;
     return switch (baseType) {

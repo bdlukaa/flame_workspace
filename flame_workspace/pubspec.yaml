@@ -43,7 +43,7 @@ dependencies:
     path: ../flame_workspace_protocol
   flame_workspace_runtime:
     path: ../flame_workspace_runtime
-  web_socket_channel: ^2.4.0
+
   flame_workspace_communication_bridge:
     path: ../flame_workspace_communication_bridge
 

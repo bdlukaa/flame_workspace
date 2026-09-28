@@ -2,8 +2,6 @@ import 'package:flame_workspace/screens/workbench/design/script_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
-
 import '../../workbench/project/objects/component.dart';
 import '../../workbench/project/project.dart';
 import '../../workbench/runner/runner.dart';
@@ -110,12 +108,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
     super.initState();
     runner = FlameProjectRunner(
       widget.project,
-      setScene: () {
-        runner.send(
-          WorkbenchMessages.setScene,
-          SceneChangedMessage(scene: state.currentScene.name).toMap(),
-        );
-      },
+      onRuntimeConnected: () => runner.setScene(state.currentScene.name),
     );
 
     windowManager.addListener(runner);
@@ -162,14 +155,6 @@ class _WorkbenchViewState extends State<WorkbenchView> {
         runner: runner,
         state: state,
         onComponentSelected: (component) {
-          runner.send(
-            component == null
-                ? WorkbenchMessages.componentUnselected
-                : WorkbenchMessages.componentSelected,
-            ComponentChangedMessage(
-              component: component?.declarationName,
-            ).toMap(),
-          );
           state.selectedComponent = component;
         },
         onEditScript: () {

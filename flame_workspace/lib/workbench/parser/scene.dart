@@ -1,12 +1,13 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:flame_workspace/compilation_unit_helper.dart';
 import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/project/objects/scene.dart';
 import 'package:flame_workspace/workbench/runner/runner.dart';
 import 'package:flame_workspace/workbench/runner/state.dart';
-import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 import 'package:flame_workspace_runtime/utils.dart';
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
 
@@ -165,10 +166,7 @@ class SceneHelper {
   Future<void> addComponent(String declarationName) async {
     if (runner.isViewReady) {
       await runner.hotReload();
-      runner.send(
-        WorkbenchMessages.componentAdded,
-        ComponentChangedMessage(component: declarationName).toMap(),
-      );
+      await runner.addComponent(declarationName);
     }
   }
 
@@ -248,11 +246,8 @@ class SceneHelper {
   ///
   /// This function is usually used alongside [removeDeclaration]. Using this
   /// function alone will not remove the declaration of the component.
-  void removeComponent(String declarationName) {
-    runner.send(
-      WorkbenchMessages.componentRemoved,
-      ComponentChangedMessage(component: declarationName).toMap(),
-    );
+  Future<void> removeComponent(String declarationName) {
+    return runner.removeComponent(declarationName);
   }
 
   /// Deletes the scene.
@@ -278,9 +273,6 @@ class SceneHelper {
       if (await debugFile.exists()) debugFile.delete(),
     ]);
 
-    runner.send(
-      WorkbenchMessages.setScene,
-      SceneChangedMessage(scene: replacement.name).toMap(),
-    );
+    await runner.setScene(replacement.name);
   }
 }

@@ -46,12 +46,9 @@ extension RunnerLogs on FlameProjectRunner {
       debugPrint('VM service at $wsUri');
 
       await registerWorkspace(wsUri.toString());
+      await onRuntimeConnected?.call();
 
       notifyListeners();
-    } else if (line.trim().contains('flutter: Serving at ')) {
-      final url = line.trim().split('flutter: Serving at').last.trim();
-      debugPrint('Connecting to $url');
-      connectChannel(url);
     } else if (line.trim().contains('Reloaded ')) {
       completeHotReload();
     } else if (line.trim().contains('Restarted application in ')) {

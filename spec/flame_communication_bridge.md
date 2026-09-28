@@ -24,7 +24,7 @@ To fix it, we need a proper communication bridge.
 
 Introducing the flame-workspace communication bridge, FWCB.
 
-First, we need to understand how the communication is currently held. To debug a Flame Game in the Flame Workspace, a new Flutter app is run (`flutter run`) and attached to the Flame Workspace view. A communication is established using a WebSocket, the required files for communication are generated and are called following a hot-reload request. As you as well thought, this would be a lot easier if dart supported code-injection at runtime.
+The runtime bridge is provided by the Dart VM Service. When a Flutter game is run, Workspace connects to its VM Service endpoint and invokes stable `ext.flameWorkspace.*` extensions with structured JSON arguments. This avoids a custom socket server and keeps runtime operations attached to the actual Flame component tree.
 
 The FWCB comes to make this process easier. It will be a shared package that contains data that both apps can use. Since both apps are Dart packages, [vm_service | Dart package](https://pub.dev/packages/vm_service) can be used to communicate to the package. This would leverage from the built-in communication system and avoid us to create one of our own, and ensure stability since it is maintained by the Dart/Flutter team. [ServiceProtocolInfo class - dart:developer library - Dart API](https://api.flutter.dev/flutter/dart-developer/ServiceProtocolInfo-class.html).
 

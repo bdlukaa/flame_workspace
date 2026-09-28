@@ -37,7 +37,7 @@ Flame extension packages currently present:
 - `flame_forge2d: 0.15.0+1` in `flame_workspace_core` and `template`.
 - `flame_isolate: 0.5.0+1` in `flame_workspace_core` and `template`.
 
-Other notable editor dependencies include `flutter_native_view`, `win32`, `ffi`, `process_run`, `web_socket_channel`, `shelf`, and `shelf_web_socket`. The base template includes the three Flame extension packages and `window_manager` even though the repository rules call for optional Flame packages to be opt-in.
+Other notable editor dependencies include `flutter_native_view`, `win32`, `ffi`, and `process_run`. The obsolete custom runtime transport dependencies have since been removed. The base template includes the three Flame extension packages and `window_manager` even though the repository rules call for optional Flame packages to be opt-in.
 
 ### Local package dependencies
 
@@ -131,17 +131,17 @@ The generator/template path has the following verified issues:
 
 These findings are source inspection findings; no generated-project migration was attempted in this baseline task.
 
-## Preview and runtime architecture currently in use
+## Preview and runtime architecture at the migration baseline
 
-The current implementation is a Windows/native-window preview experiment:
+The following is a historical snapshot recorded before the runtime transport cleanup; it is not the current architecture:
 
-1. `FlameProjectRunner` starts `Process.start('flutter', ['run', '-d', 'windows'], ...)`.
-2. `RunnerView` calls Win32 `FindWindow` and embeds the game through `flutter_native_view`.
-3. The runner communicates with the game over an `IOWebSocketChannel`; the runtime side exposes a Shelf/WebSocket server in `flame_workspace_core/lib/communication/debug_server.dart`.
-4. Separately, `flame_workspace_communication_bridge` connects to the Dart VM Service and calls a dynamically named extension such as `ext.fwcm.set_scene_<sceneName>`.
-5. The editor therefore currently has two runtime communication paths: legacy custom WebSocket messaging and VM Service helpers.
+1. `FlameProjectRunner` started `Process.start('flutter', ['run', '-d', 'windows'], ...)`.
+2. `RunnerView` called Win32 `FindWindow` and embedded the game through `flutter_native_view`.
+3. The runner communicated with the game over an `IOWebSocketChannel`; the runtime side exposed a Shelf/WebSocket server.
+4. Separately, `flame_workspace_communication_bridge` connected to the Dart VM Service and called dynamically named extensions such as `ext.fwcm.set_scene_<sceneName>`.
+5. The editor therefore had two runtime communication paths: legacy custom WebSocket messaging and VM Service helpers.
 
-This differs from the intended Developer Preview direction of an embedded web surface running `flutter run -d web-server`, a platform-neutral preview abstraction, encapsulated process management, and stable VM Service extensions with structured parameters. The current runner also does not discover targets and hard-codes Windows.
+The legacy transport described above has since been removed. The remaining preview limitations and the intended web-server/`PreviewSurface` direction are documented in the later migration updates below.
 
 ## Proposed migration phases
 
@@ -184,7 +184,7 @@ Direct compatibility updates included the Flutter 3.47 theme data types, the amb
 
 ## Package-boundary migration update
 
-The package cycle has been removed without changing the preview transport or scene model:
+The package cycle has been removed while preserving the existing scene model:
 
 ```text
 flame_workspace ───────┐
@@ -195,12 +195,12 @@ flame_workspace ───────┐
              flame_workspace_runtime ◄── user game
 ```
 
-- `flame_workspace_protocol` contains the lightweight message and game-state DTOs and has no Flutter, Flame, or editor dependency.
-- `flame_workspace_runtime` contains the Flame integration, `World`-based scene support, selection component, runtime utilities, and the existing WebSocket server. It depends on protocol and Flame, never on the editor.
+- `flame_workspace_protocol` contains lightweight game-state and VM Service DTOs and has no Flutter, Flame, or editor dependency.
+- `flame_workspace_runtime` contains the Flame integration, `World`-based scene support, selection component, runtime utilities, and VM Service extensions. It depends on protocol and Flame, never on the editor.
 - `flame_workspace` now depends on protocol/runtime directly. Editor-specific `ValuesParser.parseValue` lives in the editor package instead of the runtime package.
 - `flame_workspace_core` remains as a compatibility facade that depends only on protocol/runtime; it no longer points back to `flame_workspace`. New templates use `flame_workspace_runtime` directly.
 
-The generated template keeps the existing minimal runtime dependency set (`flame`, `flame_workspace_runtime`, and `window_manager`). No dependency override or runtime/editor cycle is present. The legacy WebSocket/native-window preview implementation remains intentionally unchanged for a later preview migration.
+The generated template keeps the existing minimal runtime dependency set (`flame`, `flame_workspace_runtime`, and `window_manager`). No dependency override or runtime/editor cycle is present. Preview surface embedding remains a separate follow-up; it does not require a second game communication transport.
 
 ## Initial semantic scene model
 
@@ -238,6 +238,23 @@ ext.flameWorkspace.resume
 
 `FlameWorkspaceCore.ensureInitialized` registers the bridge after assigning the real `FlameGame`. State and component-tree responses are derived from the current Flame `World`; transform changes operate on `PositionComponent`; property, scene, add, and remove operations delegate to the generated hooks already installed by a project. Pause and resume call Flame's engine controls. Invalid JSON, missing arguments, unknown methods, unavailable scenes, unsupported mutations, and runtime failures return structured `{ok: false, error: ...}` responses without escaping from the service-extension handler.
 
-The runner's pause/resume controls use this client when a VM Service connection is available. The old Shelf/WebSocket server and its message types remain migration code for existing native-preview behavior; no new VM operations are implemented there, and it is not the source of truth for the stable runtime API.
+The runner's pause/resume controls use this client when a VM Service connection is available. The runner no longer owns a second game communication transport; runtime operations use the VM Service client described above.
 
 The checked-in template already calls `FlameWorkspaceCore.ensureInitialized` during startup, so generated/template games register the runtime extensions without requiring a second scene system. The current limitation is that generic component creation/removal still requires the generated scene hooks and generic property mutation still requires the project's generated property callback. A live process-level fixture launch and VM Service invocation remains an end-to-end validation item; the package tests cover real Flame objects, protocol round trips, malformed requests, client failures, and command dispatch.
+
+## Legacy transport removal
+
+The obsolete custom runtime transport has been removed. The runtime no longer starts a local server, the editor no longer opens a game WebSocket or sends `WorkbenchMessages`, and the protocol no longer exposes those transport-specific message DTOs. The runtime package now depends only on Flame, Flutter, and `flame_workspace_protocol`; the editor uses `flame_workspace_communication_bridge` and VM Service extensions for scene, property, component, and engine-state operations.
+
+```text
+Flutter project runner
+        │
+        ▼
+Dart VM Service connection
+        │
+        ▼
+ext.flameWorkspace.*
+        │
+        ▼
+flame_workspace_runtime → Flame World/component tree
+```

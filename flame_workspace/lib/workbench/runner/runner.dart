@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flame_workspace/workbench/runner/logs.dart';
 import 'package:flame_workspace/workbench/runner/preview.dart';
 import 'package:flame_workspace/workbench/runner/project_runner.dart';
 import 'package:flame_workspace/workbench/runner/view.dart';
-import 'package:web_socket_channel/io.dart';
+
 import 'package:window_manager/window_manager.dart';
 
 import 'package:flame_workspace_communication_bridge/workspace.dart';
@@ -19,24 +18,10 @@ const kInitialLog =
     '$kWorkspaceLogPrefix'
     'Project not running';
 
-/// Runs a flame project.
-///
-/// This classes starts the game preview and handles the communication with it.
-/// The game preview creates a http server, which this class connects to. With
-/// this connection, it is possible to send and receives messages from the game.
+/// Runs a Flame project and communicates with it through VM Service.
 class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   /// The project to run.
   final FlameProject project;
-
-  /// The hostname to use when connecting to the game preview.
-  ///
-  /// Defaults to localhost.
-  final String hostname;
-
-  /// The port to use when connecting to the game preview.
-  ///
-  /// Defaults to 3000
-  final int port;
 
   /// The logs of the runner.
   ///
@@ -44,8 +29,8 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   /// preview.
   final List<String> logs = [kInitialLog];
 
-  /// Called when the app starts or hot restart.
-  final VoidCallback? setScene;
+  /// Called after the VM Service connection is established.
+  final Future<void> Function()? onRuntimeConnected;
 
   late final FlutterProjectRunner processRunner = FlutterProjectRunner(
     projectDirectory: project.location,
@@ -54,9 +39,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
 
   FlameProjectRunner(
     this.project, {
-    this.hostname = '0.0.0.0',
-    this.port = 3000,
-    this.setScene,
+    this.onRuntimeConnected,
     PreviewSurface? previewSurface,
   }) : previewRunner = PreviewProjectRunner(
          runner: FlutterProjectRunner(projectDirectory: project.location),
@@ -76,8 +59,6 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   bool get isPreviewRunning => previewRunner.isRunning;
   bool get canControlRuntime => isViewReady || isPreviewRunning;
 
-  IOWebSocketChannel? _channel;
-
   GameState _gameState = const GameState.initial();
   GameState get gameState => _gameState;
 
@@ -87,6 +68,63 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
 
   void resume() {
     unawaited(_setPaused(false));
+  }
+
+  Future<void> setScene(String sceneName) {
+    return _invokeRuntime(
+      WorkspaceExtensionNames.setScene,
+      arguments: {'scene': sceneName},
+    );
+  }
+
+  Future<void> setProperty({
+    required String componentId,
+    required String property,
+    required String type,
+    required dynamic value,
+  }) {
+    return _invokeRuntime(
+      WorkspaceExtensionNames.setProperty,
+      arguments: {
+        'componentId': componentId,
+        'property': property,
+        'type': type,
+        'value': value,
+      },
+    );
+  }
+
+  Future<void> addComponent(String declarationName) {
+    return _invokeRuntime(
+      WorkspaceExtensionNames.addComponent,
+      arguments: {'declarationName': declarationName},
+    );
+  }
+
+  Future<void> removeComponent(String declarationName) {
+    return _invokeRuntime(
+      WorkspaceExtensionNames.removeComponent,
+      arguments: {'declarationName': declarationName},
+    );
+  }
+
+  Future<void> _invokeRuntime(
+    String method, {
+    Map<String, dynamic> arguments = const {},
+  }) async {
+    final client = runtimeClient;
+    if (client == null) {
+      emitLog('Runtime is not connected.', kWorkspaceLogPrefix);
+      return;
+    }
+
+    try {
+      await client.invoke(method, arguments: arguments);
+    } on WorkspaceRuntimeException catch (error) {
+      emitLog(error.toString(), kWorkspaceLogPrefix);
+    } catch (error) {
+      emitLog('Runtime command failed: $error', kWorkspaceLogPrefix);
+    }
   }
 
   Future<void> _setPaused(bool paused) async {
@@ -110,15 +148,6 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     } catch (error) {
       emitLog('Runtime command failed: $error', kWorkspaceLogPrefix);
     }
-  }
-
-  Future<void> connectChannel(String url) async {
-    final channel = IOWebSocketChannel.connect(url);
-    await channel.ready;
-    _channel = channel;
-    setScene?.call();
-
-    notifyListeners();
   }
 
   /// Runs the project.
@@ -219,19 +248,8 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     await previewRunner.stop();
     _isRunning = false;
     disposeView();
-    await _channel?.sink.close();
-    _channel = null;
-    notifyListeners();
-  }
 
-  /// Sends a message to the game preview.
-  void send(WorkbenchMessages id, Map data) {
-    if (_channel == null || _channel!.closeCode != null) {
-      emitLog('Channel is closed. Closing app.', kWorkspaceLogPrefix);
-      return;
-    }
-    _channel!.sink.add(json.encode(<String, dynamic>{'id': id.name, ...data}));
-    hotReload();
+    notifyListeners();
   }
 
   @override

@@ -4,16 +4,12 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 
-import 'package:flame_workspace_protocol/state.dart';
-
-import 'communication/debug_server.dart' as ds;
 import 'game/scene.dart';
 import 'vm_service_extensions.dart';
 
-export 'package:flame_workspace_protocol/messages.dart';
 export 'package:flame_workspace_protocol/runtime.dart';
 export 'package:flame_workspace_protocol/state.dart';
-export 'package:flame_workspace_runtime/communication/value_parser.dart';
+export 'package:flame_workspace_runtime/value_parser.dart';
 export 'package:flame_workspace_runtime/exports.dart';
 export 'package:flame_workspace_runtime/game/flame_component.dart';
 export 'package:flame_workspace_runtime/game/key.dart';
@@ -46,8 +42,7 @@ class FlameWorkspaceCore {
     registerFlameWorkspaceExtensions(instance);
     if (kDebugMode) {
       assert(!kIsWeb, 'Can not run in web mode');
-      debugPrint('Initializing Flame Workspace Core');
-      await ds.createServer();
+      debugPrint('Initializing Flame Workspace runtime');
     }
   }
 
@@ -89,12 +84,4 @@ class FlameWorkspaceCore {
       _setScene ??
       (throw StateError('The game has not registered a scene handler.'));
   set setScene(SetScene value) => _setScene = value;
-
-  void setGameState(GameState state) {
-    // if (state.paused) {
-    //   game.pauseEngine();
-    // } else {
-    //   game.resumeEngine();
-    // }
-  }
 }

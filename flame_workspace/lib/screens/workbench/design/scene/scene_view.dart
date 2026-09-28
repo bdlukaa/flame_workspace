@@ -1,4 +1,3 @@
-import 'package:flame_workspace_protocol/messages.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../workbench/parser/scene.dart';
@@ -174,10 +173,7 @@ class _SceneViewState extends State<SceneView> {
                           ),
                           onTap: () {
                             workbench.state.currentScene = scene;
-                            workbench.runner.send(
-                              WorkbenchMessages.setScene,
-                              SceneChangedMessage(scene: scene.name).toMap(),
-                            );
+                            workbench.runner.setScene(scene.name);
                             setState(() => choosingScene = false);
                           },
                         );
