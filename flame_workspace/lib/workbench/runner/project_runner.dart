@@ -10,22 +10,82 @@ class FlutterTarget {
   final String id;
   final String name;
   final String? platform;
+  final bool isAvailable;
 
-  const FlutterTarget({required this.id, required this.name, this.platform});
+  const FlutterTarget({
+    required this.id,
+    required this.name,
+    this.platform,
+    this.isAvailable = true,
+  });
 
   factory FlutterTarget.fromJson(Map<String, Object?> json) {
+    final connected = json['isConnected'] as bool? ?? true;
+    final supported = json['isSupported'] as bool? ?? true;
+    final available = json['isAvailable'] as bool? ?? connected && supported;
+
     return FlutterTarget(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? json['id'] as String? ?? 'Unknown',
       platform: json['targetPlatform'] as String?,
+      isAvailable: available,
     );
+  }
+
+  static List<FlutterTarget> parseDevicesJson(String output) {
+    final decoded = jsonDecode(output);
+    if (decoded is! List) {
+      throw const FormatException('Flutter device output must be a list.');
+    }
+
+    return decoded
+        .whereType<Map>()
+        .map(
+          (device) => FlutterTarget.fromJson(Map<String, Object?>.from(device)),
+        )
+        .where((target) => target.id.isNotEmpty)
+        .toList();
   }
 
   Map<String, Object?> toJson() => {
     'id': id,
     'name': name,
     if (platform != null) 'targetPlatform': platform,
+    'isAvailable': isAvailable,
   };
+}
+
+class FlutterTargetSelectionStore {
+  final Directory projectDirectory;
+
+  const FlutterTargetSelectionStore(this.projectDirectory);
+
+  File get file => File(
+    path.join(projectDirectory.path, '.flame_workspace', 'native_target.json'),
+  );
+
+  Future<String?> read() async {
+    if (!await file.exists()) return null;
+
+    try {
+      final decoded = jsonDecode(await file.readAsString());
+      if (decoded is! Map) return null;
+      return decoded['id'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> write(FlutterTarget target) async {
+    await file.parent.create(recursive: true);
+    await file.writeAsString(
+      const JsonEncoder.withIndent('  ').convert({'id': target.id}),
+    );
+  }
+
+  Future<void> clear() async {
+    if (await file.exists()) await file.delete();
+  }
 }
 
 abstract interface class ProjectProcess {
@@ -88,12 +148,7 @@ class IoProjectProcessLauncher implements ProjectProcessLauncher {
       );
     }
 
-    final decoded = jsonDecode(result.stdout as String) as List<dynamic>;
-    return decoded
-        .whereType<Map<String, dynamic>>()
-        .map(FlutterTarget.fromJson)
-        .where((target) => target.id.isNotEmpty)
-        .toList();
+    return FlutterTarget.parseDevicesJson(result.stdout as String);
   }
 }
 
@@ -170,6 +225,9 @@ class FlutterProjectRunner {
     }
     if (!projectDirectory.existsSync()) {
       throw ArgumentError('Project directory does not exist.');
+    }
+    if (target != null && !target.isAvailable) {
+      throw StateError('Flutter target "${target.name}" is unavailable.');
     }
 
     final generation = ++_generation;

@@ -26,26 +26,39 @@ extension RunnerLogs on FlameProjectRunner {
     emitLog(line, kPreviewLogPrefix);
 
     if (line.trim().contains('Flutter run key commands.')) {
-      setupView(project);
+      if (canEmbedNativeView) setupView(project);
     } else if (line.trim().contains(
       'The Flutter DevTools debugger and profiler on',
     )) {
-      final url = Uri.parse(
-        line
-            .trim()
-            .split(
-              'The Flutter DevTools debugger and profiler on Windows is available at:',
-            )
-            .last
-            .trim(),
-      );
+      final marker = 'available at:';
+      final markerIndex = line.indexOf(marker);
+      if (markerIndex == -1) return;
 
-      final wsUrl = url.queryParameters['uri']!;
-      // is is necessary to add the "ws" to the end of the url
-      final wsUri = '${Uri.parse(wsUrl).replace(scheme: 'ws')}ws';
+      final devToolsUrl = Uri.tryParse(
+        line.substring(markerIndex + marker.length).trim(),
+      );
+      final serviceUrl = devToolsUrl?.queryParameters['uri'];
+      if (serviceUrl == null) {
+        emitLog(
+          'Flutter did not provide a VM Service URL.',
+          kWorkspaceLogPrefix,
+        );
+        return;
+      }
+
+      final parsedServiceUrl = Uri.tryParse(serviceUrl);
+      if (parsedServiceUrl == null) {
+        emitLog(
+          'Flutter provided an invalid VM Service URL.',
+          kWorkspaceLogPrefix,
+        );
+        return;
+      }
+
+      final wsUri = '${parsedServiceUrl.replace(scheme: 'ws')}ws';
       debugPrint('VM service at $wsUri');
 
-      await registerWorkspace(wsUri.toString());
+      await registerWorkspace(wsUri);
       await onRuntimeConnected?.call();
 
       notifyListeners();

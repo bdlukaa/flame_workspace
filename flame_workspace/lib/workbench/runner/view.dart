@@ -59,6 +59,13 @@ mixin RunnerView {
         }
 
         if (_viewController == null) {
+          if (runner.isNativeRunning && !runner.canEmbedNativeView) {
+            return _status(
+              theme,
+              'Running on ${runner.nativeTargetLabel}',
+              const Icon(Icons.open_in_new),
+            );
+          }
           if (runner.isRunning) {
             return _status(
               theme,

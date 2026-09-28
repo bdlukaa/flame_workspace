@@ -210,9 +210,13 @@ The generated template keeps the existing minimal runtime dependency set (`flame
 
 ## Cross-platform project runner
 
-`flame_workspace/lib/workbench/runner/project_runner.dart` now owns Flutter process execution behind `ProjectProcessLauncher` and `ProjectProcess` abstractions. `FlutterTarget` represents an explicit device discovered from `flutter devices --machine`, while omitting a target lets Flutter select its normal default. The runner owns start/stop, output streams, `r`/`R` commands, exit state, and cleanup.
+`flame_workspace/lib/workbench/runner/project_runner.dart` now owns Flutter process execution behind `ProjectProcessLauncher` and `ProjectProcess` abstractions. `FlutterTarget` represents an explicit device discovered from `flutter devices --machine`, including its ID, display name, target platform, and current availability. The runner owns start/stop, output streams, `r`/`R` commands, exit state, and cleanup. Unavailable targets are rejected before launch, and malformed/disappearing target state is surfaced through the runner instead of being assumed to be Windows.
 
 `preview.dart` adds a separate web-server preview path using `flutter run -d web-server`, robust URL extraction, preview lifecycle state, and the platform-neutral `PreviewSurface` contract. The editor now uses `webview_cef` as its desktop embedded surface: CEF renders into a Flutter texture, so clipping, resizing, pointer input, keyboard focus, and IME handling remain inside the Flutter layout rather than requiring native child-window parenting. `flutter_native_view` remains limited to native Run. `PreviewState.crashed` distinguishes an unexpected nonzero process exit from a normal stop, and surface failures remain visible after cleanup.
+
+## Native Run and target discovery
+
+Native Run is separate from web Preview. The Workbench refreshes `flutter devices --machine`, exposes discovered Windows, macOS, Linux, Chrome, Android, and iOS targets through the target selector, and passes the selected device ID to the shared `FlutterProjectRunner`. The last selected device ID is stored per project at `.flame_workspace/native_target.json`; if no selection exists, Flutter's normal default-target behavior remains available. Native Run uses the same process lifecycle, logs, hot reload, hot restart, and stop commands as Preview, while only the existing Windows target is embedded in the Workspace window. Other targets run in their normal Flutter host window/device and are represented by status/log output. Target discovery failures and unavailable devices are recoverable through refresh rather than causing a Workspace crash.
 
 ## Embedded Game Preview
 

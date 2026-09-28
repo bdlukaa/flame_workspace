@@ -29,6 +29,55 @@ void main() {
     );
   });
 
+  test('parses Flutter device metadata and availability', () {
+    final targets = FlutterTarget.parseDevicesJson(
+      jsonEncode([
+        {
+          'id': 'macos',
+          'name': 'macOS',
+          'targetPlatform': 'darwin-arm64',
+          'isConnected': true,
+          'isSupported': true,
+        },
+        {
+          'id': 'android',
+          'name': 'Android SDK built for x86',
+          'targetPlatform': 'android-x64',
+          'isConnected': false,
+          'isSupported': true,
+        },
+      ]),
+    );
+
+    expect(targets[0].platform, 'darwin-arm64');
+    expect(targets[0].isAvailable, isTrue);
+    expect(targets[1].isAvailable, isFalse);
+  });
+
+  test('persists and clears the selected target for a project', () async {
+    final directory = await Directory.systemTemp.createTemp('target_store_');
+    addTearDown(() => directory.delete(recursive: true));
+    final store = FlutterTargetSelectionStore(directory);
+    const target = FlutterTarget(id: 'chrome', name: 'Chrome');
+
+    await store.write(target);
+    expect(await store.read(), 'chrome');
+
+    await store.clear();
+    expect(await store.read(), isNull);
+  });
+
+  test('does not start an unavailable target', () async {
+    const target = FlutterTarget(
+      id: 'android',
+      name: 'Android',
+      isAvailable: false,
+    );
+
+    await expectLater(runner.start(target: target), throwsStateError);
+    expect(launcher.process.startArguments, isNull);
+  });
+
   test('transitions through running and cleans up on stop', () async {
     final start = runner.start();
 

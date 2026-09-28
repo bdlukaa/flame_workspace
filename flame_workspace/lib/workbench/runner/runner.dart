@@ -41,13 +41,21 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     projectDirectory: project.location,
   );
   final PreviewProjectRunner previewRunner;
+  final FlutterTargetSelectionStore targetStore;
+
+  List<FlutterTarget> targets = const [];
+  FlutterTarget? selectedTarget;
+  Object? targetError;
 
   FlameProjectRunner(
     this.project, {
     this.onRuntimeConnected,
     this.runtimeClientOverride,
     PreviewSurface? previewSurface,
-  }) : previewRunner = PreviewProjectRunner(
+    FlutterTargetSelectionStore? targetStore,
+  }) : targetStore =
+           targetStore ?? FlutterTargetSelectionStore(project.location),
+       previewRunner = PreviewProjectRunner(
          runner: FlutterProjectRunner(projectDirectory: project.location),
          surface: previewSurface ?? CefPreviewSurface(),
        ) {
@@ -73,7 +81,59 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   PreviewState get previewState => previewRunner.state;
   Uri? get previewUrl => previewRunner.url;
   bool get isPreviewRunning => previewRunner.isRunning;
-  bool get canControlRuntime => isViewReady || isPreviewRunning;
+  bool get isNativeRunning => _isRunning && !isPreviewRunning;
+  bool get canControlRuntime => processRunner.isRunning || isPreviewRunning;
+  bool get canEmbedNativeView {
+    final target = selectedTarget;
+    return target?.id == 'windows' ||
+        target?.platform?.toLowerCase().startsWith('windows') == true;
+  }
+
+  String get nativeTargetLabel =>
+      selectedTarget?.name ?? 'Flutter default target';
+
+  Future<List<FlutterTarget>> refreshTargets() async {
+    try {
+      final previousId = selectedTarget?.id ?? await targetStore.read();
+      final discovered = await processRunner.discoverTargets();
+      targets = discovered;
+      selectedTarget = previousId == null
+          ? null
+          : discovered.where((target) => target.id == previousId).firstOrNull;
+      targetError = null;
+      notifyListeners();
+      return discovered;
+    } catch (error) {
+      targets = const [];
+      selectedTarget = null;
+      targetError = error;
+      emitLog('Flutter target discovery failed: $error', kWorkspaceLogPrefix);
+      return const [];
+    }
+  }
+
+  void selectTarget(FlutterTarget? target) {
+    if (target != null &&
+        !targets.any((candidate) => candidate.id == target.id)) {
+      return;
+    }
+    selectedTarget = target;
+    targetError = null;
+    unawaited(_persistTarget(target));
+    notifyListeners();
+  }
+
+  Future<void> _persistTarget(FlutterTarget? target) async {
+    try {
+      if (target == null) {
+        await targetStore.clear();
+      } else {
+        await targetStore.write(target);
+      }
+    } catch (error) {
+      emitLog('Could not persist Flutter target: $error', kWorkspaceLogPrefix);
+    }
+  }
 
   GameState _gameState = const GameState.initial();
   GameState get gameState => _gameState;
@@ -195,18 +255,34 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     }
   }
 
-  /// Runs the project.
+  /// Runs the project on [target], or the selected/default Flutter target.
   Future<void> run({FlutterTarget? target}) async {
     if (_isRunning) {
       throw Exception('Project is already running');
     }
 
+    final runTarget = target ?? selectedTarget;
+    if (runTarget != null && !runTarget.isAvailable) {
+      targetError = StateError(
+        'Flutter target "${runTarget.name}" is unavailable.',
+      );
+      notifyListeners();
+      throw targetError!;
+    }
+    if (target != null) {
+      selectedTarget = target;
+      unawaited(_persistTarget(target));
+    }
+
     _isRunning = true;
-    emitLog('Running preview', kWorkspaceLogPrefix);
+    emitLog(
+      'Running ${runTarget?.name ?? 'Flutter default target'}',
+      kWorkspaceLogPrefix,
+    );
 
     try {
       await processRunner.start(
-        target: target,
+        target: runTarget,
         onStdout: (line) => unawaited(onReceiveLog(line)),
         onStderr: (line) => emitLog(line, kPreviewLogPrefix),
         onExit: (exitCode) {

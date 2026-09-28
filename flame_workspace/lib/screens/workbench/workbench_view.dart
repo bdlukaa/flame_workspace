@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flame_workspace/screens/workbench/design/script_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
@@ -113,6 +115,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
     );
 
     windowManager.addListener(runner);
+    unawaited(runner.refreshTargets());
     state.addListener(_updateListener);
     runner.addListener(_updateListener);
   }
@@ -317,6 +320,14 @@ class _WorkbenchViewState extends State<WorkbenchView> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              _buildTargetSelector(context),
+              const SizedBox(width: 8.0),
+              InkedIconButton(
+                onTap: runner.isRunning ? null : runner.run,
+                tooltip: 'Run on selected target',
+                icon: const Icon(Icons.play_circle_outline),
+              ),
+              const SizedBox(width: 8.0),
               InkedIconButton(
                 onTap: !runner.isPreviewRunning ? null : runner.reloadPreview,
                 tooltip: 'Reload preview',
@@ -344,12 +355,12 @@ class _WorkbenchViewState extends State<WorkbenchView> {
                     : runner.gameState.paused
                     ? runner.resume
                     : null,
-                tooltip: 'Run',
+                tooltip: 'Run Preview',
                 icon: const Icon(Icons.play_arrow, color: Colors.lightBlue),
               ),
               const SizedBox(width: 8.0),
               InkedIconButton(
-                onTap: !runner.isViewReady || runner.gameState.paused
+                onTap: !runner.canControlRuntime || runner.gameState.paused
                     ? null
                     : runner.pause,
                 tooltip: 'Pause',
@@ -368,6 +379,63 @@ class _WorkbenchViewState extends State<WorkbenchView> {
       ],
     );
   }
+
+  Widget _buildTargetSelector(BuildContext context) {
+    final runner = this.runner;
+    final theme = Theme.of(context);
+    final selectedId = runner.selectedTarget?.id;
+
+    return SizedBox(
+      width: 190.0,
+      child: Row(
+        children: [
+          Expanded(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                value: runner.targets.any((target) => target.id == selectedId)
+                    ? selectedId
+                    : null,
+                hint: Text(
+                  'Flutter target',
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium,
+                ),
+                items: [
+                  for (final target in runner.targets)
+                    DropdownMenuItem<String>(
+                      value: target.id,
+                      enabled: target.isAvailable,
+                      child: Text(
+                        target.isAvailable
+                            ? target.name
+                            : '${target.name} (unavailable)',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: runner.isRunning
+                    ? null
+                    : (id) {
+                        if (id == null) return;
+                        runner.selectTarget(
+                          runner.targets.firstWhere(
+                            (target) => target.id == id,
+                          ),
+                        );
+                      },
+              ),
+            ),
+          ),
+          InkedIconButton(
+            onTap: runner.refreshTargets,
+            tooltip: 'Refresh Flutter targets',
+            icon: const Icon(Icons.refresh, size: 16.0),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class NotificationsField extends StatelessWidget {
@@ -384,6 +452,9 @@ class NotificationsField extends StatelessWidget {
         return (true, 'Indexing project');
       }
       final runner = workbench.runner;
+      if (runner.targetError != null) {
+        return (false, 'Flutter target discovery failed');
+      }
       switch (runner.previewState) {
         case PreviewState.starting:
           return (true, 'Starting web preview');
