@@ -13,6 +13,6 @@ export 'package:flame/particles.dart';
 export 'package:flame/layout.dart';
 export 'package:flame/sprite.dart';
 export 'package:flame/text.dart';
-export 'package:flame_workspace_core/flame_workspace_core.dart';
+export 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 export 'package:flutter/widgets.dart'
     hide Viewport, OverlayRoute, PointerMoveEvent, Route, LineMetrics, Matrix4;

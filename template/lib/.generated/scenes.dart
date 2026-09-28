@@ -2,7 +2,7 @@
 /// Do not edit it manually.
 
 // ignore_for_file: unused_import
-import 'package:flame_workspace_core/flame_workspace_core.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 import 'package:template/.generated/scenes/level_one.dart';
 
 void setScene(String sceneName) {

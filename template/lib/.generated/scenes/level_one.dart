@@ -2,7 +2,7 @@
 /// Do not edit it manually.
 
 // ignore_for_file: unused_import
-import 'package:flame_workspace_core/flame_workspace_core.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
 import 'package:template/scenes/level_one/level_one.dart';
 import 'package:template/scenes/level_one/level_one_script.dart';

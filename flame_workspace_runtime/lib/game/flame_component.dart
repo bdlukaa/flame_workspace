@@ -1,4 +1,4 @@
-import 'package:flame_workspace_core/flame_workspace_core.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
 /// A mixin that trakcs properties on [Component]s.
 ///
@@ -98,8 +98,8 @@ class _FlameComponentWrapper extends PositionComponent
   final Component component;
 
   @override
-  void update(double t) {
-    super.update(t);
+  void update(double dt) {
+    super.update(dt);
 
     if (component is PositionComponent) {
       position = (component as PositionComponent).position;

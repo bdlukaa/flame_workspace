@@ -22,14 +22,14 @@
 library template;
 
 import 'package:flame_workspace/workbench/parser/writer.dart';
-import 'package:flame_workspace_core/flame_workspace_core.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 import 'package:recase/recase.dart';
 
 /// The main.dart file.
 ///
 /// This file is the entry point of the application.
 String main$dart(String gameName) =>
-    '''import 'package:flame_workspace_core/flame_workspace_core.dart';
+    '''import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 
@@ -40,7 +40,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final game = $gameName();
-  FlameWorkspaceCore.ensureInitialized(game);
+  await FlameWorkspaceCore.ensureInitialized(game);
   FlameWorkspaceCore.instance.setPropertyValue = setPropertyValue;
 
   runApp(GameWidget<$gameName>(
@@ -53,7 +53,7 @@ String game$dart(String gameName) =>
     '''import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/palette.dart';
-import 'package:flame_workspace_core/flame_workspace_core.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 import 'package:window_manager/window_manager.dart';
 
 class $gameName extends FlameGame with SingleGameInstance, WindowListener {
@@ -108,7 +108,7 @@ class \$Scene${sceneName.camelCase} extends FlameScene with \$Scene${sceneName.c
 String sceneScript$dart(String sceneName) =>
     '''part of 'scene_${sceneName.snakeCase}.dart';
 
-class Scene${sceneName.camelCase} extends \$Scene${sceneName.camelCase}} {
+class Scene${sceneName.camelCase} extends \$Scene${sceneName.camelCase} {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
@@ -140,7 +140,7 @@ String component$dart(String componentName) =>
 
 import 'package:flame/components.dart';
 
-import 'package:flame_workspace_core/flame_workspace_core.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
 class ${componentName.pascalCase}Component extends PositionComponent with FlameComponent {
   ${componentName.pascalCase}Component({
@@ -182,10 +182,10 @@ dependencies:
 
   # Required dependencies
   flame: ^1.38.2
-  flame_workspace_core:
+  flame_workspace_runtime:
     git:
       url: https://github.com/bdlukaa/flame_workspace
-      path: flame_workspace_core/
+      path: flame_workspace_runtime/
   window_manager: ^0.5.2 # Used internally by the Flame Workspace to manage the window on preview mode
 
   # Dependencies used by the app

@@ -6,8 +6,8 @@ import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/project/objects/scene.dart';
 import 'package:flame_workspace/workbench/runner/runner.dart';
 import 'package:flame_workspace/workbench/runner/state.dart';
-import 'package:flame_workspace_core/flame_workspace_core.dart';
-import 'package:flame_workspace_core/utils.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
+import 'package:flame_workspace_runtime/utils.dart';
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
 
 import '../../screens/workbench/design/scene/add_component.dart';

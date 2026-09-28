@@ -1,0 +1,21 @@
+name: flame_workspace_runtime
+description: Runtime integration for Flame Workspace projects.
+publish_to: none
+version: 0.0.1
+
+environment:
+  sdk: '>=3.13.0 <4.0.0'
+  flutter: '>=3.47.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flame: ^1.38.2
+  flame_workspace_protocol:
+    path: ../flame_workspace_protocol
+  shelf: ^1.4.1
+  shelf_web_socket: ^1.0.4
+  web_socket_channel: ^2.4.0
+
+dev_dependencies:
+  flutter_lints: ^6.0.0

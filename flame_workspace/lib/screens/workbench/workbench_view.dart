@@ -2,7 +2,7 @@ import 'package:flame_workspace/screens/workbench/design/script_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'package:flame_workspace_core/flame_workspace_core.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
 import '../../workbench/project/objects/component.dart';
 import '../../workbench/project/project.dart';

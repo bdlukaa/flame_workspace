@@ -1,5 +1,5 @@
 // ignore_for_file: unused_import
-import 'package:flame_workspace_core/flame_workspace_core.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
 class ColoredCircle extends PositionComponent with FlameComponent {
   ColoredCircle({

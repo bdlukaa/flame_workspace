@@ -5,7 +5,7 @@ import 'package:flame_workspace/compilation_unit_helper.dart';
 import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/project/objects/component.dart';
 import 'package:flame_workspace/workbench/project/objects/scene.dart';
-import 'package:flame_workspace_core/utils.dart';
+import 'package:flame_workspace_runtime/utils.dart';
 
 import 'writer.dart';
 

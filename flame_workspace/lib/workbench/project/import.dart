@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flame_workspace/workbench/project/project.dart';
-import 'package:flame_workspace_core/utils.dart';
+import 'package:flame_workspace_runtime/utils.dart';
 import 'package:yaml/yaml.dart';
 
 class ProjectImporter {

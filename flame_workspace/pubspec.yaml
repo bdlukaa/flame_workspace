@@ -40,8 +40,10 @@ dependencies:
   google_fonts: ^6.1.0
 
   # Connection
-  flame_workspace_core:
-    path: ../flame_workspace_core
+  flame_workspace_protocol:
+    path: ../flame_workspace_protocol
+  flame_workspace_runtime:
+    path: ../flame_workspace_runtime
   web_socket_channel: ^2.4.0
   flame_workspace_communication_bridge:
     path: ../flame_workspace_communication_bridge

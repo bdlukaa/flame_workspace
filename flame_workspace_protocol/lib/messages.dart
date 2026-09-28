@@ -58,9 +58,7 @@ abstract class MessageData {
 class ComponentChangedMessage extends MessageData {
   final String? component;
 
-  const ComponentChangedMessage({
-    required this.component,
-  });
+  const ComponentChangedMessage({required this.component});
 
   static ComponentChangedMessage fromMap(Map<String, dynamic> map) {
     final component = map['component'] as String?;
@@ -73,9 +71,7 @@ class ComponentChangedMessage extends MessageData {
 
   @override
   Map<String, dynamic> toMap() {
-    return {
-      'component': component,
-    };
+    return {'component': component};
   }
 }
 
@@ -92,13 +88,12 @@ class PropertyChangedMessage extends ComponentChangedMessage {
   });
 
   static PropertyChangedMessage fromMap(Map<String, dynamic> map) {
-    if (map
-        case {
-          'component': String component,
-          'property': String property,
-          'type': String type,
-          'value': dynamic value,
-        }) {
+    if (map case {
+      'component': String component,
+      'property': String property,
+      'type': String type,
+      'value': dynamic value,
+    }) {
       return PropertyChangedMessage(
         component: component,
         property: property,
@@ -133,9 +128,7 @@ class SceneChangedMessage extends MessageData {
   /// It usually starts with a '$'.
   final String scene;
 
-  const SceneChangedMessage({
-    required this.scene,
-  });
+  const SceneChangedMessage({required this.scene});
 
   static SceneChangedMessage fromMap(Map<String, dynamic> map) {
     final scene = map['scene'] as String?;
@@ -148,8 +141,6 @@ class SceneChangedMessage extends MessageData {
 
   @override
   Map<String, dynamic> toMap() {
-    return {
-      'scene': scene,
-    };
+    return {'scene': scene};
   }
 }

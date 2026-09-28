@@ -1,4 +1,4 @@
-import 'package:flame_workspace_core/communication/messages.dart';
+import 'package:flame_workspace_protocol/messages.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../workbench/parser/scene.dart';

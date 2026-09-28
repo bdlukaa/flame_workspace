@@ -160,10 +160,17 @@ packages:
       relative: true
     source: path
     version: "0.0.1"
-  flame_workspace_core:
+  flame_workspace_protocol:
     dependency: "direct main"
     description:
-      path: "../flame_workspace_core"
+      path: "../flame_workspace_protocol"
+      relative: true
+    source: path
+    version: "0.0.1"
+  flame_workspace_runtime:
+    dependency: "direct main"
+    description:
+      path: "../flame_workspace_runtime"
       relative: true
     source: path
     version: "0.0.1"

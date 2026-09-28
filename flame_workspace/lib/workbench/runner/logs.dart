@@ -4,7 +4,7 @@ import 'dart:async';
 
 import 'package:flame_workspace/workbench/runner/runner.dart';
 import 'package:flame_workspace_communication_bridge/workspace.dart';
-import 'package:flame_workspace_core/flame_workspace_core.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
 extension RunnerLogs on FlameProjectRunner {
   void emitLog(String log, String prefix) {

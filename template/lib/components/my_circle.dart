@@ -1,4 +1,4 @@
-import 'package:flame_workspace_core/flame_workspace_core.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
 class MyCircleComponent extends PositionComponent with FlameComponent {
   final Paint _paint;

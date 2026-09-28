@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flame_workspace_core/utils.dart';
+import 'package:flame_workspace_runtime/utils.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-import '../flame_workspace_core.dart';
+import '../flame_workspace_runtime.dart';
 
 final connections = <WebSocketChannel>[];
 
@@ -22,11 +22,7 @@ Future<HttpServer> createServer() async {
     );
   });
 
-  var server = await io.serve(
-    handler,
-    'localhost',
-    8020,
-  );
+  var server = await io.serve(handler, 'localhost', 8020);
 
   print('Serving at ws://${server.address.host}:${server.port}');
 
@@ -83,7 +79,7 @@ void listen(WebSocketChannel channel, dynamic message) {
           component.runtimeType.toString().removeGenerics(),
           component,
           message.property,
-          ValuesParser.parse(message.type, message.value),
+          RuntimeValuesParser.parse(message.type, message.value),
         );
       }
 

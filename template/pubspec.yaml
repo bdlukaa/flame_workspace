@@ -17,8 +17,9 @@ dependencies:
 
   # Required dependencies
   flame: ^1.38.2
-  flame_workspace_core:
-    path: ../flame_workspace_core
+
+  flame_workspace_runtime:
+    path: ../flame_workspace_runtime
   window_manager: ^0.5.2 # Used internally by the Flame Workspace to manage the window on preview mode
 
   # Dependencies used by the app

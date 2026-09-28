@@ -8,7 +8,7 @@ import 'package:web_socket_channel/io.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'package:flame_workspace_communication_bridge/workspace.dart';
-import 'package:flame_workspace_core/flame_workspace_core.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
 import '../project/project.dart';
 

@@ -179,6 +179,26 @@ Selected direct dependency constraints:
 
 `dart_style` 3.1.13 was not selected: its published constraint requires Analyzer `>=13.1.0`, while `dartdoc_json` 0.6.0 and the current analyzer integration resolve to Analyzer 7.7.1. `dart_style` 3.1.1 is the compatible resolution and requires passing an explicit `languageVersion` to `DartFormatter`; the writer now supplies `DartFormatter.latestLanguageVersion`.
 
-The editor's unused `code_builder` and `source_gen` constraints were removed. `flame_workspace_core` and the checked-in template no longer declare unused `flame_audio`, `flame_forge2d`, or `flame_isolate` dependencies. The generated project defaults retain only Flame, `flame_workspace_core`, and `window_manager`; `window_manager` remains because the current generated game imports and uses it. The existing core-to-editor path dependency remains temporarily because `flame_workspace_core/lib/communication/parser_values.dart` still consumes the editor's `FlameComponentObject`; removing that dependency belongs to the later package-boundary migration.
+The editor's unused `code_builder` and `source_gen` constraints were removed. `flame_workspace_core` and the checked-in template no longer declare unused `flame_audio`, `flame_forge2d`, or `flame_isolate` dependencies. The generated project defaults retain only Flame, `flame_workspace_runtime`, and `window_manager`; `window_manager` remains because the current generated game imports and uses it. The editor-specific value parser has since moved into `flame_workspace`, so the former core-to-editor path dependency is no longer required.
 
 Direct compatibility updates included the Flutter 3.47 theme data types, the ambiguous `Matrix4` export, current synchronous generated `update`/`render` signatures, and replacement of runtime/template `HasGameRef` usage with `HasGameReference<FlameGame>`. `flutter pub get` succeeds in all four packages without dependency overrides.
+
+## Package-boundary migration update
+
+The package cycle has been removed without changing the preview transport or scene model:
+
+```text
+flame_workspace ───────┐
+                       ▼
+             flame_workspace_protocol
+                       ▲
+                       │
+             flame_workspace_runtime ◄── user game
+```
+
+- `flame_workspace_protocol` contains the lightweight message and game-state DTOs and has no Flutter, Flame, or editor dependency.
+- `flame_workspace_runtime` contains the Flame integration, `World`-based scene support, selection component, runtime utilities, and the existing WebSocket server. It depends on protocol and Flame, never on the editor.
+- `flame_workspace` now depends on protocol/runtime directly. Editor-specific `ValuesParser.parseValue` lives in the editor package instead of the runtime package.
+- `flame_workspace_core` remains as a compatibility facade that depends only on protocol/runtime; it no longer points back to `flame_workspace`. New templates use `flame_workspace_runtime` directly.
+
+The generated template keeps the existing minimal runtime dependency set (`flame`, `flame_workspace_runtime`, and `window_manager`). No dependency override or runtime/editor cycle is present. The legacy WebSocket/native-window preview implementation remains intentionally unchanged for a later preview migration.

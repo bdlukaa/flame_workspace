@@ -2,7 +2,7 @@
 /// Do not edit it manually.
 
 // ignore_for_file: unused_import, unnecessary_import, unnecessary_this
-import 'package:flame_workspace_core/flame_workspace_core.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
 import 'package:template/components/my_circle.dart';
 import 'package:template/components/my_square_component.dart';

@@ -12,16 +12,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flame_workspace:
-    path: ../flame_workspace
-
-  # Flame
-  flame: ^1.38.2
-
-  # Connection
-  web_socket_channel: ^2.4.0
-  shelf: ^1.4.1
-  shelf_web_socket: ^1.0.4
+  flame_workspace_protocol:
+    path: ../flame_workspace_protocol
+  flame_workspace_runtime:
+    path: ../flame_workspace_runtime
 
 dev_dependencies:
   flutter_lints: ^6.0.0

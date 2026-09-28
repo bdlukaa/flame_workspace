@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flame/game.dart';
 import 'package:flame_workspace/workbench/project/objects/component.dart';
-import 'package:flame_workspace_core/utils.dart';
+import 'package:flame_workspace_runtime/utils.dart';
 import 'package:flutter/widgets.dart';
 
 /// A class that parse values of parameters and components into an actual class.
@@ -56,7 +56,7 @@ class ValuesParser {
       'int' => int.tryParse(namedExpression.$2),
       'double' => double.tryParse(namedExpression.$2),
       'String' => // The string without the quotes (', ")
-        namedExpression.$2.substring(1, namedExpression.$2.length - 1),
+      namedExpression.$2.substring(1, namedExpression.$2.length - 1),
       _ => namedExpression.$2,
     };
 
@@ -92,7 +92,7 @@ class ValuesParser {
       'double' => double.tryParse(value),
       'num' => num.tryParse(value),
       'String' => // The string without the quotes (', ")
-        value.substring(1, value.length - 1),
+      value.substring(1, value.length - 1),
       'Vector2' => Vector2(parseVector2(value)!.$1, parseVector2(value)!.$2),
       'Map' => json.decode(value) as Map,
       _ => value,
