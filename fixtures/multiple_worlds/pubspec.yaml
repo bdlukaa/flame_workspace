@@ -1,0 +1,13 @@
+name: multiple_worlds
+publish_to: none
+
+environment:
+  sdk: '>=3.13.0 <4.0.0'
+  flutter: '>=3.47.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flame: ^1.38.2
+  flame_workspace_runtime:
+    path: ../../flame_workspace_runtime

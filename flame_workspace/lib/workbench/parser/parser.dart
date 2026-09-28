@@ -97,7 +97,7 @@ class ProjectIndexer {
         // return d['kind'] == 'class' && d['extends'] == 'FlameScene';
         return d['kind'] == 'class';
       }).map((d) {
-        final members = (d['members'] as List).cast<Map>();
+        final members = (d['members'] as List? ?? const <dynamic>[]).cast<Map>();
         final className = d['name'] as String;
         final fields = members.where((m) => m['kind'] == 'field');
 
@@ -184,6 +184,33 @@ class ProjectIndexer {
   /// Returns all the components in the project and its compilation unit.
   static Iterable<IndexedComponent> componentsFrom(IndexedProject indexed) {
     final components = <IndexedComponent>[];
+    final declarationsByName = <String, IndexedUnit>{
+      for (final entry in indexed)
+        for (final declaration in ((entry.$1['declarations'] as List?) ?? const []).cast<Map>())
+          if (declaration['kind'] == 'class')
+            declaration['name'] as String: declaration.cast<String, dynamic>(),
+    };
+    final builtInComponentNames = builtInComponents
+        .map((component) => component.name)
+        .toSet()
+      ..removeAll({'FlameGame', 'World'});
+
+    bool extendsComponent(String? type, [Set<String>? visited]) {
+      if (type == null || type == 'FlameGame' || type == 'World') return false;
+      if (type == 'PositionComponent' ||
+          type == 'Component' ||
+          builtInComponentNames.contains(type)) {
+        return true;
+      }
+
+      visited ??= <String>{};
+      if (!visited.add(type)) return false;
+      final declaration = declarationsByName[type];
+      if (declaration == null) return false;
+      final mixins = (declaration['with'] as List?)?.cast<String>() ?? const [];
+      return extendsComponent(declaration['extends'] as String?, visited) ||
+          mixins.any((mixin) => mixin.split('<').first == 'FlameComponent');
+    }
 
     for (final index in indexed) {
       final indexedUnit = index.$1;
@@ -194,20 +221,12 @@ class ProjectIndexer {
           .map((e) => e as IndexedUnit);
 
       components.addAll(declarations.where((d) {
-        final w = d['with'] as List?;
-        final e = d['extends'] as String?;
-        return d['kind'] == 'class' &&
-            (w != null && (w.contains('FlameComponent')) ||
-                [
-                  'PositionComponent',
-                  'Component',
-                  ...builtInComponents.map((e) => e.name),
-                ].contains(e));
+        return d['kind'] == 'class' && extendsComponent(d['name'] as String?);
       }).map((d) {
         final componentParameters = <FlameComponentField>[];
 
         if (d['members'] != null) {
-          final members = (d['members'] as List).cast<Map>();
+          final members = (d['members'] as List? ?? const <dynamic>[]).cast<Map>();
           for (final member in members) {
             // TODO: add support for multiple constructors
             //       (factory constructors / named constructors)
