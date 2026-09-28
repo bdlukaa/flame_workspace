@@ -41,7 +41,6 @@ class FlameWorkspaceCore {
     instance.game = game;
     registerFlameWorkspaceExtensions(instance);
     if (kDebugMode) {
-      assert(!kIsWeb, 'Can not run in web mode');
       debugPrint('Initializing Flame Workspace runtime');
     }
   }
