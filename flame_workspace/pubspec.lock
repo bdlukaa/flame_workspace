@@ -397,14 +397,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
-  process_run:
-    dependency: "direct main"
-    description:
-      name: process_run
-      sha256: "3d5335d17003a7c2fd5148be2d313f5b84244ab2e625162fdd44b4aaa48bea66"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.13.3+1"
   pub_semver:
     dependency: transitive
     description:
@@ -498,14 +490,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
-  synchronized:
-    dependency: transitive
-    description:
-      name: synchronized
-      sha256: "69fe30f3a8b04a0be0c15ae6490fc859a78ef4c43ae2dd5e8a623d45bfcf9225"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.3.0+3"
   term_glyph:
     dependency: transitive
     description:

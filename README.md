@@ -1,130 +1,124 @@
-<div align="center">
-      
 # Flame Workspace
 
-A Workspace for Flame games.
+Flame Workspace is a visual development environment for normal Flutter + Flame
+projects. Flame remains the runtime engine and Dart remains the source of game
+behavior; Workspace owns project analysis, scene composition, editing, and
+preview orchestration.
 
-<a title="Discord" href="https://discord.gg/674gpDQUVq">
-  <img src="https://img.shields.io/discord/809528329337962516?style=flat-square&label=discord&color=7289da&logo=discord&logoColor=white" />
-</a>
+> This is an independent personal project and is not affiliated with the Flame
+> team. For official Flame tooling, see [Flame Studio](https://github.com/flame-engine/flame/issues/2319).
 
-</div>
+## Developer Preview status
 
-> \[!NOTE] 
-> 
-> This project is unrelated to the Flame team, it is a personal project that I'm working on to make it easier to create games using Flame. For official support, see [flame-engine/Flame Studio](https://github.com/flame-engine/flame/issues/2319)
+The repository is in the Developer Preview milestone. The following workflow is
+implemented and covered by package and fixture tests:
 
+- create a minimal Flutter + Flame project or open an existing project;
+- resolve and semantically index Flame components, worlds, and inheritance;
+- edit a widget-independent scene model and component hierarchy;
+- persist scene composition under `.flame_workspace/scenes/`;
+- generate deterministic additive adapters under `lib/.generated/`;
+- inspect and edit basic transforms and supported properties;
+- discover Flutter targets and run through the cross-platform project runner;
+- launch a web-server preview through the `PreviewSurface` abstraction;
+- connect native runs to the stable `ext.flameWorkspace.*` VM Service API;
+- hot reload, hot restart, log, and clean up Flutter processes.
 
+### Experimental and platform-limited
 
-https://github.com/bdlukaa/flame_workspace/assets/45696119/00178d89-aeeb-487c-a262-557258db4fbc
+- The embedded CEF preview surface is currently supported by the checked-in
+  Windows desktop host. macOS and Linux host integration still require native
+  runner setup and CEF toolchain validation.
+- Flutter `web-server` preview reaches a usable localhost URL in the current
+  environment, but Flutter does not expose a VM Service URL there without the
+  Dart Debug Chrome extension. The end-to-end test records this as an explicit
+  capability skip rather than claiming web runtime synchronization works.
+- Native child-window embedding is retained only for the existing Windows
+  Native Run path. Other discovered targets run in their normal Flutter host or
+  device window.
+- Generic runtime component mutation depends on generated scene hooks, and
+  generic property mutation depends on a generated property callback.
 
+### Not implemented yet
 
+Multi-selection, snapping, animation/tilemap/physics editors, visual scripting,
+a full asset import pipeline, and a complete source-code IDE are outside the
+Developer Preview scope.
 
-#### Progress
+## Quick start
 
-- [x] POC <br />
-      The proof of concept stage is where I try to figure out if the idea is possible and how to do it. Everything is hard coded, the project structure is not defined yet and the code is a _mess_.
-- [ ] Developer Preview <br />
-      The developer preview stage is where I try to implement the core features of the app. The project structure is somewhat defined, but it is still subject to change.
-- [ ] Alpha <br />
-      The alpha stage is where I try to implement most of the basic features and fix most of the bugs.
-- [ ] Beta
-- [ ] Stable
+```bash
+cd flame_workspace
+flutter pub get
+flutter run
+```
 
-#### How to use?
+Open `template/` in the running Workspace, or use the project creator to create
+a new project. The checked-in template is a small modern Flame project and is
+kept as an ordinary Flutter project that can also be analyzed and tested without
+Workspace.
 
-Given the current state of the application, some manual steps are required to run it. The `template/` folder contains the necessary arrangements to make it run and interact with the Workspace.
+For repository validation:
 
-**`1.`** Clone the repository <br/>
-**`2.`** Run `flutter run` in the `flame_workspace` folder to start the Workspace <br/>
-**`3.`** Open the `template/` folder from the Workspace <br/>
-**`4.`** `Run` the project to start the Game Preview
+```bash
+flutter analyze
+flutter test --concurrency=1
+```
 
-<details>
+The editor currently reports existing Analyzer API deprecation infos. The
+intentionally broken fixture also fails analysis by design; Workspace indexing
+must remain recoverable in that case.
 
-<summary> Roadmap </summary>
+## Package layout
 
-#### Core Features
+- `flame_workspace/` — Flutter editor UI, Analyzer-backed discovery, semantic
+  model, persistence/generation, Scene View, runners, and editor-side VM Service
+  client integration.
+- `flame_workspace_protocol/` — lightweight runtime request/response models and
+  stable VM Service extension names.
+- `flame_workspace_runtime/` — Flame `World`/component integration and runtime
+  VM Service extensions installed into user games.
+- `flame_workspace_communication_bridge/` — editor-side VM Service connection
+  and invocation helpers.
+- `flame_workspace_core/` — compatibility facade for projects that still import
+  the former package; new projects should depend on
+  `flame_workspace_runtime`.
+- `template/` — checked-in minimal project example.
+- `fixtures/` — intentionally small analyzer and discovery compatibility
+  projects, including inheritance, multiple worlds, and a broken project.
 
-- [x] Analyze and parse a Flame project <br/>
-- [x] Code generation <br/>
-- [x] Code manipulation <br />
-      Manipulate the project classes, like declaring components in scenes, changing the properties of components, etc.
-- [x] Game Preview <br/>
+## Architecture
 
+```text
+Flutter + Flame project
+        │
+        ▼
+Analyzer-backed discovery
+        │
+        ▼
+Workspace semantic scene model
+        ├── Scene View / hierarchy / Inspector
+        ├── JSON persistence and deterministic adapters
+        └── project generation
 
-#### Basic Features
+Game Preview or Native Run
+        │
+        ▼
+Flutter process runner
+        │
+        ▼
+Dart VM Service
+        │
+        ▼
+flame_workspace_runtime → Flame World/component tree
+```
 
-- [ ] Create a new project <br/>
-      Create a new project from the Workspace that contains all the necessary code to connect to the Workspace and interact with it.
-- [ ] Scene Editor <br/>
-      A visual scene editor for designing and arranging game levels, environments, and assets.
-- [ ] Component Editor <br/>
-      Create, edit and manage components isolatedaly from the Workspace.
-- [ ] Asset Management <br/>
-      View, edit and manage the assets of the game from the Workspace.
-- [ ] Script Editor <br/>
-      Edit the code of the game from the Workspace, without the need to open the project in external editors. The editor can take advantage of the analyzed code to provide code completion and other features.
+Workspace communicates with a running game through stable structured extensions
+such as `ext.flameWorkspace.getState`, `getComponentTree`, `setProperty`, and
+`setTransform`. The obsolete Shelf/WebSocket runtime transport is no longer part
+of the active architecture.
 
-</details>
-
-### Packages
-
-* flame_workspace <br/>
-  The app itself. It is resposible to create, edit, generate code and connect to the server
-
-* template <br/>
-  A template used when creating a new Flame project.
-  The default folder structure is:
-  ```yaml
-      assets/                         # Contains the assets of the game
-      lib/                            # Contains the source code of the game
-        generated/                      # Contains the generated code
-          components/                       # Contains the generated code of the components
-          scenes/                           # Contains the generated code of the scenes
-          properties.dart                   # Contains the generated code to manipulate components
-        components/
-          component_name.dart               # A custom component    
-        scenes/
-          scene_name.dart                    # A scene
-          scene_name_script.dart             # The script of the scene_name
-        main.dart                       # The entry point of the game
-        game.dart                       # The game itself
-      pubspec.yaml                    # The dependencies of the game
-      flame_configuration.yaml        # Configuration options used by the workspace
-  ```
-
-  For more details, see [template/README.md](template/README.md)
-
-* flame_workspace_core <br/>
-  The core package, in which every Flame project must depend on. It contains the necessary code that makes the interaction between the Workspace and the game itself possible.
-
-### Under the hood
-
-The Dart Analyzer is used to parse the entire code of the game. The Workspace uses this info to display the available components, scenes and other information about the project.
-
-### Game Preview
-
-The Game Preview is the game itself, running on a separate window. The communication between the Workspace and the Game Preview is done using the local http server created by the `flame_workspace_core` package, making it possible to edit the components properties from the Workspace itself, without the need to edit the code. See [this](flame_workspace_core/README.md) for more info on how it works.
-
-> \[!IMPORTANT]
->
-> The Game Preview is embedded into the Workspace using [flutter_native_view](https://pub.dev/packages/flutter_native_view), since Flutter doesn't support Platform Views on Desktop yet (by 11/05/23).
-
-- [x] View the embedded preview
-- [ ] Manipulate components inside the preview <br/>
-      In a "paused" state, which the game loop is stopped, the user can manipulate the components inside the preview, and the changes are reflected in the code.
-- [ ] Logs <br/>
-      The logs of the game are displayed in the Workspace, making it easier to debug the game.
-
-### Game-Workspace interaction
-
-With the analyzed code, the workspace can generate code to allow the interaction between the game and the Workspace. This is necessary because reflection is not supported on Flutter. The generated code is placed in the `lib/generated/` folder:
-
-* `properties.dart`
-  This file is generated by the `PropertiesGenerator` and contains functions to manipulate all the components in the project, whether they're built-in Flame components or custom components.
-
-* `scene_${sceneName}.dart`
-  This file is generated by the `SceneGenerator` and contains functions to manipulate the scenes in the project. It creates a mixin with the name `Scene${sceneName}`, which every scene must depend on. Don't worry, this is hanlded automatically by the Workspace.
-
-These files are generated every time the files are changed. 
+See [`docs/migration/developer_preview_migration.md`](docs/migration/developer_preview_migration.md)
+for the modernization record and
+[`docs/migration/developer_preview_readiness.md`](docs/migration/developer_preview_readiness.md)
+for the current readiness report.

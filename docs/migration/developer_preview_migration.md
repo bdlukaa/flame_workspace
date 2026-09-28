@@ -250,7 +250,7 @@ ext.flameWorkspace.resume
 
 The runner's pause/resume controls use this client when a VM Service connection is available. The runner no longer owns a second game communication transport; runtime operations use the VM Service client described above.
 
-The checked-in template already calls `FlameWorkspaceCore.ensureInitialized` during startup, so generated/template games register the runtime extensions without requiring a second scene system. The current limitation is that generic component creation/removal still requires the generated scene hooks and generic property mutation still requires the project's generated property callback. A live process-level fixture launch and VM Service invocation remains an end-to-end validation item; the package tests cover real Flame objects, protocol round trips, malformed requests, client failures, and command dispatch.
+The checked-in template already calls `FlameWorkspaceCore.ensureInitialized` during startup, so generated/template games register the runtime extensions without requiring a second scene system. Generic component creation/removal still requires generated scene hooks, and generic property mutation still requires the project's generated property callback. The Developer Preview end-to-end test now validates fresh project creation, generated-project analysis/tests, web-server startup/cleanup, and a native VM Service runtime operation; the current Flutter web-server environment does not expose a VM Service URL without the Dart Debug Chrome extension.
 
 ## Legacy transport removal
 

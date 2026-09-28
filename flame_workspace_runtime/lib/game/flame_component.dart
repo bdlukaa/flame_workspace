@@ -110,20 +110,4 @@ class _FlameComponentWrapper extends PositionComponent
       nativeAngle = (component as PositionComponent).nativeAngle;
     }
   }
-
-  // TODO: implement this feature when proper embedding is available.
-  //       We currently embed the game using flutter_native_view. Whether it is
-  //       a great package, it doesn't support touch events.
-  //       We need to wait for official platform views or touch implementation
-  //       in flutter_native_view.
-  // @override
-  // void onTapUp(TapUpEvent event) {
-  //   super.onTapUp(event);
-  //   FlameWorkspaceCore.instance.currentSelectedComponent = component;
-  // }
-
-  // @override
-  // void onDragUpdate(DragUpdateEvent event) {
-  //   (component as PositionComponent).position = event.localEndPosition;
-  // }
 }
