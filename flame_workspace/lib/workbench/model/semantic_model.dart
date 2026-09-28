@@ -142,6 +142,9 @@ class ComponentInstance {
   final ComponentType type;
   final String? declarationName;
   final String? sourcePath;
+
+  /// A project-relative image asset used by sprite-like components.
+  String? assetPath;
   final List<ComponentInstance> children;
   final Map<String, Object?> properties;
   WorkspaceTransform transform;
@@ -152,6 +155,7 @@ class ComponentInstance {
     required this.type,
     this.declarationName,
     this.sourcePath,
+    this.assetPath,
     Iterable<ComponentInstance> children = const [],
     Map<String, Object?> properties = const {},
     WorkspaceTransform? transform,
@@ -166,6 +170,7 @@ class ComponentInstance {
       type: ComponentType.fromJson(_object(json['type'])),
       declarationName: json['declarationName'] as String?,
       sourcePath: json['sourcePath'] as String?,
+      assetPath: json['assetPath'] as String?,
       children: _list(json['children'])
           .map((child) => ComponentInstance.fromJson(_object(child))),
       properties: _object(json['properties'] ?? const {}),
@@ -176,6 +181,8 @@ class ComponentInstance {
 
   void setProperty(String name, Object? value) => properties[name] = value;
 
+  void setAssetPath(String? value) => assetPath = value;
+
   void setTransform(WorkspaceTransform value) => transform = value;
 
   Map<String, Object?> toJson() => {
@@ -183,6 +190,7 @@ class ComponentInstance {
     'type': type.toJson(),
     if (declarationName != null) 'declarationName': declarationName,
     if (sourcePath != null) 'sourcePath': sourcePath,
+    if (assetPath != null) 'assetPath': assetPath,
     'children': children.map((child) => child.toJson()).toList(),
     'properties': _sortedObject(properties),
     'transform': transform.toJson(),

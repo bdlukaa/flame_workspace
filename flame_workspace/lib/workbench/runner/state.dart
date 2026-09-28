@@ -8,6 +8,7 @@ import 'package:flame_workspace/workbench/generators/scene_persistence_generator
 import 'package:flame_workspace/workbench/model/scene_persistence.dart';
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
 import 'package:flame_workspace/workbench/model/workspace_editor_model.dart';
+import 'package:flame_workspace/workbench/assets/asset_discovery.dart';
 import 'package:flame_workspace/workbench/parser/workspace_model_mapper.dart';
 import 'package:flame_workspace/workbench/parser/type_resolver.dart';
 import 'package:flutter/foundation.dart';
@@ -47,7 +48,14 @@ class FlameProjectState with ChangeNotifier {
     _filesSubscription = project.location.watch(recursive: true).listen((
       FileSystemEvent event,
     ) {
-      // Only listen to dart files and ignore generated files.
+      if (event.path.endsWith('pubspec.yaml') ||
+          WorkspaceAssetDiscovery.imageExtensions.contains(
+            path.extension(event.path).toLowerCase(),
+          )) {
+        unawaited(refreshAssets());
+      }
+
+      // Only index dart files and ignore generated files.
       if (!event.path.endsWith('.dart') ||
           event.path.contains(path.join(project.name, 'lib', 'generated'))) {
         return;
@@ -76,13 +84,13 @@ class FlameProjectState with ChangeNotifier {
           break;
       }
     });
-    indexProject().then((value) {
-      initialized = true;
-      notifyListeners();
-    });
+    _initialize();
   }
 
   List<FileSystemEntity> files = [];
+  List<WorkspaceAsset> assets = const [];
+  List<String> assetDiagnostics = const [];
+  List<String> missingAssetPaths = const [];
   late final StreamSubscription<FileSystemEvent> _filesSubscription;
   void sortFiles(List<FileSystemEntity> files) {
     files.sort((a, b) {
@@ -100,6 +108,20 @@ class FlameProjectState with ChangeNotifier {
   final components = <IndexedComponent>[];
   final flameComponents = <FlameComponentObject>[];
   final flameMixins = <FlameMixin>[];
+
+  Future<void> _initialize() async {
+    await Future.wait([indexProject(), refreshAssets()]);
+    initialized = true;
+    notifyListeners();
+  }
+
+  Future<void> refreshAssets() async {
+    final result = await WorkspaceAssetDiscovery.discover(project.location);
+    assets = result.assets;
+    assetDiagnostics = result.diagnostics;
+    missingAssetPaths = result.missingPaths;
+    notifyListeners();
+  }
 
   WorkspaceProject get workspaceProject => workspaceModel.project;
   SceneDefinition get currentScene => workspaceModel.currentScene!;
@@ -127,6 +149,10 @@ class FlameProjectState with ChangeNotifier {
     WorkspaceTransform transform,
   ) {
     return workspaceModel.updateTransform(componentId, transform);
+  }
+
+  bool updateComponentAsset(String componentId, String? assetPath) {
+    return workspaceModel.updateAssetPath(componentId, assetPath);
   }
 
   bool setComponentPriority(String componentId, int priority) {

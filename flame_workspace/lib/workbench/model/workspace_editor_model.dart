@@ -90,6 +90,14 @@ class WorkspaceEditorModel extends ChangeNotifier {
     return true;
   }
 
+  bool updateAssetPath(String componentId, String? assetPath) {
+    final component = _componentInCurrentScene(componentId);
+    if (component == null) return false;
+    component.setAssetPath(assetPath);
+    _markDirty();
+    return true;
+  }
+
   bool setPriority(String componentId, int priority) {
     final component = _componentInCurrentScene(componentId);
     if (component == null) return false;

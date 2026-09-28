@@ -522,6 +522,10 @@ class _SceneCanvasState extends State<SceneCanvas> {
   }
 
   String? _assetPath(ComponentInstance component) {
+    final semanticAssetPath = component.assetPath;
+    if (semanticAssetPath != null && semanticAssetPath.trim().isNotEmpty) {
+      return semanticAssetPath.trim();
+    }
     const names = ['asset', 'assetPath', 'image', 'imagePath', 'spritePath'];
     for (final name in names) {
       final value = component.properties[name];
@@ -667,6 +671,10 @@ class _SceneCanvasPainter extends CustomPainter {
   }
 
   String? _assetValue(ComponentInstance component) {
+    final semanticAssetPath = component.assetPath;
+    if (semanticAssetPath != null && semanticAssetPath.trim().isNotEmpty) {
+      return semanticAssetPath.trim();
+    }
     const names = ['asset', 'assetPath', 'image', 'imagePath', 'spritePath'];
     for (final name in names) {
       final value = component.properties[name];
