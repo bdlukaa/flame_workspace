@@ -21,7 +21,7 @@ class RuntimeValuesParser {
     );
   }
 
-  static (double x, double y)? parseVector2(String? vector2) {
+  static ({double x, double y})? parseVector2(String? vector2) {
     if (vector2 == null || vector2 == 'null') return null;
 
     final values = vector2
@@ -32,7 +32,7 @@ class RuntimeValuesParser {
         .trim()
         .split(',');
 
-    return (double.parse(values[0]), double.parse(values[1]));
+    return (x: double.parse(values[0]), y: double.parse(values[1]));
   }
 
   static Anchor parseAnchor(String anchor) {
@@ -62,7 +62,10 @@ class RuntimeValuesParser {
       'double' => double.tryParse(value),
       'num' => num.tryParse(value),
       'String' => value.substring(1, value.length - 1),
-      'Vector2' => Vector2(parseVector2(value)!.$1, parseVector2(value)!.$2),
+      'Vector2' => (() {
+        final vector = parseVector2(value)!;
+        return Vector2(vector.x, vector.y);
+      })(),
       'Anchor' => parseAnchor(value),
       'Map' => json.decode(value) as Map,
       _ => value,

@@ -7,11 +7,8 @@ import 'scene/scene_view.dart';
 import 'script_editor.dart';
 import 'structure_view.dart';
 
-class DesignView extends StatelessWidget {
-  final bool isEditingScript;
-
-  const DesignView({super.key, required this.isEditingScript});
-
+class const DesignView({super.key, required final bool isEditingScript})
+    extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final workbench = Workbench.of(context);

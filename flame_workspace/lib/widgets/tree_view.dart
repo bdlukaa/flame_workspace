@@ -203,8 +203,8 @@ class TreeView extends StatelessWidget {
 TreeNode nodeForFile(File file) {
   final icon = iconForFile(file);
   return TreeNode(
-    icon: icon.$1,
-    iconColor: icon.$2,
+    icon: icon.icon,
+    iconColor: icon.color,
     text: path.basename(file.path),
   );
 }
@@ -225,10 +225,10 @@ TreeNode nodeForDirectory(Directory dir) {
   );
 }
 
-(IconData icon, Color? color) iconForFile(File file) {
+({IconData icon, Color? color}) iconForFile(File file) {
   if (path.extension(file.path) == '.dart') {
-    return (Icons.flutter_dash_outlined, Colors.blue.shade300);
+    return (icon: Icons.flutter_dash_outlined, color: Colors.blue.shade300);
   }
 
-  return (Icons.text_snippet_sharp, null);
+  return (icon: Icons.text_snippet_sharp, color: null);
 }

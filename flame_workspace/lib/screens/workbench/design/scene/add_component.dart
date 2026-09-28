@@ -165,7 +165,10 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
 
     projectComponents = componentsFor(
       types: widget.workbench.state.flameComponents.map((e) => e.type),
-      components: components.map((e) => e.$1),
+      components: components.map((e) {
+        final (component, _, _) = e;
+        return component;
+      }),
     ).toList()..sort(sorter);
   }
 
@@ -469,7 +472,7 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
             child: Builder(
               builder: (context) {
                 if (parameter.nonNullableType == 'Vector2') {
-                  (double x, double y)? vector2 = ValuesParser.parseVector2(
+                  final vector2 = ValuesParser.parseVector2(
                     parameters[parameter.name] ?? parameter.defaultValue,
                   );
                   return PropertyField.vector2(

@@ -2,18 +2,12 @@ import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
 /// A scene is a represents screen of your game. It can be a level, a world map,
 /// or anything the user can interact with and has components.
-class FlameScene extends World {
+class FlameScene({
   /// The name of the scene.
-  final String sceneName;
-
-  final Color backgroundColor;
-
-  FlameScene({
-    required this.sceneName,
-    required this.backgroundColor,
-    super.children,
-  });
-
+  required final String sceneName,
+  required final Color backgroundColor,
+  super.children,
+}) extends World {
   @override
   @mustCallSuper
   Future<void> onLoad() async {

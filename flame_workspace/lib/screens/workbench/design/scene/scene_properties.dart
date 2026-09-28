@@ -92,7 +92,8 @@ class ScenePropertiesView extends StatelessWidget {
                         workbench.state.flameMixins,
                       );
                       if (modifier != null) {
-                        final writer = Writer(unit: script.unit.$2);
+                        final (_, unit) = script.unit;
+                        final writer = Writer(unit: unit);
                         await writer.writeMixinToClass(
                           script.name,
                           modifier.name,

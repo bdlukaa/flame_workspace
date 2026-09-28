@@ -373,13 +373,10 @@ class _WorkbenchViewState extends State<WorkbenchView> {
                         (Icon(Icons.web_stories), 'ASSETS'),
                         (Icon(Icons.settings), 'CONFIG'),
                       ].indexed.map((e) {
+                        final (index, entry) = e;
+                        final (icon, text) = entry;
                         final isSelected =
-                            WorkbenchViewMode.values.indexed
-                                .firstWhere((mode) => mode.$1 == e.$1)
-                                .$2 ==
-                            mode;
-
-                        final (icon, text) = e.$2;
+                            WorkbenchViewMode.values[index] == mode;
 
                         return AnimatedSize(
                           duration: const Duration(milliseconds: 200),
@@ -400,7 +397,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
                                     ],
                                   ),
                                 )
-                              : e.$2.$1,
+                              : icon,
                         );
                       }).toList(),
                   onPressed: (index) => setState(() {

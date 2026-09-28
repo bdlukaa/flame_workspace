@@ -14,9 +14,7 @@ void main() async {
   runApp(const FlameWorkspaceApp());
 }
 
-class FlameWorkspaceApp extends StatelessWidget {
-  const FlameWorkspaceApp({super.key});
-
+class const FlameWorkspaceApp({super.key}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

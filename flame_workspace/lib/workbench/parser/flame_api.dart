@@ -12,80 +12,44 @@ import '../project/objects/mixin.dart';
 import 'type_resolver.dart';
 
 /// A constructor parameter discovered from the installed Flame package.
-class FlameApiParameter {
-  final String name;
-  final String type;
-  final String? defaultValue;
-  final bool isRequired;
-  final bool isNamed;
-  final bool isFinalField;
-  final bool isFieldFormal;
-  final List<String> namedValues;
-
-  const FlameApiParameter({
-    required this.name,
-    required this.type,
-    this.defaultValue,
-    required this.isRequired,
-    required this.isNamed,
-    required this.isFinalField,
-    required this.isFieldFormal,
-    this.namedValues = const [],
-  });
-}
+class const FlameApiParameter({
+  required final String name,
+  required final String type,
+  final String? defaultValue,
+  required final bool isRequired,
+  required final bool isNamed,
+  required final bool isFinalField,
+  required final bool isFieldFormal,
+  final List<String> namedValues = const [],
+}) {}
 
 /// A constructor discovered from the installed Flame package.
-class FlameApiConstructor {
-  final String name;
-  final bool isFactory;
-  final List<FlameApiParameter> parameters;
-
-  const FlameApiConstructor({
-    required this.name,
-    required this.isFactory,
-    required this.parameters,
-  });
-}
+class const FlameApiConstructor({
+  required final String name,
+  required final bool isFactory,
+  required final List<FlameApiParameter> parameters,
+}) {}
 
 /// A property discovered from a Flame class or one of its ancestors.
-class FlameApiProperty {
-  final String name;
-  final String type;
-  final bool hasSetter;
-  final String declaringType;
-  final List<String> namedValues;
-
-  const FlameApiProperty({
-    required this.name,
-    required this.type,
-    required this.hasSetter,
-    required this.declaringType,
-    this.namedValues = const [],
-  });
-}
+class const FlameApiProperty({
+  required final String name,
+  required final String type,
+  required final bool hasSetter,
+  required final String declaringType,
+  final List<String> namedValues = const [],
+}) {}
 
 /// Analyzer-independent metadata for one Flame class.
-class FlameApiClass {
-  final String name;
-  final String libraryUri;
-  final String? superType;
-  final List<String> mixins;
-  final List<String> allSupertypes;
-  final List<FlameApiConstructor> constructors;
-  final List<FlameApiProperty> properties;
-  final bool isComponent;
-
-  const FlameApiClass({
-    required this.name,
-    required this.libraryUri,
-    required this.superType,
-    required this.mixins,
-    required this.allSupertypes,
-    required this.constructors,
-    required this.properties,
-    required this.isComponent,
-  });
-
+class const FlameApiClass({
+  required final String name,
+  required final String libraryUri,
+  required final String? superType,
+  required final List<String> mixins,
+  required final List<String> allSupertypes,
+  required final List<FlameApiConstructor> constructors,
+  required final List<FlameApiProperty> properties,
+  required final bool isComponent,
+}) {
   bool get isPositionComponent =>
       name == 'PositionComponent' ||
       allSupertypes.contains('PositionComponent');
@@ -171,13 +135,13 @@ const _transformParameters = {
 };
 
 /// Analyzer-independent metadata for the installed Flame package.
-class FlameApiCatalog {
-  final List<FlameApiClass> classes;
-  final List<FlameMixin> mixins;
-  final Map<String, FlameApiClass> _classesByName;
-
-  FlameApiCatalog({required this.classes, required this.mixins})
-    : _classesByName = {for (final item in classes) item.name: item};
+class FlameApiCatalog({
+  required final List<FlameApiClass> classes,
+  required final List<FlameMixin> mixins,
+}) {
+  final Map<String, FlameApiClass> _classesByName = {
+    for (final item in classes) item.name: item,
+  };
 
   Iterable<FlameApiClass> get componentClasses =>
       classes.where((item) => item.isComponent);

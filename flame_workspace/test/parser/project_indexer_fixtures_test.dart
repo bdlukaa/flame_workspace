@@ -15,7 +15,10 @@ void main() {
     expect(indexed, hasLength(1));
     expect(
       indexed
-          .expand((entry) => entry.$1['declarations'] as List)
+          .expand((entry) {
+            final (indexedUnit, _) = entry;
+            return indexedUnit['declarations'] as List;
+          })
           .map((declaration) => (declaration as Map)['name']),
       contains('EmptyGame'),
     );
@@ -36,7 +39,10 @@ void main() {
         resolver: resolver,
       );
 
-      final names = components.map((component) => component.$1.name);
+      final names = components.map((component) {
+        final (componentObject, _, _) = component;
+        return componentObject.name;
+      });
       expect(names, containsAll(<String>['Player', 'PlayerSprite']));
       expect(names, isNot(contains('NotAComponent')));
 
@@ -69,13 +75,18 @@ void main() {
     );
 
     expect(
-      components.map((component) => component.$1.name),
+      components.map((component) {
+        final (componentObject, _, _) = component;
+        return componentObject.name;
+      }),
       containsAll(<String>['Enemy', 'Boss', 'FinalBoss']),
     );
 
-    final finalBoss = components
-        .firstWhere((component) => component.$1.name == 'FinalBoss')
-        .$1;
+    final finalBossResult = components.firstWhere((component) {
+      final (componentObject, _, _) = component;
+      return componentObject.name == 'FinalBoss';
+    });
+    final (finalBoss, _, _) = finalBossResult;
     final position = finalBoss.parameters.firstWhere(
       (parameter) => parameter.name == 'position',
     );
@@ -119,7 +130,10 @@ void main() {
     final scenes = ProjectIndexer.scenesFrom(indexed, resolver: resolver);
 
     expect(
-      scenes.map((scene) => scene.$1.name),
+      scenes.map((scene) {
+        final (sceneObject, _, _) = scene;
+        return sceneObject.name;
+      }),
       containsAll(<String>['LevelOne', 'LevelTwo']),
     );
   });
@@ -151,7 +165,10 @@ void main() {
 
     expect(indexed, hasLength(2));
     expect(
-      indexed.map((entry) => path.basename(entry.$1['source'] as String)),
+      indexed.map((entry) {
+        final (indexedUnit, _) = entry;
+        return path.basename(indexedUnit['source'] as String);
+      }),
       containsAll(<String>['broken.dart', 'valid.dart']),
     );
   });

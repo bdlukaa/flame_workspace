@@ -3,20 +3,18 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 
-class DartDependency {
+class const DartDependency({
   /// The name of the dependency.
-  final String name;
+  required final String name,
 
   /// The version of the dependency.
   ///
   /// If null, the latest version will be used.
-  final String? version;
+  final String? version,
 
   /// A comment to be added to the pubspec.yaml file next to the dependency.
-  final String? comment;
-
-  const DartDependency({required this.name, this.version, this.comment});
-
+  final String? comment,
+}) {
   static const flame = DartDependency(name: 'flame', version: '1.38.2');
 
   static const windowManager = DartDependency(
@@ -34,11 +32,11 @@ class DartDependency {
   }
 }
 
-class FlameProject {
+class const FlameProject({
   /// The name of the project.
   ///
   /// Used in the `flutter create [name]` command.
-  final String name;
+  required final String name,
 
   /// The organization name.
   ///
@@ -52,10 +50,10 @@ class FlameProject {
   /// See https://dart.dev/guides/language/language-tour#identifiers for more details.
   ///
   /// Used in the `flutter create --org [organization]` argument.
-  final String organization;
+  required final String organization,
 
   /// The location of the project folder folder.
-  final Directory location;
+  required final Directory location,
 
   /// The dependencies of the project.
   ///
@@ -63,19 +61,12 @@ class FlameProject {
   ///
   ///   * [DartDependency.defaultDependencies], which contains the default
   ///     dependencies.
-  final List<DartDependency> dependencies;
+  /// The initial scene name.
+  required final String initialScene,
 
-  final String initialScene;
-
-  /// Creates a new Flame project.
-  const FlameProject({
-    required this.name,
-    required this.organization,
-    required this.location,
-    required this.initialScene,
-    this.dependencies = const [],
-  });
-
+  /// The dependencies of the project.
+  final List<DartDependency> dependencies = const [],
+}) {
   /// The list of assets of the project.
   ///
   /// All the assets are declared inside the `assets` folder.

@@ -138,20 +138,15 @@ class TopLevel extends StatelessWidget {
     return ListView.builder(
       itemCount: topLevel.length,
       itemBuilder: (context, index) {
-        final variable = topLevel[index];
-        final name = variable.$1['name'];
-        // final unit = variable.$3;
-        // final helper = CompilationUnitHelper(
-        //   indexed: variable.$2,
-        //   unit: unit,
-        // );
+        final (variable, indexedUnit, _) = topLevel[index];
+        final name = variable['name'];
 
         return ListTile(
           dense: true,
           visualDensity: VisualDensity.compact,
           title: Text(name),
           subtitle: Text(
-            (variable.$2['source'] as String)
+            (indexedUnit['source'] as String)
                 .split(workbench.project.name)
                 .last,
           ),
@@ -170,24 +165,25 @@ class ComponentsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final workbench = Workbench.of(context);
-    final projectComponents = workbench.state.components.where(
-      (c) => !workbench.state.flameComponents.any(
-        (flameComponent) => flameComponent.name == c.$1.name,
-      ),
-    );
+    final projectComponents = workbench.state.components.where((c) {
+      final (component, _, _) = c;
+      return !workbench.state.flameComponents.any(
+        (flameComponent) => flameComponent.name == component.name,
+      );
+    });
 
     return ListView.builder(
       itemCount: projectComponents.length,
       itemBuilder: (context, index) {
         final componentResult = projectComponents.elementAt(index);
-        final component = componentResult.$1;
+        final (component, indexedUnit, _) = componentResult;
 
         return ListTile(
           dense: true,
           leading: Icon(iconForComponent(component.type)),
           title: Text(component.name),
           subtitle: Text(
-            (componentResult.$2['source'] as String)
+            (indexedUnit['source'] as String)
                 .split(workbench.project.name)
                 .last,
           ),

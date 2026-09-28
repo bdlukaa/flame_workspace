@@ -10,17 +10,11 @@ import 'package:path/path.dart' as path;
 import '../../../../workbench/model/semantic_model.dart';
 
 /// Converts between semantic scene coordinates and the visible canvas.
-class SceneViewport {
-  final Size size;
-  final double zoom;
-  final Offset pan;
-
-  const SceneViewport({
-    required this.size,
-    this.zoom = 1,
-    this.pan = Offset.zero,
-  });
-
+class const SceneViewport({
+  required final Size size,
+  final double zoom = 1,
+  final Offset pan = Offset.zero,
+}) {
   Offset worldToViewport(Offset point) {
     final center = Offset(size.width / 2, size.height / 2);
     return center + pan + point * zoom;
@@ -36,27 +30,16 @@ class SceneViewport {
 enum SceneEditHandle { move, resize, rotate }
 
 /// A component's world-space frame, including its parent-relative transform.
-class SceneComponentFrame {
-  final ComponentInstance component;
-  final WorkspaceTransform transform;
-  final Offset position;
-  final double angle;
-  final Size size;
-  final Offset anchor;
-  final SceneComponentFrame? parent;
-  final int renderOrder;
-
-  const SceneComponentFrame({
-    required this.component,
-    required this.transform,
-    required this.position,
-    required this.angle,
-    required this.size,
-    required this.anchor,
-    required this.parent,
-    required this.renderOrder,
-  });
-
+class const SceneComponentFrame({
+  required final ComponentInstance component,
+  required final WorkspaceTransform transform,
+  required final Offset position,
+  required final double angle,
+  required final Size size,
+  required final Offset anchor,
+  required final SceneComponentFrame? parent,
+  required final int renderOrder,
+}) {
   Offset get topLeft => position - _rotate(anchor, angle);
 
   Offset localToWorld(Offset localPoint) {
@@ -547,25 +530,15 @@ class _SceneCanvasState extends State<SceneCanvas> {
   }
 }
 
-class _SceneCanvasPainter extends CustomPainter {
-  final SceneDefinition scene;
-  final SceneViewport viewport;
-  final String? selectedComponentId;
-  final Map<String, ui.Image> images;
-  final Color placeholderColor;
-  final Color outlineColor;
-  final Color gridColor;
-
-  const _SceneCanvasPainter({
-    required this.scene,
-    required this.viewport,
-    required this.selectedComponentId,
-    required this.images,
-    required this.placeholderColor,
-    required this.outlineColor,
-    required this.gridColor,
-  });
-
+class _SceneCanvasPainter({
+  required final SceneDefinition scene,
+  required final SceneViewport viewport,
+  required final String? selectedComponentId,
+  required final Map<String, ui.Image> images,
+  required final Color placeholderColor,
+  required final Color outlineColor,
+  required final Color gridColor,
+}) extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     _paintGrid(canvas, size);

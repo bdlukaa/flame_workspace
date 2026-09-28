@@ -1,30 +1,22 @@
 typedef MixinType = (String name, String? extend);
 
-class FlameMixin {
+class const FlameMixin({
   /// The name of the mixin.
   ///
   /// `mixin IsParent`
-  final String name;
+  required final String name,
 
   /// The types assigned to the mixin.
   ///
   /// `IsParent<LevelOne>`
-  final List<MixinType> types;
+  required final List<MixinType> types,
 
   /// Whether the mixin is restricted to components.
-  final bool isComponentRestricted;
+  required final bool isComponentRestricted,
 
   /// Whether the mixin is restricted to scenes.
-  final bool isSceneRestricted;
+  required final bool isSceneRestricted,
 
   /// Describe the classes that the mixin can be applied to.
-  final List<String> on;
-
-  const FlameMixin({
-    required this.name,
-    required this.types,
-    required this.isComponentRestricted,
-    required this.isSceneRestricted,
-    required this.on,
-  });
-}
+  required final List<String> on,
+});

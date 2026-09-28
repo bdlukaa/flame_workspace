@@ -1,6 +1,7 @@
 name: flame_workspace_core
 description: Necessary code to make a Flame app work with the IDE
 version: 0.0.1
+resolution: workspace
 homepage:
 
 publish_to: "none"

@@ -7,8 +7,11 @@ import 'package:flame_workspace/compilation_unit_helper.dart';
 
 void main() async {
   final indexed = await ProjectIndexer.indexProject(Directory('template'));
-  for (final unit in indexed) {
-    final helper = CompilationUnitHelper(indexed: unit.$1, unit: unit.$2);
+  for (final (indexedUnit, compilationUnit) in indexed) {
+    final helper = CompilationUnitHelper(
+      indexed: indexedUnit,
+      unit: compilationUnit,
+    );
 
     final cls = helper.findClass('Scene1');
     if (cls == null) continue;

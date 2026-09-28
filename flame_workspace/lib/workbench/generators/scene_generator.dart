@@ -155,9 +155,10 @@ class SceneGenerator {
       );
     }
 
+    final (indexedUnit, compilationUnit) = scene.unit;
     final unitHelper = CompilationUnitHelper(
-      indexed: scene.unit.$1,
-      unit: scene.unit.$2,
+      indexed: indexedUnit,
+      unit: compilationUnit,
     );
     final classDeclaration = unitHelper.findClass(scene.name)!;
     final scriptDeclaration = unitHelper.findClass(scene.script?.name);
@@ -171,7 +172,7 @@ class SceneGenerator {
     await Writer.writeFormatted(file, buffer.toString().trim());
     debugPrint('  Written file ${file.path}');
 
-    final writer = Writer(unit: scene.unit.$2);
+    final writer = Writer(unit: compilationUnit);
     await writer.writeMixinToClass(
       scene.name,
       '${scene.name}Mixin',

@@ -1,0 +1,13 @@
+name: _
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+workspace:
+  - flame_workspace
+  - flame_workspace_protocol
+  - flame_workspace_runtime
+  - flame_workspace_communication_bridge
+  - flame_workspace_core
+  - template

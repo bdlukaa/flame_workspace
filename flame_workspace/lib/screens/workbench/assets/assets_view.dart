@@ -112,17 +112,11 @@ class _AssetsViewState extends State<AssetsView> {
   }
 }
 
-class _AssetTile extends StatelessWidget {
-  final WorkspaceAsset asset;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _AssetTile({
-    required this.asset,
-    required this.selected,
-    required this.onTap,
-  });
-
+class const _AssetTile({
+  required final WorkspaceAsset asset,
+  required final bool selected,
+  required final VoidCallback onTap,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;

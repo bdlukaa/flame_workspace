@@ -159,10 +159,7 @@ class ProjectIndexer {
     components ??= ProjectIndexer.componentsFrom(indexed, resolver: resolver);
 
     final scenes = <IndexedScene>[];
-    for (final index in indexed) {
-      final file = index.$1;
-      final unit = index.$2;
-
+    for (final (file, unit) in indexed) {
       // If the file has no declarations, we skip it.
       if (file['declarations'] == null) continue;
 
@@ -186,12 +183,15 @@ class ProjectIndexer {
                 FlameSceneObject(
                   name: className,
                   components: _componentsFromClassFields(
-                    components!.map((e) => e.$1),
+                    components!.map((e) {
+                      final (component, _, _) = e;
+                      return component;
+                    }),
                     fields,
                     resolver.flameComponents,
                   ),
                   filePath: file['source'],
-                  indexedUnit: index,
+                  indexedUnit: (file, unit),
                   modifiers: (d['with'] as List<String>? ?? []).map<FlameMixin>(
                     (mixin) {
                       return FlameMixin(
@@ -219,17 +219,24 @@ class ProjectIndexer {
       );
     }
 
-    for (final scene in scenes) {
-      scene.$1.script = scenes.firstWhereOrNull((s) {
-        return '\$${s.$1.name}' == scene.$1.name;
-      })?.$1;
+    for (final (sceneObject, _, _) in scenes) {
+      final script = scenes.firstWhereOrNull((candidate) {
+        final (candidateObject, _, _) = candidate;
+        return '\$${candidateObject.name}' == sceneObject.name;
+      });
+      if (script != null) {
+        final (scriptObject, _, _) = script;
+        sceneObject.script = scriptObject;
+      }
     }
 
     scenes.removeWhere((scene) {
-      final declaration = (scene.$2['declarations'] as List).firstWhere(
-        (candidate) => candidate['name'] == scene.$1.name,
+      final (sceneObject, indexedUnit, _) = scene;
+      final declaration = (indexedUnit['declarations'] as List).firstWhere(
+        (candidate) => candidate['name'] == sceneObject.name,
       );
-      return scene.$1.script == null && declaration['extends'] != 'FlameScene';
+      return sceneObject.script == null &&
+          declaration['extends'] != 'FlameScene';
     });
 
     return scenes;
@@ -280,9 +287,7 @@ class ProjectIndexer {
     final flameComponents =
         resolver?.flameComponents ?? const <FlameComponentObject>[];
 
-    for (final index in indexed) {
-      final indexedUnit = index.$1;
-      final unit = index.$2;
+    for (final (indexedUnit, unit) in indexed) {
       if (indexedUnit['declarations'] == null) continue;
       final declarations = (indexedUnit['declarations'] as List)
           .cast<Map>()
@@ -334,7 +339,10 @@ class ProjectIndexer {
                             'Cannot use super. without a superclass',
                           );
                           superComponent = [
-                            ...components.map((e) => e.$1),
+                            ...components.map((e) {
+                              final (component, _, _) = e;
+                              return component;
+                            }),
                             ...flameComponents,
                           ].firstWhereOrNull((c) => c.name == superclass);
 
@@ -457,7 +465,12 @@ class ProjectIndexer {
       }
     }
 
-    populateComponents(components.map((e) => e.$1));
+    populateComponents(
+      components.map((e) {
+        final (component, _, _) = e;
+        return component;
+      }),
+    );
 
     return components;
   }
@@ -468,9 +481,7 @@ class ProjectIndexer {
   ) {
     final result = <(Map<String, dynamic>, IndexedUnit, CompilationUnit)>[];
 
-    for (final index in indexed) {
-      final indexedUnit = index.$1;
-      final unit = index.$2;
+    for (final (indexedUnit, unit) in indexed) {
       if (indexedUnit['declarations'] == null) continue;
 
       final declarations = (indexedUnit['declarations'] as List)
@@ -490,9 +501,7 @@ class ProjectIndexer {
   static Iterable<IndexedMixin> mixinsFrom(IndexedProject indexed) {
     final mixins = <IndexedMixin>[];
 
-    for (final index in indexed) {
-      final indexedUnit = index.$1;
-      final unit = index.$2;
+    for (final (indexedUnit, unit) in indexed) {
       if (indexedUnit['declarations'] == null) continue;
       final declarations = (indexedUnit['declarations'] as List)
           .cast<Map>()

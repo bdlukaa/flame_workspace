@@ -78,14 +78,17 @@ void main() {
         resolver: resolver,
       );
       expect(
-        components.map((component) => component.$1.name),
+        components.map((component) {
+          final (componentObject, _, _) = component;
+          return componentObject.name;
+        }),
         contains('MyComponent'),
       );
       expect(
-        ProjectIndexer.scenesFrom(
-          indexed,
-          resolver: resolver,
-        ).map((scene) => scene.$1.name),
+        ProjectIndexer.scenesFrom(indexed, resolver: resolver).map((scene) {
+          final (sceneObject, _, _) = scene;
+          return sceneObject.name;
+        }),
         contains(r'$SceneLevelOne'),
       );
     },

@@ -26,9 +26,9 @@ abstract final class WorkspaceExtensionNames {
 }
 
 /// Arguments sent to a Workspace VM Service extension.
-class WorkspaceRuntimeRequest {
-  const WorkspaceRuntimeRequest({this.arguments = const {}});
-
+class const WorkspaceRuntimeRequest({
+  final Map<String, dynamic> arguments = const {},
+}) {
   factory WorkspaceRuntimeRequest.fromJsonString(String value) {
     final decoded = jsonDecode(value);
     if (decoded is! Map) {
@@ -54,20 +54,17 @@ class WorkspaceRuntimeRequest {
 
   /// The request payload is deliberately nested so future protocol metadata can
   /// be added without changing every extension's argument contract.
-  final Map<String, dynamic> arguments;
 
   Map<String, dynamic> toMap() => {'arguments': arguments};
 
   String toJsonString() => jsonEncode(toMap());
 }
 
-class WorkspaceRuntimeError {
-  const WorkspaceRuntimeError({
-    required this.code,
-    required this.message,
-    this.details,
-  });
-
+class const WorkspaceRuntimeError({
+  required final String code,
+  required final String message,
+  final dynamic details,
+}) {
   factory WorkspaceRuntimeError.fromMap(Map<String, dynamic> map) {
     final code = map['code'];
     final message = map['message'];
@@ -80,10 +77,6 @@ class WorkspaceRuntimeError {
       details: map['details'],
     );
   }
-
-  final String code;
-  final String message;
-  final dynamic details;
 
   Map<String, dynamic> toMap() => {
     'code': code,
@@ -134,15 +127,13 @@ class WorkspaceRuntimeResponse {
   String toJsonString() => jsonEncode(toMap());
 }
 
-class WorkspaceTransformData {
-  const WorkspaceTransformData({
-    this.position,
-    this.size,
-    this.angle,
-    this.anchor,
-    this.priority,
-  });
-
+class const WorkspaceTransformData({
+  final Map<String, double>? position,
+  final Map<String, double>? size,
+  final double? angle,
+  final Map<String, dynamic>? anchor,
+  final int? priority,
+}) {
   factory WorkspaceTransformData.fromMap(Map<String, dynamic> map) {
     return WorkspaceTransformData(
       position: _readVector(map['position']),
@@ -155,12 +146,6 @@ class WorkspaceTransformData {
     );
   }
 
-  final Map<String, double>? position;
-  final Map<String, double>? size;
-  final double? angle;
-  final Map<String, dynamic>? anchor;
-  final int? priority;
-
   Map<String, dynamic> toMap() => {
     if (position != null) 'position': position,
     if (size != null) 'size': size,
@@ -170,19 +155,12 @@ class WorkspaceTransformData {
   };
 }
 
-class WorkspaceComponentNode {
-  const WorkspaceComponentNode({
-    required this.id,
-    required this.type,
-    this.transform,
-    this.children = const [],
-  });
-
-  final String id;
-  final String type;
-  final WorkspaceTransformData? transform;
-  final List<WorkspaceComponentNode> children;
-
+class const WorkspaceComponentNode({
+  required final String id,
+  required final String type,
+  final WorkspaceTransformData? transform,
+  final List<WorkspaceComponentNode> children = const [],
+}) {
   Map<String, dynamic> toMap() => {
     'id': id,
     'type': type,
@@ -191,12 +169,10 @@ class WorkspaceComponentNode {
   };
 }
 
-class WorkspaceGameState {
-  const WorkspaceGameState({required this.paused, this.scene});
-
-  final bool paused;
-  final String? scene;
-
+class const WorkspaceGameState({
+  required final bool paused,
+  final String? scene,
+}) {
   Map<String, dynamic> toMap() => {
     'paused': paused,
     if (scene != null) 'scene': scene,

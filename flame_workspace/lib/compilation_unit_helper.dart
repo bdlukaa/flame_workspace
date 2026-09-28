@@ -3,12 +3,10 @@ import 'package:flame_workspace_runtime/utils.dart';
 
 typedef IndexedUnit = Map<String, dynamic>;
 
-class CompilationUnitHelper {
-  final CompilationUnit unit;
-  final IndexedUnit indexed;
-
-  const CompilationUnitHelper({required this.unit, required this.indexed});
-
+class CompilationUnitHelper({
+  required final CompilationUnit unit,
+  required final IndexedUnit indexed,
+}) {
   ClassDeclaration? findClass(String? className) {
     return unit.declarations.whereType<ClassDeclaration>().firstWhereOrNull(
       (c) => c.name.lexeme == className,
@@ -64,10 +62,11 @@ class CompilationUnitHelper {
   /// Returns null if the expression is not a valid constructor call.
   ///
   /// Returns the name of the constructor and a map of the named arguments.
-  (
+  ({
     String constructorName,
-    Iterable<(String name, String expression, NamedExpression argument)> named,
-  )?
+    Iterable<({String name, String expression, NamedExpression argument})>
+    named,
+  })?
   parseExpression(Expression expression) {
     expression = expression.unParenthesized;
 
@@ -87,12 +86,12 @@ class CompilationUnitHelper {
       final arguments = args.arguments.cast<NamedExpression>();
 
       return (
-        name.name,
-        arguments.map((argument) {
+        constructorName: name.name,
+        named: arguments.map((argument) {
           return (
-            argument.name.label.name,
-            argument.expression.toSource(),
-            argument,
+            name: argument.name.label.name,
+            expression: argument.expression.toSource(),
+            argument: argument,
           );
         }),
       );

@@ -1,19 +1,12 @@
 typedef EditorCommandCallback = void Function();
 
 /// A reversible semantic editor operation.
-class EditorCommand {
-  final String description;
-  final EditorCommandCallback redoAction;
-  final EditorCommandCallback undoAction;
-  final String? coalesceKey;
-
-  const EditorCommand({
-    required this.description,
-    required this.redoAction,
-    required this.undoAction,
-    this.coalesceKey,
-  });
-
+class const EditorCommand({
+  required final String description,
+  required final EditorCommandCallback redoAction,
+  required final EditorCommandCallback undoAction,
+  final String? coalesceKey,
+}) {
   void redo() => redoAction();
 
   void undo() => undoAction();

@@ -39,19 +39,38 @@ class SceneHelper {
     );
   }
 
-  IndexedScene get sceneResult =>
-      scenes.firstWhere((e) => e.$1.name == scene.name);
+  IndexedScene get sceneResult {
+    return scenes.firstWhere((result) {
+      final (sceneObject, _, _) = result;
+      return sceneObject.name == scene.name;
+    });
+  }
+
+  FlameSceneObject get sceneObject {
+    final (result, _, _) = sceneResult;
+    return result;
+  }
+
+  IndexedUnit get sceneIndexedUnit {
+    final (_, result, _) = sceneResult;
+    return result;
+  }
+
+  CompilationUnit get sceneCompilationUnit {
+    final (_, _, result) = sceneResult;
+    return result;
+  }
 
   Future<void> renameDeclaration(String newName) async {
     final helper = CompilationUnitHelper(
-      indexed: sceneResult.$2,
-      unit: sceneResult.$3,
+      indexed: sceneIndexedUnit,
+      unit: sceneCompilationUnit,
     );
     final declaration = helper.findClass(scene.name);
 
     if (declaration == null) return;
 
-    final source = sceneResult.$2['source'];
+    final source = sceneIndexedUnit['source'];
     final file = File(source);
     final content = await file.readAsString();
 
@@ -68,8 +87,8 @@ class SceneHelper {
 
   bool hasComponent(String declarationName) {
     final helper = CompilationUnitHelper(
-      indexed: sceneResult.$2,
-      unit: sceneResult.$3,
+      indexed: sceneIndexedUnit,
+      unit: sceneCompilationUnit,
     );
     return helper.findProperty(helper.findClass(scene.name), declarationName) !=
         null;
@@ -83,14 +102,15 @@ class SceneHelper {
     AddIndexedComponent result,
     FlameProjectState projectState,
   ) async {
+    final (component, declarationName, parameters) = result;
     final helper = CompilationUnitHelper(
-      indexed: sceneResult.$2,
-      unit: sceneResult.$3,
+      indexed: sceneIndexedUnit,
+      unit: sceneCompilationUnit,
     );
     final declaration = helper.findClass(scene.name);
     if (declaration == null) return;
 
-    final source = sceneResult.$2['source'];
+    final source = sceneIndexedUnit['source'];
     final file = File(source);
     var content = await file.readAsString();
 
@@ -110,7 +130,7 @@ class SceneHelper {
       final before = content.substring(0, loadMethodEnd);
       final after = content.substring(loadMethodEnd);
 
-      final addClause = 'add(${result.$2});';
+      final addClause = 'add($declarationName);';
       content = '$before\n$addClause\n\n$after';
     } else {
       final lastFieldDeclaration = declaration.members.lastWhereOrNull((
@@ -137,15 +157,17 @@ class SceneHelper {
     final before = content.substring(0, componentEndOffset);
     final after = content.substring(componentEndOffset);
 
-    final code = result.$1.toCode(result.$2, result.$3);
+    final code = component.toCode(declarationName, parameters);
     var finalContent = '$before\n$code\n\n$after';
 
     try {
+      final componentResult = projectState.components.firstWhere((entry) {
+        final (projectComponent, _, _) = entry;
+        return projectComponent.name == component.name;
+      });
+      final (_, indexedUnit, _) = componentResult;
       final componentFilePath = Uri.file(
-        projectState.components
-                .firstWhere((component) => component.$1.name == result.$1.name)
-                .$2['source']
-            as String,
+        indexedUnit['source'] as String,
         windows: Platform.isWindows,
       );
       final componentPath = componentFilePath
@@ -185,13 +207,13 @@ class SceneHelper {
   /// it from the `onLoad` method, if any.
   Future<void> removeDeclaration(String declarationName) async {
     final helper = CompilationUnitHelper(
-      indexed: sceneResult.$2,
-      unit: sceneResult.$3,
+      indexed: sceneIndexedUnit,
+      unit: sceneCompilationUnit,
     );
     final classDeclaration = helper.findClass(scene.name);
     if (classDeclaration == null) return Future.value();
 
-    final source = sceneResult.$2['source'];
+    final source = sceneIndexedUnit['source'];
     final file = File(source);
     final content = await file.readAsString();
 

@@ -1,15 +1,13 @@
 // ignore_for_file: unused_import
 import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
-class ColoredCircle extends PositionComponent with FlameComponent {
-  ColoredCircle({
-    required FlameKey super.key,
-    super.position,
-    super.scale,
-    super.size,
-    super.angle,
-  });
-
+class ColoredCircle({
+  required super.key,
+  super.position,
+  super.scale,
+  super.size,
+  super.angle,
+}) extends PositionComponent with FlameComponent {
   @override
   Future<void> onLoad() async {
     await super.onLoad();

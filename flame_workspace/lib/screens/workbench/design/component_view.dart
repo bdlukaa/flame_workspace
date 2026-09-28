@@ -13,9 +13,7 @@ import '../workbench_view.dart';
 
 const kFieldHeight = 28.0;
 
-class ComponentView extends StatelessWidget {
-  const ComponentView({super.key});
-
+class const ComponentView({super.key}) extends StatelessWidget {
   static const _transformNames = {
     'position',
     'size',
@@ -117,8 +115,8 @@ class ComponentView extends StatelessWidget {
               children: [
                 PropertyField.vector2(
                   (
-                    component.transform.position.x,
-                    component.transform.position.y,
+                    x: component.transform.position.x,
+                    y: component.transform.position.y,
                   ),
                   first: 'pos | x',
                   second: 'pos | y',
@@ -131,7 +129,10 @@ class ComponentView extends StatelessWidget {
                   ),
                 ),
                 PropertyField.vector2(
-                  (component.transform.size.x, component.transform.size.y),
+                  (
+                    x: component.transform.size.x,
+                    y: component.transform.size.y,
+                  ),
                   first: 's | width',
                   second: 's | height',
                   onChanged: (value) => _updateVectorTransform(
@@ -244,7 +245,7 @@ class ComponentView extends StatelessWidget {
           SemanticPropertyEditor.vectorFromValue(rawValue) ??
           const WorkspaceVector2.zero();
       return PropertyField.vector2(
-        (vector.x, vector.y),
+        (x: vector.x, y: vector.y),
         first: '${definition.name} | x',
         second: '${definition.name} | y',
         onChanged: (value) => onChanged(definition, value),
@@ -299,24 +300,15 @@ class ComponentView extends StatelessWidget {
   }
 }
 
-class EnumPropertyField extends StatelessWidget {
-  final String name;
-  final String type;
-  final String? value;
-  final List<String> options;
-  final bool editable;
-  final ValueChanged<String>? onChanged;
-
-  const EnumPropertyField({
-    super.key,
-    required this.name,
-    required this.type,
-    required this.value,
-    required this.options,
-    this.editable = true,
-    this.onChanged,
-  });
-
+class const EnumPropertyField({
+  super.key,
+  required final String name,
+  required final String type,
+  required final String? value,
+  required final List<String> options,
+  final bool editable = true,
+  final ValueChanged<String>? onChanged,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -356,20 +348,13 @@ class EnumPropertyField extends StatelessWidget {
   }
 }
 
-class ComponentSectionCard extends StatelessWidget {
-  final String title;
-  final String? trailing;
-  final Widget? trailingWidget;
-  final List<Widget> children;
-
-  const ComponentSectionCard({
-    super.key,
-    required this.title,
-    this.trailing,
-    this.trailingWidget,
-    this.children = const [],
-  });
-
+class const ComponentSectionCard({
+  super.key,
+  required final String title,
+  final String? trailing,
+  final Widget? trailingWidget,
+  required final List<Widget> children,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -447,7 +432,7 @@ class PropertyField extends StatefulWidget {
   });
 
   static Widget vector2(
-    (double x, double y)? vector2, {
+    ({double x, double y})? vector2, {
     String first = 'a',
     String second = 'b',
     bool nullable = false,
@@ -460,18 +445,18 @@ class PropertyField extends StatefulWidget {
       children: [
         PropertyField(
           name: first,
-          value: '${vector2?.$1}',
+          value: '${vector2?.x}',
           type: nullable ? '$double?' : '$double',
           onChanged: (value) => onChanged?.call(
-            'Vector2($value, ${vector2?.$2 ?? defaultSecondaryValue})',
+            'Vector2($value, ${vector2?.y ?? defaultSecondaryValue})',
           ),
         ),
         PropertyField(
           name: second,
-          value: '${vector2?.$2}',
+          value: '${vector2?.y}',
           type: '$double',
           onChanged: (value) => onChanged?.call(
-            'Vector2(${vector2?.$1 ?? defaultSecondaryValue}, $value)',
+            'Vector2(${vector2?.x ?? defaultSecondaryValue}, $value)',
           ),
         ),
       ],
@@ -541,12 +526,14 @@ class PropertyFieldState extends State<PropertyField> {
   /// Whether the value of this field is null.
   bool get isNull => controller.text == 'null';
 
-  (IconData icon, double size)? get icon {
+  ({IconData icon, double size})? get icon {
     return switch (widget.nonNullableType) {
-      'String' => (Icons.abc, 24.0),
-      'int' || 'double' || 'num' => (Icons.onetwothree_rounded, 24.0),
-      'bool' => (Icons.indeterminate_check_box_outlined, 18.0),
-      'Color' => (Icons.format_paint, 18.0),
+      'String' => (icon: Icons.abc, size: 24.0),
+      'int' ||
+      'double' ||
+      'num' => (icon: Icons.onetwothree_rounded, size: 24.0),
+      'bool' => (icon: Icons.indeterminate_check_box_outlined, size: 18.0),
+      'Color' => (icon: Icons.format_paint, size: 18.0),
       _ => null,
     };
   }
@@ -577,7 +564,7 @@ class PropertyFieldState extends State<PropertyField> {
                     children: [
                       SizedBox(
                         width: 24.0,
-                        child: Icon(icon?.$1, size: icon?.$2),
+                        child: Icon(icon?.icon, size: icon?.size),
                       ),
                       const SizedBox(width: 6.0),
                       if (widget.description != null)

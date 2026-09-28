@@ -9,23 +9,14 @@ import 'package:recase/recase.dart';
 
 import 'component.dart';
 
-class FlameSceneObject {
-  final String name;
-  final Iterable<FlameComponentObject> components;
-  final List<FlameMixin> modifiers;
-
-  final String filePath;
-  final (IndexedUnit indexed, CompilationUnit unit)? indexedUnit;
-
+class FlameSceneObject({
+  required final String name,
+  required final Iterable<FlameComponentObject> components,
+  required final String filePath,
+  final (IndexedUnit indexed, CompilationUnit unit)? indexedUnit,
+  final List<FlameMixin> modifiers = const [],
+}) {
   FlameSceneObject? script;
-
-  FlameSceneObject({
-    required this.name,
-    required this.components,
-    required this.filePath,
-    this.indexedUnit,
-    this.modifiers = const [],
-  });
 
   (IndexedUnit indexed, CompilationUnit unit) get unit {
     assert(indexedUnit != null, 'This scene was not indexed properly.');

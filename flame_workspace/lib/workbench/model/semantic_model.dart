@@ -57,23 +57,14 @@ class SceneDefinition {
   };
 }
 
-class WorkspacePropertyDefinition {
-  final String name;
-  final String type;
-  final Object? defaultValue;
-  final bool inherited;
-  final bool editable;
-  final List<String> enumValues;
-
-  const WorkspacePropertyDefinition({
-    required this.name,
-    required this.type,
-    this.defaultValue,
-    this.inherited = false,
-    this.editable = true,
-    this.enumValues = const [],
-  });
-
+class const WorkspacePropertyDefinition({
+  required final String name,
+  required final String type,
+  final Object? defaultValue,
+  final bool inherited = false,
+  final bool editable = true,
+  final List<String> enumValues = const [],
+}) {
   factory WorkspacePropertyDefinition.fromJson(Map<String, Object?> json) {
     return WorkspacePropertyDefinition(
       name: _requiredString(json, 'name'),
@@ -97,21 +88,13 @@ class WorkspacePropertyDefinition {
   };
 }
 
-class ComponentType {
-  final String id;
-  final String name;
-  final String? baseType;
-  final bool isPositionComponent;
-  final List<WorkspacePropertyDefinition> properties;
-
-  const ComponentType({
-    required this.id,
-    required this.name,
-    this.baseType,
-    this.isPositionComponent = false,
-    this.properties = const [],
-  });
-
+class const ComponentType({
+  required final String id,
+  required final String name,
+  final String? baseType,
+  final bool isPositionComponent = false,
+  final List<WorkspacePropertyDefinition> properties = const [],
+}) {
   factory ComponentType.fromJson(Map<String, Object?> json) {
     return ComponentType(
       id: _requiredString(json, 'id'),
@@ -198,19 +181,12 @@ class ComponentInstance {
   };
 }
 
-class WorkspaceTransform {
-  final WorkspaceVector2 position;
-  final WorkspaceVector2 size;
-  final double angle;
-  final WorkspaceVector2 anchor;
-
-  const WorkspaceTransform({
-    this.position = const WorkspaceVector2.zero(),
-    this.size = const WorkspaceVector2.zero(),
-    this.angle = 0,
-    this.anchor = const WorkspaceVector2.zero(),
-  });
-
+class const WorkspaceTransform({
+  final WorkspaceVector2 position = const WorkspaceVector2.zero(),
+  final WorkspaceVector2 size = const WorkspaceVector2.zero(),
+  final double angle = 0,
+  final WorkspaceVector2 anchor = const WorkspaceVector2.zero(),
+}) {
   factory WorkspaceTransform.fromJson(Map<String, Object?> json) {
     return WorkspaceTransform(
       position: WorkspaceVector2.fromJson(
@@ -256,11 +232,7 @@ class WorkspaceTransform {
   int get hashCode => Object.hash(position, size, angle, anchor);
 }
 
-class WorkspaceVector2 {
-  final double x;
-  final double y;
-
-  const WorkspaceVector2(this.x, this.y);
+class const WorkspaceVector2(final double x, final double y) {
   const WorkspaceVector2.zero() : this(0, 0);
 
   factory WorkspaceVector2.fromJson(Map<String, Object?> json) {

@@ -194,8 +194,9 @@ class FlameProjectState with ChangeNotifier {
   SceneDefinition get currentScene => workspaceModel.currentScene!;
   FlameSceneObject? get currentSceneSource {
     final sceneName = currentScene.name;
-    for (final scene in scenes) {
-      if (scene.$1.name == sceneName) return scene.$1;
+    for (final sceneResult in scenes) {
+      final (scene, _, _) = sceneResult;
+      if (scene.name == sceneName) return scene;
     }
     return null;
   }
@@ -377,7 +378,10 @@ class FlameProjectState with ChangeNotifier {
       indexed ??= [];
       if (includeOnly != null && includeOnly.isNotEmpty) {
         indexed
-          ..removeWhere((e) => includeOnly.contains(e.$1['source']))
+          ..removeWhere((e) {
+            final (indexedUnit, _) = e;
+            return includeOnly.contains(indexedUnit['source']);
+          })
           ..addAll(result);
       } else {
         indexed.clear();
@@ -431,7 +435,10 @@ class FlameProjectState with ChangeNotifier {
 
     if ((includeOnly == null || includeOnly.isEmpty) && !onlyParse) {
       await PropertiesGenerator.writeForComponents([
-        ...components.map((e) => e.$1),
+        ...components.map((e) {
+          final (component, _, _) = e;
+          return component;
+        }),
         ...flameComponents,
       ], project);
     }

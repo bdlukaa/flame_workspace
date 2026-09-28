@@ -345,13 +345,11 @@ class WorkspaceEditorModel extends ChangeNotifier {
   }
 }
 
-class _ComponentLocation {
-  final List<ComponentInstance> components;
-  final int index;
-  final ComponentInstance component;
-
-  const _ComponentLocation(this.components, this.index, this.component);
-}
+class const _ComponentLocation(
+  final List<ComponentInstance> components,
+  final int index,
+  final ComponentInstance component,
+) {}
 
 extension on Iterable<SceneDefinition> {
   SceneDefinition? firstWhereOrNull(bool Function(SceneDefinition scene) test) {

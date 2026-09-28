@@ -1,6 +1,7 @@
 name: flame_workspace_communication_bridge
 description: "Flame Workspace Communication Bridge"
 version: 0.0.1
+resolution: workspace
 homepage:
 
 publish_to: none

@@ -6,6 +6,7 @@ publish_to: 'none'
 # A version number is three numbers separated by dots, like 1.2.43
 # followed by an optional build number separated by a +.
 version: 0.0.1+1
+resolution: workspace
 
 environment:
   sdk: '>=3.13.0 <4.0.0'

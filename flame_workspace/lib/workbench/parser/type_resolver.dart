@@ -11,12 +11,10 @@ import '../project/objects/mixin.dart';
 import 'flame_api.dart';
 
 /// A diagnostic produced while resolving a project's Dart types.
-class TypeResolutionDiagnostic {
-  final String path;
-  final String message;
-
-  const TypeResolutionDiagnostic({required this.path, required this.message});
-
+class const TypeResolutionDiagnostic({
+  required final String path,
+  required final String message,
+}) {
   @override
   String toString() => '$path: $message';
 }

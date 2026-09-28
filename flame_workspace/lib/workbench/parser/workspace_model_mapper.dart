@@ -24,7 +24,10 @@ class WorkspaceModelMapper {
     if (scenes.isEmpty) {
       final sourcePath = components.isEmpty
           ? null
-          : components.first.$2['source'] as String?;
+          : (() {
+              final (_, indexedUnit, _) = components.first;
+              return indexedUnit['source'] as String?;
+            })();
       final sceneId = WorkspaceIds.scene(
         sourcePath: sourcePath ?? projectName ?? 'main',
         name: 'Main',
@@ -38,22 +41,22 @@ class WorkspaceModelMapper {
         ),
       );
     } else {
-      for (final scene in scenes) {
+      for (final sceneResult in scenes) {
+        final (scene, _, _) = sceneResult;
         final sceneId = WorkspaceIds.scene(
-          sourcePath: scene.$1.filePath,
-          name: scene.$1.name,
+          sourcePath: scene.filePath,
+          name: scene.name,
         );
         semanticScenes.add(
           SceneDefinition(
             id: sceneId,
-            name: scene.$1.name,
-            sourcePath: scene.$1.filePath,
+            name: scene.name,
+            sourcePath: scene.filePath,
             components: _mapComponents(
-              components
-                  .where(
-                    (component) => component.$2['source'] == scene.$1.filePath,
-                  )
-                  .toList(),
+              components.where((component) {
+                final (_, indexedUnit, _) = component;
+                return indexedUnit['source'] == scene.filePath;
+              }).toList(),
               sceneId,
             ),
           ),
@@ -72,11 +75,13 @@ class WorkspaceModelMapper {
     IndexedComponent first,
     IndexedComponent second,
   ) {
-    final firstPath = first.$1.filePath ?? '';
-    final secondPath = second.$1.filePath ?? '';
+    final (firstComponent, _, _) = first;
+    final (secondComponent, _, _) = second;
+    final firstPath = firstComponent.filePath ?? '';
+    final secondPath = secondComponent.filePath ?? '';
     final pathComparison = firstPath.compareTo(secondPath);
     if (pathComparison != 0) return pathComparison;
-    return first.$1.name.compareTo(second.$1.name);
+    return firstComponent.name.compareTo(secondComponent.name);
   }
 
   static List<ComponentInstance> _mapComponents(
@@ -85,7 +90,8 @@ class WorkspaceModelMapper {
   ) {
     var ordinal = 0;
     return indexedComponents.map((indexedComponent) {
-      return _mapComponent(indexedComponent.$1, sceneId, ordinal++);
+      final (component, _, _) = indexedComponent;
+      return _mapComponent(component, sceneId, ordinal++);
     }).toList();
   }
 
@@ -134,7 +140,12 @@ class WorkspaceModelMapper {
       sourcePath: component.filePath,
       properties: properties,
       children: component.components.indexed.map((entry) {
-        return _mapComponent(entry.$2, sceneId, ordinal + entry.$1 + 1);
+        final (childOrdinal, childComponent) = entry;
+        return _mapComponent(
+          childComponent,
+          sceneId,
+          ordinal + childOrdinal + 1,
+        );
       }),
     );
   }

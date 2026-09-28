@@ -9,33 +9,38 @@ import 'package:flame_workspace_runtime/utils.dart';
 
 import 'writer.dart';
 
-class ComponentHelper {
-  final FlameComponentObject component;
-  final FlameSceneObject scene;
-  final List<IndexedScene> scenes;
-  final List<IndexedComponent> components;
-
-  const ComponentHelper({
-    required this.component,
-    required this.scene,
-    required this.scenes,
-    required this.components,
-  });
-
-  (Object, IndexedUnit, CompilationUnit)? get parentUnit =>
-      components.firstWhereOrNull((e) => e.$1.name == component.parent?.name) ??
-      scenes.firstWhereOrNull(
-        (e) => e.$1.components.any((c) {
-          return c.declarationName == component.declarationName &&
-              c.name == component.name;
-        }),
-      );
+class ComponentHelper({
+  required final FlameComponentObject component,
+  required final FlameSceneObject scene,
+  required final List<IndexedScene> scenes,
+  required final List<IndexedComponent> components,
+}) {
+  ({Object object, IndexedUnit indexed, CompilationUnit unit})? get parentUnit {
+    for (final (parent, indexed, unit) in components) {
+      if (parent.name == component.parent?.name) {
+        return (object: parent, indexed: indexed, unit: unit);
+      }
+    }
+    for (final (scene, indexed, unit) in scenes) {
+      final containsComponent = scene.components.any((child) {
+        return child.declarationName == component.declarationName &&
+            child.name == component.name;
+      });
+      if (containsComponent) {
+        return (object: scene, indexed: indexed, unit: unit);
+      }
+    }
+    return null;
+  }
 
   ClassDeclaration get classDeclaration {
     final parent = parentUnit;
     if (parent == null) throw Exception('Parent not found');
 
-    final helper = CompilationUnitHelper(indexed: parent.$2, unit: parent.$3);
+    final helper = CompilationUnitHelper(
+      indexed: parent.indexed,
+      unit: parent.unit,
+    );
     final declaration = helper.findClass(component.name);
     if (declaration == null) throw Exception('Declaration not found');
 
@@ -46,7 +51,10 @@ class ComponentHelper {
     final parent = parentUnit;
     if (parent == null) return;
 
-    final helper = CompilationUnitHelper(indexed: parent.$2, unit: parent.$3);
+    final helper = CompilationUnitHelper(
+      indexed: parent.indexed,
+      unit: parent.unit,
+    );
     final parentClass = helper.findClass(component.parent?.name ?? scene.name);
     final declaration = helper.findProperty(
       parentClass,
@@ -55,7 +63,7 @@ class ComponentHelper {
 
     if (declaration == null) return;
 
-    final source = parent.$2['source'];
+    final source = parent.indexed['source'];
     final file = File(source);
     final content = await file.readAsString();
 
@@ -70,18 +78,21 @@ class ComponentHelper {
     await Writer.writeFormatted(file, newContent);
   }
 
-  Iterable<(String name, String expression, NamedExpression argument)>?
+  Iterable<({String name, String expression, NamedExpression argument})>?
   get initializerArguments {
     final parent = parentUnit;
     if (parent == null) return null;
-    final helper = CompilationUnitHelper(indexed: parent.$2, unit: parent.$3);
+    final helper = CompilationUnitHelper(
+      indexed: parent.indexed,
+      unit: parent.unit,
+    );
     final parentClass = helper.findClass(component.parent?.name ?? scene.name);
     final initializer = helper
         .findProperty(parentClass, component.declarationName!)
         ?.initializer;
     final initializerExpression = initializer == null
         ? null
-        : helper.parseExpression(initializer)!.$2;
+        : helper.parseExpression(initializer)!.named;
 
     return initializerExpression;
   }
@@ -91,7 +102,10 @@ class ComponentHelper {
     final parent = parentUnit;
     if (parent == null) return;
 
-    final helper = CompilationUnitHelper(indexed: parent.$2, unit: parent.$3);
+    final helper = CompilationUnitHelper(
+      indexed: parent.indexed,
+      unit: parent.unit,
+    );
     final parentClass = helper.findClass(component.parent?.name ?? scene.name);
     final initializer = helper
         .findProperty(parentClass, component.declarationName!)
@@ -101,11 +115,11 @@ class ComponentHelper {
 
     final expression = helper.parseExpression(initializer);
     if (expression == null) return;
-    final source = parent.$2['source'];
+    final source = parent.indexed['source'];
     final file = File(source);
     final content = await file.readAsString();
 
-    final arg = expression.$2.firstWhereOrNull((e) => e.$1 == argument);
+    final arg = expression.named.firstWhereOrNull((e) => e.name == argument);
 
     if (arg == null) {
       // If the argument doesn't exist, we need to add it to the constructor.
@@ -114,9 +128,9 @@ class ComponentHelper {
 
       // Whether the comma should be added or not.
       final shouldAddComma = () {
-        if (expression.$2.isEmpty) return false;
-        final last = expression.$2.last;
-        return last.$2.isNotEmpty && content[last.$3.end] != ',';
+        if (expression.named.isEmpty) return false;
+        final last = expression.named.last;
+        return last.expression.isNotEmpty && content[last.argument.end] != ',';
       }();
 
       final before = content.substring(0, end);
@@ -128,7 +142,7 @@ class ComponentHelper {
 
       await Writer.writeFormatted(file, newContent);
     } else {
-      final namedArgument = arg.$3;
+      final namedArgument = arg.argument;
 
       final start = namedArgument.offset;
       final end = namedArgument.end;

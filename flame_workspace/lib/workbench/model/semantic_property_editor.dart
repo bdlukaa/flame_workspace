@@ -14,15 +14,10 @@ enum SemanticPropertyKind {
   unsupported,
 }
 
-class SemanticPropertyEdit {
-  final Object? modelValue;
-  final String runtimeValue;
-
-  const SemanticPropertyEdit({
-    required this.modelValue,
-    required this.runtimeValue,
-  });
-}
+class const SemanticPropertyEdit({
+  required final Object? modelValue,
+  required final String runtimeValue,
+}) {}
 
 /// Classifies and validates the small set of property types supported by the
 /// Developer Preview Inspector.
@@ -104,12 +99,11 @@ class SemanticPropertyEditor {
         return _parseEnumeration(definition, value);
       case SemanticPropertyKind.vector2:
         final vector = _parseVector2(value);
-        return vector == null
-            ? null
-            : SemanticPropertyEdit(
-                modelValue: 'Vector2(${vector.$1}, ${vector.$2})',
-                runtimeValue: 'Vector2(${vector.$1}, ${vector.$2})',
-              );
+        if (vector == null) return null;
+        return SemanticPropertyEdit(
+          modelValue: 'Vector2(${vector.x}, ${vector.y})',
+          runtimeValue: 'Vector2(${vector.x}, ${vector.y})',
+        );
       case SemanticPropertyKind.anchor:
         return _parseAnchor(definition, value);
       case SemanticPropertyKind.color:
@@ -141,7 +135,7 @@ class SemanticPropertyEditor {
 
   static WorkspaceVector2? vectorFromValue(Object? value) {
     final parsed = _parseVector2('$value');
-    return parsed == null ? null : WorkspaceVector2(parsed.$1, parsed.$2);
+    return parsed == null ? null : WorkspaceVector2(parsed.x, parsed.y);
   }
 
   static WorkspaceVector2 anchorVector(String value) {
@@ -204,7 +198,7 @@ class SemanticPropertyEditor {
     return SemanticPropertyEdit(modelValue: canonical, runtimeValue: canonical);
   }
 
-  static (double, double)? _parseVector2(String value) {
+  static ({double x, double y})? _parseVector2(String value) {
     final normalized = value
         .replaceFirst(RegExp(r'^const\s+'), '')
         .replaceFirst(RegExp(r'^Vector2\('), '')
@@ -213,7 +207,7 @@ class SemanticPropertyEditor {
     if (values.length != 2) return null;
     final x = double.tryParse(values[0].trim());
     final y = double.tryParse(values[1].trim());
-    return x == null || y == null ? null : (x, y);
+    return x == null || y == null ? null : (x: x, y: y);
   }
 
   static String _unquote(String value) {

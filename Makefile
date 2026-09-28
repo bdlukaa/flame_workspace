@@ -2,7 +2,7 @@
 
 SHELL := /bin/sh
 
-# Maintained packages and the checked-in template.
+# Workspace packages. Resolve all of them from the repository root.
 PACKAGE_DIRS := \
 	flame_workspace \
 	flame_workspace_communication_bridge \
@@ -23,12 +23,13 @@ BROKEN_FIXTURE_DIR := fixtures/broken_project
 ALL_DIRS := $(PACKAGE_DIRS) $(FIXTURE_DIRS) $(BROKEN_FIXTURE_DIR)
 CHECK_DIRS := $(PACKAGE_DIRS) $(FIXTURE_DIRS)
 
+
 .PHONY: help pub-get format analyze test check clean
 
 help:
 	@printf '%s\n' \
 		'Available targets:' \
-		'  make pub-get  Resolve dependencies in every package and fixture.' \
+		'  make pub-get  Resolve workspace dependencies once, then each fixture.' \
 		'  make format   Format Dart files in maintained packages and valid fixtures.' \
 		'  make analyze  Analyze maintained packages and valid fixtures.' \
 		'  make test     Run tests where a test directory exists.' \
@@ -36,13 +37,11 @@ help:
 		'  make clean    Remove generated Dart/Flutter tool artifacts.'
 
 pub-get:
-	@for dir in $(ALL_DIRS); do \
-		case "$$dir" in \
-			flame_workspace_protocol) tool='dart pub get' ;; \
-			*) tool='flutter pub get' ;; \
-		esac; \
-		printf '\n==> %s: %s\n' "$$tool" "$$dir"; \
-		(cd "$$dir" && $$tool); \
+	@printf '\n==> flutter pub get: workspace\n'
+	@flutter pub get
+	@for dir in $(FIXTURE_DIRS) $(BROKEN_FIXTURE_DIR); do \
+		printf '\n==> flutter pub get: %s\n' "$$dir"; \
+		(cd "$$dir" && flutter pub get); \
 	done
 
 format:

@@ -7,9 +7,7 @@ import 'package:flutter/material.dart';
 
 import 'create_project.dart';
 
-class WelcomeView extends StatelessWidget {
-  const WelcomeView({super.key});
-
+class const WelcomeView({super.key}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -73,17 +71,11 @@ class WelcomeView extends StatelessWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final VoidCallback onPressed;
-
-  const _ActionButton({
-    required this.icon,
-    required this.text,
-    required this.onPressed,
-  });
-
+class const _ActionButton({
+  required final IconData icon,
+  required final String text,
+  required final VoidCallback onPressed,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(

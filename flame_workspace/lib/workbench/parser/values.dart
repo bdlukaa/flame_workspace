@@ -28,7 +28,7 @@ class ValuesParser {
   /// Parses a vector2 from a string.
   ///
   /// The string must be in the format `const Vector2(0, 0)`.
-  static (double x, double y)? parseVector2(String? vector2) {
+  static ({double x, double y})? parseVector2(String? vector2) {
     if (vector2 == null || vector2 == 'null') return null;
 
     final values = vector2
@@ -39,28 +39,28 @@ class ValuesParser {
         .trim()
         .split(',');
 
-    return (double.parse(values[0]), double.parse(values[1]));
+    return (x: double.parse(values[0]), y: double.parse(values[1]));
   }
 
   /// Parses the default value of a declared parameter.
   static dynamic parseValue(
     FlameComponentObject component,
-    (String name, String value) namedExpression,
+    ({String name, String value}) namedExpression,
   ) {
     final parameter = component.parameters.firstWhere(
-      (p) => p.name == namedExpression.$1,
+      (p) => p.name == namedExpression.name,
     );
 
     final result = switch (parameter.nonNullableType) {
-      'Color' => parseColor(namedExpression.$2),
-      'int' => int.tryParse(namedExpression.$2),
-      'double' => double.tryParse(namedExpression.$2),
+      'Color' => parseColor(namedExpression.value),
+      'int' => int.tryParse(namedExpression.value),
+      'double' => double.tryParse(namedExpression.value),
       'String' => // The string without the quotes (', ")
-      namedExpression.$2.substring(1, namedExpression.$2.length - 1),
-      _ => namedExpression.$2,
+      namedExpression.value.substring(1, namedExpression.value.length - 1),
+      _ => namedExpression.value,
     };
 
-    return result ?? namedExpression.$2;
+    return result ?? namedExpression.value;
   }
 
   /// Parses a value from a string based on the type.
@@ -93,7 +93,10 @@ class ValuesParser {
       'num' => num.tryParse(value),
       'String' => // The string without the quotes (', ")
       value.substring(1, value.length - 1),
-      'Vector2' => Vector2(parseVector2(value)!.$1, parseVector2(value)!.$2),
+      'Vector2' => (() {
+        final vector = parseVector2(value)!;
+        return Vector2(vector.x, vector.y);
+      })(),
       'Map' => json.decode(value) as Map,
       _ => value,
     };

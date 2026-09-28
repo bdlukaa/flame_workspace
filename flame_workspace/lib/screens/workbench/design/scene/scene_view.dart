@@ -137,7 +137,8 @@ class _SceneViewState extends State<SceneView> {
                       final result = await showAddComponentDialog(context);
 
                       if (result != null && context.mounted) {
-                        if (!state.hasWorkspaceComponent(result.$2)) {
+                        final (_, declarationName, _) = result;
+                        if (!state.hasWorkspaceComponent(declarationName)) {
                           if (sceneHelper != null) {
                             await sceneHelper.declareComponent(result, state);
                           }
@@ -145,13 +146,13 @@ class _SceneViewState extends State<SceneView> {
                             _componentFromSelection(result, scene),
                           );
                           if (sceneHelper != null) {
-                            await sceneHelper.addComponent(result.$2);
+                            await sceneHelper.addComponent(declarationName);
                           }
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Could not add ${result.$2} to ${scene.name} '
+                                'Could not add $declarationName to ${scene.name} '
                                 'because the element already exists',
                               ),
                             ),
@@ -310,10 +311,10 @@ ComponentInstance _componentFromSelection(
   AddIndexedComponent selection,
   SceneDefinition scene,
 ) {
-  final indexed = selection.$1;
+  final (indexed, declarationName, parameters) = selection;
   final properties = <String, Object?>{
     for (final parameter in indexed.parameters)
-      parameter.name: selection.$3[parameter.name] ?? parameter.defaultValue,
+      parameter.name: parameters[parameter.name] ?? parameter.defaultValue,
   };
   final definitions = indexed.parameters
       .map(
@@ -333,7 +334,7 @@ ComponentInstance _componentFromSelection(
   return ComponentInstance(
     id: WorkspaceIds.component(
       sceneId: scene.id,
-      name: selection.$2,
+      name: declarationName,
       ordinal: scene.components.length,
     ),
     type: ComponentType(
@@ -349,7 +350,7 @@ ComponentInstance _componentFromSelection(
           ),
       properties: definitions,
     ),
-    declarationName: selection.$2,
+    declarationName: declarationName,
     sourcePath: indexed.filePath,
     properties: properties,
   );

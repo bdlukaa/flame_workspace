@@ -16,7 +16,7 @@ class ScenesListView extends StatelessWidget {
       itemCount: scenes.length,
       itemBuilder: (context, index) {
         final sceneResult = scenes.elementAt(index);
-        final scene = sceneResult.$1;
+        final (scene, _, _) = sceneResult;
 
         return ExpansionTile(
           dense: true,
@@ -63,11 +63,12 @@ class ScenesListView extends StatelessWidget {
                               ),
                             );
                           } else {
-                            helper.delete(
-                              scenes
-                                  .firstWhere((s) => s.$1.name != scene.name)
-                                  .$1,
-                            );
+                            final otherSceneResult = scenes.firstWhere((s) {
+                              final (otherScene, _, _) = s;
+                              return otherScene.name != scene.name;
+                            });
+                            final (otherScene, _, _) = otherSceneResult;
+                            helper.delete(otherScene);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(

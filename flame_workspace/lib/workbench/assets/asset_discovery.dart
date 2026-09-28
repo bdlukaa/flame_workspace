@@ -4,12 +4,10 @@ import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
 /// An image asset declared by a Flutter project's `flutter.assets` list.
-class WorkspaceAsset {
-  final String path;
-  final String absolutePath;
-
-  const WorkspaceAsset({required this.path, required this.absolutePath});
-
+class const WorkspaceAsset({
+  required final String path,
+  required final String absolutePath,
+}) {
   String get extension => p.extension(path).toLowerCase();
 
   String get id => 'asset:$path';
@@ -24,17 +22,11 @@ class WorkspaceAsset {
 }
 
 /// Results from scanning the assets declared in a Flutter project.
-class AssetDiscoveryResult {
-  final List<WorkspaceAsset> assets;
-  final List<String> missingPaths;
-  final List<String> diagnostics;
-
-  const AssetDiscoveryResult({
-    this.assets = const [],
-    this.missingPaths = const [],
-    this.diagnostics = const [],
-  });
-}
+class const AssetDiscoveryResult({
+  final List<WorkspaceAsset> assets = const [],
+  final List<String> missingPaths = const [],
+  final List<String> diagnostics = const [],
+}) {}
 
 /// Discovers the image files that a Flutter project declares as assets.
 class WorkspaceAssetDiscovery {

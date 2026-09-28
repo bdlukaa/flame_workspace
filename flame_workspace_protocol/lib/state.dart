@@ -1,9 +1,5 @@
-class GameState {
-  final bool paused;
-
-  const GameState({required this.paused});
-
-  const GameState.initial({this.paused = false});
+class const GameState({required final bool paused}) {
+  const GameState.initial({bool paused = false}) : this(paused: paused);
 
   static GameState fromMap(Map<String, dynamic> map) {
     final paused = map['paused'] as bool?;

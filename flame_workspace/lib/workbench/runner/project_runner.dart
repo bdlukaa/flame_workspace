@@ -6,19 +6,12 @@ import 'package:path/path.dart' as path;
 
 enum ProjectRunnerState { stopped, starting, running, stopping, failed }
 
-class FlutterTarget {
-  final String id;
-  final String name;
-  final String? platform;
-  final bool isAvailable;
-
-  const FlutterTarget({
-    required this.id,
-    required this.name,
-    this.platform,
-    this.isAvailable = true,
-  });
-
+class const FlutterTarget({
+  required final String id,
+  required final String name,
+  final String? platform,
+  final bool isAvailable = true,
+}) {
   factory FlutterTarget.fromJson(Map<String, Object?> json) {
     final connected = json['isConnected'] as bool? ?? true;
     final supported = json['isSupported'] as bool? ?? true;
@@ -55,11 +48,7 @@ class FlutterTarget {
   };
 }
 
-class FlutterTargetSelectionStore {
-  final Directory projectDirectory;
-
-  const FlutterTargetSelectionStore(this.projectDirectory);
-
+class const FlutterTargetSelectionStore(final Directory projectDirectory) {
   File get file => File(
     path.join(projectDirectory.path, '.flame_workspace', 'native_target.json'),
   );

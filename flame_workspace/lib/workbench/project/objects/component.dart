@@ -1,39 +1,19 @@
-class FlameComponentObject {
-  final String name;
-  final String type;
-  final List<FlameComponentField> parameters;
-
+class FlameComponentObject({
+  required final String name,
+  required final String type,
+  required final List<FlameComponentField> parameters,
+  required final Map<String, dynamic> data,
+  final String? filePath,
+  final String? declarationName,
+  final List<String> modifiers = const [],
+}) {
   List<FlameComponentObject> components = [];
-
-  /// The object declaration data
-  final Map<String, dynamic> data;
 
   /// The parent of this component.
   ///
   /// This is used when the component is declared inline under another component.
   /// This may be null for Scene level components.
   FlameComponentObject? parent;
-
-  /// When the component is declared inline:
-  ///
-  /// `Component myComponent = Component();`
-  ///
-  /// The declaration name will be `myComponent`.
-  final String? declarationName;
-
-  final List<String> modifiers;
-
-  final String? filePath;
-
-  FlameComponentObject({
-    required this.name,
-    required this.type,
-    required this.parameters,
-    required this.data,
-    this.filePath,
-    this.declarationName,
-    this.modifiers = const [],
-  });
 
   @override
   String toString() =>
@@ -79,17 +59,22 @@ class FlameComponentObject {
   }
 }
 
-class FlameComponentField {
-  final String name;
-
+class FlameComponentField(
+  final String name,
+  final String type, [
+  final String? defaultValue,
+  final List<String>? superComponents,
+  final bool isLocalField = false,
+  final bool isFinalField = false,
+  final bool hasSetter = false,
+  final List<String> enumValues = const [],
+]) {
   /// The type of the field.
   ///
   /// If it ends with an `?`, it means that the field is nullable. If non-nullable
   /// it must be either required or have a [defaultValue]
-  final String type;
 
   /// The default value of the field.
-  final String? defaultValue;
 
   /// The super component of this field.
   ///
@@ -98,7 +83,6 @@ class FlameComponentField {
   ///
   /// When multiple values are used, the super field is recursive. The last one
   /// is the origin class.
-  final List<String>? superComponents;
 
   /// Whether this field is initialized with `this.`.
   ///
@@ -109,27 +93,12 @@ class FlameComponentField {
   ///   required this.color,
   /// });
   /// ```
-  final bool isLocalField;
 
   /// Whether this field can not be reassigned.
-  final bool isFinalField;
 
   /// Whether this field is local, but has a getter and a setter
-  final bool hasSetter;
 
   /// Named values discovered for enum-like Flame types such as Anchor.
-  final List<String> enumValues;
-
-  FlameComponentField(
-    this.name,
-    this.type, [
-    this.defaultValue,
-    this.superComponents,
-    this.isLocalField = false,
-    this.isFinalField = false,
-    this.hasSetter = false,
-    this.enumValues = const [],
-  ]);
 
   @override
   String toString() =>

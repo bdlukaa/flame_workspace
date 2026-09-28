@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
 
-class InkedIconButton extends StatelessWidget {
-  final VoidCallback? onTap;
-  final String? tooltip;
-  final Widget icon;
-
-  const InkedIconButton({
-    super.key,
-    required this.onTap,
-    required this.icon,
-    this.tooltip,
-  });
-
+class const InkedIconButton({
+  super.key,
+  required final VoidCallback? onTap,
+  required final Widget icon,
+  final String? tooltip,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

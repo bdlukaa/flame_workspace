@@ -68,9 +68,12 @@ class _CreateComponentDialogState extends State<CreateComponentDialog> {
                     if (name.isEmpty) {
                       return;
                     }
-                    final alreadyExist = widget.workbench.state.components.any(
-                      (component) => component.$1.name == name.pascalCase,
-                    );
+                    final alreadyExist = widget.workbench.state.components.any((
+                      component,
+                    ) {
+                      final (componentObject, _, _) = component;
+                      return componentObject.name == name.pascalCase;
+                    });
                     if (alreadyExist) {
                       setState(() => _alreadyExist = true);
                     } else {

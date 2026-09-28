@@ -82,17 +82,11 @@ class WorkspaceRuntimeClient {
   }
 }
 
-class WorkspaceRuntimeException implements Exception {
-  const WorkspaceRuntimeException({
-    required this.code,
-    required this.message,
-    this.details,
-  });
-
-  final String code;
-  final String message;
-  final dynamic details;
-
+class const WorkspaceRuntimeException({
+  required final String code,
+  required final String message,
+  final dynamic details,
+}) implements Exception {
   @override
   String toString() {
     final suffix = details == null ? '' : ' ($details)';
