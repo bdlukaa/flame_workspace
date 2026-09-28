@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flame_workspace/workbench/runner/logs.dart';
+import 'package:flame_workspace/workbench/runner/preview.dart';
 import 'package:flame_workspace/workbench/runner/project_runner.dart';
 import 'package:flame_workspace/workbench/runner/view.dart';
 import 'package:web_socket_channel/io.dart';
@@ -49,13 +50,18 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   late final FlutterProjectRunner processRunner = FlutterProjectRunner(
     projectDirectory: project.location,
   );
+  final PreviewProjectRunner previewRunner;
 
   FlameProjectRunner(
     this.project, {
     this.hostname = '0.0.0.0',
     this.port = 3000,
     this.setScene,
-  }) {
+    PreviewSurface? previewSurface,
+  }) : previewRunner = PreviewProjectRunner(
+         runner: FlutterProjectRunner(projectDirectory: project.location),
+         surface: previewSurface ?? UnavailablePreviewSurface(),
+       ) {
     windowManager.setPreventClose(true);
   }
 
@@ -65,6 +71,10 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   bool get isRunning => _isRunning;
 
   ProjectRunnerState get runnerState => processRunner.state;
+  PreviewState get previewState => previewRunner.state;
+  Uri? get previewUrl => previewRunner.url;
+  bool get isPreviewRunning => previewRunner.isRunning;
+  bool get canControlRuntime => isViewReady || isPreviewRunning;
 
   IOWebSocketChannel? _channel;
 
@@ -127,10 +137,38 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     }
   }
 
+  Future<void> runPreview() async {
+    if (_isRunning) {
+      throw Exception('Project is already running');
+    }
+
+    _isRunning = true;
+    emitLog('Starting web preview', kWorkspaceLogPrefix);
+    try {
+      await previewRunner.start(
+        onOutput: (line) => emitLog(line, kPreviewLogPrefix),
+        onError: (line) => emitLog(line, kPreviewLogPrefix),
+        onExit: (_) {
+          _isRunning = false;
+          notifyListeners();
+        },
+      );
+      notifyListeners();
+    } catch (_) {
+      _isRunning = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   Completer? _hotReloadCompleter;
   Future<void> hotReload() async {
     _hotReloadCompleter = Completer();
-    await processRunner.hotReload();
+    if (isPreviewRunning) {
+      await previewRunner.hotReload();
+    } else {
+      await processRunner.hotReload();
+    }
     return _hotReloadCompleter!.future;
   }
 
@@ -145,7 +183,11 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   Completer? _hotRestartCompleter;
   Future<void> hotRestart() async {
     _hotRestartCompleter = Completer();
-    await processRunner.hotRestart();
+    if (isPreviewRunning) {
+      await previewRunner.hotRestart();
+    } else {
+      await processRunner.hotRestart();
+    }
     return _hotRestartCompleter!.future;
   }
 
@@ -160,6 +202,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   Future<void> stop() async {
     if (_isRunning) emitLog('Stopping preview', kWorkspaceLogPrefix);
     await processRunner.stop();
+    await previewRunner.stop();
     _isRunning = false;
     disposeView();
     await _channel?.sink.close();

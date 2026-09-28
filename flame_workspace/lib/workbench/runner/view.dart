@@ -26,6 +26,19 @@ mixin RunnerView {
       final theme = Theme.of(context);
       final workbench = Workbench.of(context);
 
+      final previewUrl = workbench.runner.previewUrl;
+      if (previewUrl != null) {
+        return Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Web preview is ready at:'),
+            const SizedBox(height: 8),
+            SelectableText(previewUrl.toString()),
+            const SizedBox(height: 8),
+            const Text('An embedded browser surface is not configured.'),
+          ]),
+        );
+      }
+
       if (_viewController == null) {
         if (workbench.runner.isRunning) {
           return Center(

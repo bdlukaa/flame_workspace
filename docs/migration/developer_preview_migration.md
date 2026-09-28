@@ -210,4 +210,6 @@ The generated template keeps the existing minimal runtime dependency set (`flame
 
 ## Cross-platform project runner
 
-`flame_workspace/lib/workbench/runner/project_runner.dart` now owns Flutter process execution behind `ProjectProcessLauncher` and `ProjectProcess` abstractions. `FlutterTarget` represents an explicit device discovered from `flutter devices --machine`, while omitting a target lets Flutter select its normal default. The runner owns start/stop, output streams, `r`/`R` commands, exit state, and cleanup; the existing preview channel and native view remain unchanged for a later preview migration.
+`flame_workspace/lib/workbench/runner/project_runner.dart` now owns Flutter process execution behind `ProjectProcessLauncher` and `ProjectProcess` abstractions. `FlutterTarget` represents an explicit device discovered from `flutter devices --machine`, while omitting a target lets Flutter select its normal default. The runner owns start/stop, output streams, `r`/`R` commands, exit state, and cleanup.
+
+`preview.dart` adds a separate web-server preview path using `flutter run -d web-server`, robust URL extraction, preview lifecycle state, and the platform-neutral `PreviewSurface` contract. The current fallback surface records the URL and the Workspace UI displays it; no embedded browser dependency is currently configured, and the legacy native view remains limited to native Run rather than being extended for web preview.

@@ -298,13 +298,13 @@ class _WorkbenchViewState extends State<WorkbenchView> {
       Expanded(
         child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
           InkedIconButton(
-            onTap: !runner.isViewReady ? null : runner.hotReload,
+            onTap: !runner.canControlRuntime ? null : runner.hotReload,
             tooltip: 'Hot reload',
             icon: Icon(Icons.bolt, color: theme.colorScheme.primary),
           ),
           const SizedBox(width: 8.0),
           InkedIconButton(
-            onTap: !runner.isViewReady ? null : runner.hotRestart,
+            onTap: !runner.canControlRuntime ? null : runner.hotRestart,
             tooltip: 'Hot restart',
             icon: Icon(
               Icons.local_fire_department,
@@ -314,7 +314,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
           const VerticalDivider(),
           InkedIconButton(
             onTap: !runner.isRunning
-                ? runner.run
+                ? runner.runPreview
                 : runner.gameState.paused
                     ? runner.resume
                     : null,

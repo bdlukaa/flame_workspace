@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:flame_workspace/workbench/runner/preview.dart';
 import 'package:flame_workspace/workbench/runner/project_runner.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -53,6 +55,41 @@ void main() {
     expect(runner.state, ProjectRunnerState.failed);
   });
 
+  test('starts web preview, discovers its URL, and stops cleanly', () async {
+    final surface = FakePreviewSurface();
+    launcher.process.stdoutController.onListen = () {
+      launcher.process.stdoutController.add(
+        utf8.encode('Web Server is available at http://127.0.0.1:4567\n'),
+      );
+    };
+    final preview = PreviewProjectRunner(runner: runner, surface: surface);
+
+    final url = await preview.start();
+
+    expect(url, Uri.parse('http://127.0.0.1:4567'));
+    expect(launcher.process.startArguments, ['run', '-d', 'web-server']);
+    expect(surface.loaded, url);
+    expect(preview.state, PreviewState.running);
+
+    await preview.stop();
+    expect(launcher.process.commands, ['q']);
+    expect(launcher.process.killCount, 1);
+    expect(surface.disposed, isTrue);
+  });
+
+  test('fails preview startup when the process exits before its URL', () async {
+    launcher.process.stdoutController.onListen = () {
+      launcher.process.exitCompleter.complete(1);
+    };
+    final preview = PreviewProjectRunner(
+      runner: runner,
+      surface: FakePreviewSurface(),
+    );
+
+    await expectLater(preview.start(), throwsStateError);
+    expect(preview.state, PreviewState.failed);
+  });
+
   test('reports failed startup and preserves the failure', () async {
     launcher.startError = StateError('unable to start');
 
@@ -98,6 +135,20 @@ class FakeLauncher implements ProjectProcessLauncher {
     discoverWorkingDirectory = workingDirectory;
     return targets;
   }
+}
+
+class FakePreviewSurface implements PreviewSurface {
+  Uri? loaded;
+  bool disposed = false;
+
+  @override
+  Future<void> load(Uri uri) async => loaded = uri;
+
+  @override
+  Future<void> reload() async {}
+
+  @override
+  Future<void> dispose() async => disposed = true;
 }
 
 class FakeProcess implements ProjectProcess {
