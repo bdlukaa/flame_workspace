@@ -32,7 +32,43 @@ class SceneViewport {
   }
 }
 
-/// Geometry and ordering rules shared by painting and pointer hit testing.
+/// Operations available on a selected component in the Scene View.
+enum SceneEditHandle { move, resize, rotate }
+
+/// A component's world-space frame, including its parent-relative transform.
+class SceneComponentFrame {
+  final ComponentInstance component;
+  final WorkspaceTransform transform;
+  final Offset position;
+  final double angle;
+  final Size size;
+  final Offset anchor;
+  final SceneComponentFrame? parent;
+  final int renderOrder;
+
+  const SceneComponentFrame({
+    required this.component,
+    required this.transform,
+    required this.position,
+    required this.angle,
+    required this.size,
+    required this.anchor,
+    required this.parent,
+    required this.renderOrder,
+  });
+
+  Offset get topLeft => position - _rotate(anchor, angle);
+
+  Offset localToWorld(Offset localPoint) {
+    return position + _rotate(localPoint - anchor, angle);
+  }
+
+  Offset worldToLocal(Offset worldPoint) {
+    return _rotate(worldPoint - position, -angle) + anchor;
+  }
+}
+
+/// Geometry, ordering, hit testing, and transform math for the Scene View.
 class SceneCanvasGeometry {
   const SceneCanvasGeometry._();
 
@@ -43,25 +79,75 @@ class SceneCanvasGeometry {
     return size.x > 0 && size.y > 0 ? Size(size.x, size.y) : fallbackSize;
   }
 
-  static List<ComponentInstance> paintOrder(SceneDefinition scene) {
-    final ordered = <({ComponentInstance component, int order})>[];
-    var order = 0;
+  static List<SceneComponentFrame> frames(SceneDefinition scene) {
+    final result = <SceneComponentFrame>[];
+    var renderOrder = 0;
 
-    void visit(Iterable<ComponentInstance> components) {
+    void visit(
+      Iterable<ComponentInstance> components,
+      SceneComponentFrame? parent,
+    ) {
       for (final component in components) {
-        ordered.add((component: component, order: order++));
-        visit(component.children);
+        final transform = component.transform;
+        final size = sizeFor(component);
+        final anchor = Offset(
+          size.width * transform.anchor.x,
+          size.height * transform.anchor.y,
+        );
+        final localPosition = Offset(
+          transform.position.x,
+          transform.position.y,
+        );
+        final position = parent == null
+            ? localPosition
+            : parent.localToWorld(localPosition);
+        final angle = parent == null
+            ? transform.angle
+            : parent.angle + transform.angle;
+        final frame = SceneComponentFrame(
+          component: component,
+          transform: transform,
+          position: position,
+          angle: angle,
+          size: size,
+          anchor: anchor,
+          parent: parent,
+          renderOrder: renderOrder++,
+        );
+        result.add(frame);
+        visit(component.children, frame);
       }
     }
 
-    visit(scene.components);
-    ordered.sort((first, second) {
+    visit(scene.components, null);
+    return result;
+  }
+
+  static List<SceneComponentFrame> renderFrames(SceneDefinition scene) {
+    final result = frames(scene);
+    result.sort((first, second) {
       final priority = first.component.priority.compareTo(
         second.component.priority,
       );
-      return priority == 0 ? first.order.compareTo(second.order) : priority;
+      return priority == 0
+          ? first.renderOrder.compareTo(second.renderOrder)
+          : priority;
     });
-    return ordered.map((entry) => entry.component).toList();
+    return result;
+  }
+
+  static List<ComponentInstance> paintOrder(SceneDefinition scene) {
+    return renderFrames(scene).map((frame) => frame.component).toList();
+  }
+
+  static SceneComponentFrame? frameFor(
+    SceneDefinition scene,
+    String componentId,
+  ) {
+    for (final frame in frames(scene)) {
+      if (frame.component.id == componentId) return frame;
+    }
+    return null;
   }
 
   static Offset topLeft(ComponentInstance component) {
@@ -81,22 +167,108 @@ class SceneCanvasGeometry {
       size.height * transform.anchor.y,
     );
     final position = Offset(transform.position.x, transform.position.y);
-    final translated = worldPoint - position;
-    final cosine = math.cos(-transform.angle);
-    final sine = math.sin(-transform.angle);
-    final local = Offset(
-      translated.dx * cosine - translated.dy * sine + anchor.dx,
-      translated.dx * sine + translated.dy * cosine + anchor.dy,
-    );
+    final local = _rotate(worldPoint - position, -transform.angle) + anchor;
     return Rect.fromLTWH(0, 0, size.width, size.height).contains(local);
   }
 
   static ComponentInstance? hitTest(SceneDefinition scene, Offset worldPoint) {
-    final ordered = paintOrder(scene);
-    for (final component in ordered.reversed) {
-      if (contains(component, worldPoint)) return component;
+    final ordered = renderFrames(scene);
+    for (final frame in ordered.reversed) {
+      if (containsFrame(frame, worldPoint)) return frame.component;
     }
     return null;
+  }
+
+  static bool containsFrame(SceneComponentFrame frame, Offset worldPoint) {
+    final local = frame.worldToLocal(worldPoint);
+    return (Offset.zero & frame.size).contains(local);
+  }
+
+  static SceneEditHandle? editHandleFor(
+    SceneComponentFrame frame,
+    Offset worldPoint, {
+    double tolerance = 10,
+  }) {
+    final rotateHandle = frame.localToWorld(Offset(frame.size.width / 2, -24));
+    if ((worldPoint - rotateHandle).distance <= tolerance) {
+      return SceneEditHandle.rotate;
+    }
+
+    final resizeHandle = frame.localToWorld(
+      Offset(frame.size.width, frame.size.height),
+    );
+    if ((worldPoint - resizeHandle).distance <= tolerance) {
+      return SceneEditHandle.resize;
+    }
+
+    if (containsFrame(frame, worldPoint)) return SceneEditHandle.move;
+    return null;
+  }
+}
+
+/// Pure transform updates used by pointer editing and unit tests.
+class SceneTransformMath {
+  const SceneTransformMath._();
+
+  static WorkspaceTransform move({
+    required SceneDefinition scene,
+    required SceneComponentFrame frame,
+    required Offset worldAnchor,
+  }) {
+    return frame.transform.copyWith(
+      position: _localPosition(scene, frame, worldAnchor),
+    );
+  }
+
+  static WorkspaceTransform resize({
+    required SceneDefinition scene,
+    required SceneComponentFrame frame,
+    required Offset worldPoint,
+    double minimumSize = 8,
+  }) {
+    final localPoint = frame.worldToLocal(worldPoint);
+    final width = math.max(minimumSize, localPoint.dx);
+    final height = math.max(minimumSize, localPoint.dy);
+    final newAnchor = Offset(
+      width * frame.transform.anchor.x,
+      height * frame.transform.anchor.y,
+    );
+    final worldPosition = frame.topLeft + _rotate(newAnchor, frame.angle);
+
+    return frame.transform.copyWith(
+      position: _localPosition(scene, frame, worldPosition),
+      size: WorkspaceVector2(width, height),
+    );
+  }
+
+  static WorkspaceTransform rotate({
+    required SceneDefinition scene,
+    required SceneComponentFrame frame,
+    required Offset startWorldPoint,
+    required Offset worldPoint,
+  }) {
+    final start = startWorldPoint - frame.position;
+    final current = worldPoint - frame.position;
+    if (start.distance == 0 || current.distance == 0) {
+      return frame.transform;
+    }
+
+    final delta =
+        math.atan2(current.dy, current.dx) - math.atan2(start.dy, start.dx);
+    final parentAngle = frame.parent?.angle ?? 0;
+    return frame.transform.copyWith(angle: frame.angle + delta - parentAngle);
+  }
+
+  static WorkspaceVector2 _localPosition(
+    SceneDefinition scene,
+    SceneComponentFrame frame,
+    Offset worldPosition,
+  ) {
+    final parent = frame.parent;
+    final localPosition = parent == null
+        ? worldPosition
+        : _rotate(worldPosition - parent.topLeft, -parent.angle);
+    return WorkspaceVector2(localPosition.dx, localPosition.dy);
   }
 }
 
@@ -105,6 +277,8 @@ class SceneCanvas extends StatefulWidget {
   final SceneDefinition scene;
   final String? selectedComponentId;
   final ValueChanged<String?> onSelectionChanged;
+  final void Function(String componentId, WorkspaceTransform transform)?
+  onTransformChanged;
   final String? projectRootPath;
 
   const SceneCanvas({
@@ -112,6 +286,7 @@ class SceneCanvas extends StatefulWidget {
     required this.scene,
     required this.selectedComponentId,
     required this.onSelectionChanged,
+    this.onTransformChanged,
     this.projectRootPath,
   });
 
@@ -130,6 +305,10 @@ class _SceneCanvasState extends State<SceneCanvas> {
   double _gestureZoom = 1;
   Offset? _pointerDownPosition;
   bool _pointerMoved = false;
+  SceneEditHandle? _editOperation;
+  SceneComponentFrame? _editFrame;
+  Offset _editGrabOffset = Offset.zero;
+  Offset _editStartPoint = Offset.zero;
   final _images = <String, ui.Image>{};
   final _loadingImages = <String>{};
   final _unavailableImages = <String>{};
@@ -161,17 +340,23 @@ class _SceneCanvasState extends State<SceneCanvas> {
             onPointerDown: (event) {
               _pointerDownPosition = event.localPosition;
               _pointerMoved = false;
+              _beginEdit(viewport.viewportToWorld(event.localPosition));
             },
             onPointerMove: (event) {
               final down = _pointerDownPosition;
               if (down != null && (event.localPosition - down).distance > 4) {
                 _pointerMoved = true;
               }
+              if (_editOperation == null || _editFrame == null) return;
+              _applyEdit(viewport.viewportToWorld(event.localPosition));
             },
             onPointerUp: (event) {
               final wasTap = !_pointerMoved;
+              final wasEditing = _editOperation != null;
+              _clearEdit();
               _pointerDownPosition = null;
               _pointerMoved = false;
+              if (wasEditing) return;
               if (wasTap) {
                 final component = SceneCanvasGeometry.hitTest(
                   widget.scene,
@@ -181,6 +366,7 @@ class _SceneCanvasState extends State<SceneCanvas> {
               }
             },
             onPointerCancel: (_) {
+              _clearEdit();
               _pointerDownPosition = null;
               _pointerMoved = false;
             },
@@ -198,6 +384,7 @@ class _SceneCanvasState extends State<SceneCanvas> {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onScaleStart: (details) {
+                if (_editOperation != null) return;
                 _gestureFocalPoint = details.localFocalPoint;
                 _gestureZoom = _zoom;
                 _gestureWorldPoint = viewport.viewportToWorld(
@@ -205,6 +392,7 @@ class _SceneCanvasState extends State<SceneCanvas> {
                 );
               },
               onScaleUpdate: (details) {
+                if (_editOperation != null) return;
                 final nextZoom = (_gestureZoom * details.scale).clamp(
                   _minZoom,
                   _maxZoom,
@@ -237,11 +425,57 @@ class _SceneCanvasState extends State<SceneCanvas> {
     );
   }
 
+  void _beginEdit(Offset worldPoint) {
+    final selectedId = widget.selectedComponentId;
+    if (selectedId == null) return;
+    final frame = SceneCanvasGeometry.frameFor(widget.scene, selectedId);
+    if (frame == null || !frame.component.type.isPositionComponent) return;
+    final operation = SceneCanvasGeometry.editHandleFor(frame, worldPoint);
+    if (operation == null) return;
+
+    _editOperation = operation;
+    _editFrame = frame;
+    _editStartPoint = worldPoint;
+    _editGrabOffset = worldPoint - frame.position;
+  }
+
+  void _applyEdit(Offset worldPoint) {
+    final frame = _editFrame;
+    final operation = _editOperation;
+    final callback = widget.onTransformChanged;
+    if (frame == null || operation == null || callback == null) return;
+
+    final transform = switch (operation) {
+      SceneEditHandle.move => SceneTransformMath.move(
+        scene: widget.scene,
+        frame: frame,
+        worldAnchor: worldPoint - _editGrabOffset,
+      ),
+      SceneEditHandle.resize => SceneTransformMath.resize(
+        scene: widget.scene,
+        frame: frame,
+        worldPoint: worldPoint,
+      ),
+      SceneEditHandle.rotate => SceneTransformMath.rotate(
+        scene: widget.scene,
+        frame: frame,
+        startWorldPoint: _editStartPoint,
+        worldPoint: worldPoint,
+      ),
+    };
+    callback(frame.component.id, transform);
+  }
+
+  void _clearEdit() {
+    _editOperation = null;
+    _editFrame = null;
+  }
+
   void _scheduleImageLoads() {
     final candidates = <String, String>{};
-    for (final component in SceneCanvasGeometry.paintOrder(widget.scene)) {
-      final asset = _assetPath(component);
-      if (asset != null) candidates[component.id] = asset;
+    for (final frame in SceneCanvasGeometry.renderFrames(widget.scene)) {
+      final asset = _assetPath(frame.component);
+      if (asset != null) candidates[frame.component.id] = asset;
     }
 
     for (final entry in candidates.entries) {
@@ -319,8 +553,20 @@ class _SceneCanvasPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     _paintGrid(canvas, size);
-    for (final component in SceneCanvasGeometry.paintOrder(scene)) {
-      _paintComponent(canvas, component);
+    final frames = SceneCanvasGeometry.renderFrames(scene);
+    for (final frame in frames) {
+      _paintComponent(canvas, frame);
+    }
+
+    final selectedFrame = selectedComponentId == null
+        ? null
+        : frames.cast<SceneComponentFrame?>().firstWhere(
+            (frame) => frame?.component.id == selectedComponentId,
+            orElse: () => null,
+          );
+    if (selectedFrame != null &&
+        selectedFrame.component.type.isPositionComponent) {
+      _paintSelectionGizmo(canvas, selectedFrame);
     }
   }
 
@@ -339,31 +585,26 @@ class _SceneCanvasPainter extends CustomPainter {
     }
   }
 
-  void _paintComponent(Canvas canvas, ComponentInstance component) {
-    final componentSize = SceneCanvasGeometry.sizeFor(component);
-    final transform = component.transform;
-    final position = Offset(transform.position.x, transform.position.y);
-    final anchor = Offset(
-      componentSize.width * transform.anchor.x,
-      componentSize.height * transform.anchor.y,
-    );
-    final image = _imageFor(component);
-
+  void _paintComponent(Canvas canvas, SceneComponentFrame frame) {
+    final image = _imageFor(frame.component);
     canvas.save();
-    final screenPosition = viewport.worldToViewport(position);
+    final screenPosition = viewport.worldToViewport(frame.position);
     canvas.translate(screenPosition.dx, screenPosition.dy);
     canvas.scale(viewport.zoom);
-    canvas.rotate(transform.angle);
-    canvas.translate(-anchor.dx, -anchor.dy);
+    canvas.rotate(frame.angle);
+    canvas.translate(-frame.anchor.dx, -frame.anchor.dy);
 
-    final rect = Offset.zero & componentSize;
+    final rect = Offset.zero & frame.size;
     if (image == null) {
       final fill = Paint()
-        ..color = _colorFor(component).withValues(alpha: 0.72)
+        ..color = Color.alphaBlend(
+          _colorFor(frame.component).withValues(alpha: 0.72),
+          placeholderColor,
+        )
         ..style = PaintingStyle.fill;
       canvas.drawRect(rect, fill);
       final border = Paint()
-        ..color = _colorFor(component)
+        ..color = _colorFor(frame.component)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1 / viewport.zoom;
       canvas.drawRect(rect, border);
@@ -375,14 +616,46 @@ class _SceneCanvasPainter extends CustomPainter {
         Paint()..filterQuality = FilterQuality.medium,
       );
     }
+    canvas.restore();
+  }
 
-    if (component.id == selectedComponentId) {
-      final selection = Paint()
+  void _paintSelectionGizmo(Canvas canvas, SceneComponentFrame frame) {
+    canvas.save();
+    final screenPosition = viewport.worldToViewport(frame.position);
+    canvas.translate(screenPosition.dx, screenPosition.dy);
+    canvas.scale(viewport.zoom);
+    canvas.rotate(frame.angle);
+    canvas.translate(-frame.anchor.dx, -frame.anchor.dy);
+
+    final selection = Paint()
+      ..color = outlineColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2 / viewport.zoom;
+    final rect = Offset.zero & frame.size;
+    canvas.drawRect(rect, selection);
+
+    final handleSize = 8 / viewport.zoom;
+    final resizeHandle = Offset(frame.size.width, frame.size.height);
+    canvas.drawRect(
+      Rect.fromCenter(
+        center: resizeHandle,
+        width: handleSize,
+        height: handleSize,
+      ),
+      Paint()
         ..color = outlineColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2 / viewport.zoom;
-      canvas.drawRect(rect, selection);
-    }
+        ..style = PaintingStyle.fill,
+    );
+
+    final rotateHandle = Offset(frame.size.width / 2, -24);
+    canvas.drawLine(Offset(frame.size.width / 2, 0), rotateHandle, selection);
+    canvas.drawCircle(
+      rotateHandle,
+      handleSize / 2,
+      Paint()
+        ..color = outlineColor
+        ..style = PaintingStyle.fill,
+    );
     canvas.restore();
   }
 
@@ -420,4 +693,13 @@ class _SceneCanvasPainter extends CustomPainter {
         outlineColor != oldDelegate.outlineColor ||
         gridColor != oldDelegate.gridColor;
   }
+}
+
+Offset _rotate(Offset point, double angle) {
+  final cosine = math.cos(angle);
+  final sine = math.sin(angle);
+  return Offset(
+    point.dx * cosine - point.dy * sine,
+    point.dx * sine + point.dy * cosine,
+  );
 }

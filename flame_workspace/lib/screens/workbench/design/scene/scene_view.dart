@@ -197,6 +197,7 @@ class _SceneViewState extends State<SceneView> {
                           scene: scene,
                           selectedComponentId: state.selectedComponent?.id,
                           projectRootPath: workbench.project.location.path,
+                          onTransformChanged: state.updateComponentTransform,
                           onSelectionChanged: (componentId) {
                             state.selectComponent(componentId);
                             if (componentId == null) {
