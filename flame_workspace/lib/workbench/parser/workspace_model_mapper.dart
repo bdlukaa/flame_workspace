@@ -106,6 +106,10 @@ class WorkspaceModelMapper {
             type: parameter.type,
             defaultValue: parameter.defaultValue,
             inherited: parameter.superComponents?.isNotEmpty ?? false,
+            editable:
+                (parameter.isLocalField && !parameter.isFinalField) ||
+                parameter.hasSetter,
+            enumValues: parameter.enumValues,
           ),
         )
         .toList();

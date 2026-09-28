@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/type.dart';
 import 'package:path/path.dart' as path;
 
 import '../project/objects/component.dart';
@@ -19,6 +20,7 @@ class FlameApiParameter {
   final bool isNamed;
   final bool isFinalField;
   final bool isFieldFormal;
+  final List<String> namedValues;
 
   const FlameApiParameter({
     required this.name,
@@ -28,6 +30,7 @@ class FlameApiParameter {
     required this.isNamed,
     required this.isFinalField,
     required this.isFieldFormal,
+    this.namedValues = const [],
   });
 }
 
@@ -50,12 +53,14 @@ class FlameApiProperty {
   final String type;
   final bool hasSetter;
   final String declaringType;
+  final List<String> namedValues;
 
   const FlameApiProperty({
     required this.name,
     required this.type,
     required this.hasSetter,
     required this.declaringType,
+    this.namedValues = const [],
   });
 }
 
@@ -113,6 +118,7 @@ class FlameApiClass {
         parameter.isFieldFormal,
         parameter.isFinalField,
         parameter.isFieldFormal && !parameter.isRequired,
+        parameter.namedValues,
       );
     }
     for (final property in transformProperties) {
@@ -126,6 +132,7 @@ class FlameApiClass {
           false,
           false,
           property.hasSetter,
+          property.namedValues,
         ),
       );
     }
@@ -143,6 +150,7 @@ class FlameApiClass {
               'type': property.type,
               'hasSetter': property.hasSetter,
               'declaringType': property.declaringType,
+              'namedValues': property.namedValues,
             },
         },
       },
@@ -349,6 +357,7 @@ class FlameApiDiscovery {
             declaringType: enclosing is InterfaceElement
                 ? enclosing.name ?? name
                 : name,
+            namedValues: _namedValues(member.returnType),
           ),
         );
       }
@@ -390,10 +399,21 @@ class FlameApiDiscovery {
                   parameter is FieldFormalParameterElement &&
                   (parameter.field?.isFinal ?? false),
               isFieldFormal: parameter is FieldFormalParameterElement,
+              namedValues: _namedValues(parameter.type),
             ),
           )
           .toList(),
     );
+  }
+
+  static List<String> _namedValues(DartType type) {
+    final element = type.element;
+    if (element is! InterfaceElement) return const [];
+    return element.fields
+        .where((field) => field.isStatic && field.isConst)
+        .map((field) => field.name)
+        .whereType<String>()
+        .toList();
   }
 
   static FlameMixin _mixinMetadata(MixinElement element) {

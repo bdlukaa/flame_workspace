@@ -3,6 +3,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 import 'package:flame_workspace_runtime/utils.dart';
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
+import 'package:flame_workspace/workbench/model/semantic_property_editor.dart';
 import 'package:flame_workspace/workbench/parser/values.dart';
 
 import 'scene/scene_properties.dart';
@@ -13,7 +14,13 @@ const kFieldHeight = 28.0;
 class ComponentView extends StatelessWidget {
   const ComponentView({super.key});
 
-  static const _transformNames = {'position', 'size', 'angle'};
+  static const _transformNames = {
+    'position',
+    'size',
+    'angle',
+    'anchor',
+    'priority',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -23,24 +30,33 @@ class ComponentView extends StatelessWidget {
     if (component == null) return const ScenePropertiesView();
 
     final definitions = component.type.properties;
-    final transformProperties = definitions
-        .where((property) => _transformNames.contains(property.name))
-        .toList();
     final scriptProperties = definitions
         .where((property) => !_transformNames.contains(property.name))
         .toList();
+    final transformDefinitions = {
+      for (final property in definitions)
+        if (_transformNames.contains(property.name)) property.name: property,
+    };
+
+    WorkspacePropertyDefinition definitionFor(String name, String type) {
+      return transformDefinitions[name] ??
+          WorkspacePropertyDefinition(name: name, type: type);
+    }
 
     void updateProperty(WorkspacePropertyDefinition definition, String value) {
+      if (!definition.editable) return;
+      final edit = SemanticPropertyEditor.parse(definition, value);
+      if (edit == null) return;
       workbench.state.updateComponentProperty(
         component.id,
         definition.name,
-        value,
+        edit.modelValue,
       );
       workbench.runner.setProperty(
         componentId: component.declarationName ?? component.id,
         property: definition.name,
         type: definition.type,
-        value: value,
+        value: edit.runtimeValue,
       );
     }
 
@@ -78,73 +94,116 @@ class ComponentView extends StatelessWidget {
             trailing: '${scriptProperties.length}',
             children: [
               for (final property in scriptProperties)
-                PropertyField(
+                _buildPropertyField(
+                  property,
+                  component.properties[property.name] ?? property.defaultValue,
+                  updateProperty,
                   key: ValueKey(
                     '${component.id}:${property.name}:${component.properties[property.name]}',
                   ),
-                  name: property.name,
-                  value:
-                      '${component.properties[property.name] ?? property.defaultValue ?? ''}',
-                  type: property.type,
-                  onChanged: (value) => updateProperty(property, value),
                 ),
             ],
           ),
           if (component.type.isPositionComponent)
             ComponentSectionCard(
               title: 'Transform',
-              trailing: '${transformProperties.length}',
+              trailing: '5',
               children: [
-                if (transformProperties.any(
-                  (property) => property.name == 'position',
-                ))
-                  PropertyField.vector2(
-                    (
-                      component.transform.position.x,
-                      component.transform.position.y,
-                    ),
-                    first: 'pos | x',
-                    second: 'pos | y',
-                    onChanged: (value) => _updateTransform(
+                PropertyField.vector2(
+                  (
+                    component.transform.position.x,
+                    component.transform.position.y,
+                  ),
+                  first: 'pos | x',
+                  second: 'pos | y',
+                  onChanged: (value) => _updateVectorTransform(
+                    workbench,
+                    component,
+                    definitionFor('position', 'Vector2'),
+                    value,
+                    (transform, vector) => transform.copyWith(position: vector),
+                  ),
+                ),
+                PropertyField.vector2(
+                  (component.transform.size.x, component.transform.size.y),
+                  first: 's | width',
+                  second: 's | height',
+                  onChanged: (value) => _updateVectorTransform(
+                    workbench,
+                    component,
+                    definitionFor('size', 'Vector2'),
+                    value,
+                    (transform, vector) => transform.copyWith(size: vector),
+                  ),
+                ),
+                PropertyField(
+                  name: 'rotation',
+                  description: 'rotation angle',
+                  value: '${component.transform.angle}',
+                  type: 'double',
+                  onChanged: (value) {
+                    final definition = definitionFor('angle', 'double');
+                    final edit = SemanticPropertyEditor.parse(
+                      definition,
+                      value,
+                    );
+                    if (edit?.modelValue is! double) return;
+                    _updateTransform(
                       workbench,
                       component,
                       component.transform.copyWith(
-                        position: _parseVector(value),
+                        angle: edit!.modelValue! as double,
                       ),
-                    ),
-                  ),
-                if (transformProperties.any(
-                  (property) => property.name == 'size',
-                ))
-                  PropertyField.vector2(
-                    (component.transform.size.x, component.transform.size.y),
-                    first: 's | width',
-                    second: 's | height',
-                    nullable: true,
-                    onChanged: (value) => _updateTransform(
+                    );
+                  },
+                ),
+                EnumPropertyField(
+                  name: 'anchor',
+                  type: 'Anchor',
+                  value: _anchorName(component.transform.anchor),
+                  options: SemanticPropertyEditor.anchorValues,
+                  onChanged: (value) {
+                    final definition = definitionFor('anchor', 'Anchor');
+                    final edit = SemanticPropertyEditor.parse(
+                      definition,
+                      value,
+                    );
+                    if (edit == null) return;
+                    _updateTransform(
                       workbench,
                       component,
-                      component.transform.copyWith(size: _parseVector(value)),
-                    ),
-                  ),
-                if (transformProperties.any(
-                  (property) => property.name == 'angle',
-                ))
-                  PropertyField(
-                    name: 'rotation',
-                    description: 'rotation angle',
-                    value: '${component.transform.angle}',
-                    type: '$double',
-                    onChanged: (value) {
-                      final angle = double.tryParse(value);
-                      if (angle == null) return;
-                      _updateTransform(
-                        workbench,
-                        component,
-                        component.transform.copyWith(angle: angle),
-                      );
-                    },
-                  ),
+                      component.transform.copyWith(
+                        anchor: SemanticPropertyEditor.anchorVector(value),
+                      ),
+                      property: 'anchor',
+                      type: 'Anchor',
+                      runtimeValue: edit.runtimeValue,
+                    );
+                  },
+                ),
+                PropertyField(
+                  name: 'priority',
+                  value: '${component.priority}',
+                  type: 'int',
+                  onChanged: (value) {
+                    final definition = definitionFor('priority', 'int');
+                    final edit = SemanticPropertyEditor.parse(
+                      definition,
+                      value,
+                    );
+                    if (edit?.modelValue is! int) return;
+                    workbench.state.setComponentPriority(
+                      component.id,
+                      edit!.modelValue! as int,
+                    );
+                    workbench.runner.setProperty(
+                      componentId: component.declarationName ?? component.id,
+                      property: 'priority',
+                      type: 'int',
+                      value: edit.runtimeValue,
+                    );
+                  },
+                ),
               ],
             ),
         ],
@@ -152,20 +211,81 @@ class ComponentView extends StatelessWidget {
     );
   }
 
-  static WorkspaceVector2 _parseVector(String value) {
-    final parsed = ValuesParser.parseVector2(value);
-    return parsed == null
-        ? const WorkspaceVector2.zero()
-        : WorkspaceVector2(parsed.$1, parsed.$2);
+  static Widget _buildPropertyField(
+    WorkspacePropertyDefinition definition,
+    Object? rawValue,
+    void Function(WorkspacePropertyDefinition, String) onChanged, {
+    Key? key,
+  }) {
+    final kind = SemanticPropertyEditor.kindFor(definition);
+    final value = SemanticPropertyEditor.displayValue(definition, rawValue);
+    if (kind == SemanticPropertyKind.enumeration ||
+        kind == SemanticPropertyKind.anchor) {
+      return EnumPropertyField(
+        key: key,
+        name: definition.name,
+        type: definition.type,
+        value: SemanticPropertyEditor.optionFromValue(rawValue),
+        options: SemanticPropertyEditor.optionsFor(definition),
+        editable: definition.editable,
+        onChanged: (value) => onChanged(definition, value),
+      );
+    }
+    if (kind == SemanticPropertyKind.vector2) {
+      final vector =
+          SemanticPropertyEditor.vectorFromValue(rawValue) ??
+          const WorkspaceVector2.zero();
+      return PropertyField.vector2(
+        (vector.x, vector.y),
+        first: '${definition.name} | x',
+        second: '${definition.name} | y',
+        onChanged: (value) => onChanged(definition, value),
+      );
+    }
+    return PropertyField(
+      key: key,
+      name: definition.name,
+      value: value,
+      type: definition.type,
+      editable: definition.editable && kind != SemanticPropertyKind.unsupported,
+      onChanged: (value) => onChanged(definition, value),
+    );
+  }
+
+  static void _updateVectorTransform(
+    Workbench workbench,
+    ComponentInstance component,
+    WorkspacePropertyDefinition definition,
+    String value,
+    WorkspaceTransform Function(WorkspaceTransform, WorkspaceVector2) update,
+  ) {
+    final edit = SemanticPropertyEditor.parse(definition, value);
+    final vector = edit == null
+        ? null
+        : SemanticPropertyEditor.vectorFromValue(edit.modelValue);
+    if (vector == null) return;
+    _updateTransform(workbench, component, update(component.transform, vector));
   }
 
   static void _updateTransform(
     Workbench workbench,
     ComponentInstance component,
-    WorkspaceTransform transform,
-  ) {
+    WorkspaceTransform transform, {
+    String? property,
+    String? type,
+    String? runtimeValue,
+  }) {
     workbench.state.updateComponentTransform(component.id, transform);
     final componentId = component.declarationName ?? component.id;
+    if (property != null && type != null && runtimeValue != null) {
+      workbench.runner.setProperty(
+        componentId: componentId,
+        property: property,
+        type: type,
+        value: runtimeValue,
+      );
+      return;
+    }
     workbench.runner.setProperty(
       componentId: componentId,
       property: 'position',
@@ -183,6 +303,70 @@ class ComponentView extends StatelessWidget {
       property: 'angle',
       type: 'double',
       value: '${transform.angle}',
+    );
+  }
+
+  static String _anchorName(WorkspaceVector2 anchor) {
+    for (final name in SemanticPropertyEditor.anchorValues) {
+      if (SemanticPropertyEditor.anchorVector(name) == anchor) return name;
+    }
+    return 'center';
+  }
+}
+
+class EnumPropertyField extends StatelessWidget {
+  final String name;
+  final String type;
+  final String? value;
+  final List<String> options;
+  final bool editable;
+  final ValueChanged<String>? onChanged;
+
+  const EnumPropertyField({
+    super.key,
+    required this.name,
+    required this.type,
+    required this.value,
+    required this.options,
+    this.editable = true,
+    this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final selectedValue = options.contains(value) ? value : null;
+    return SizedBox(
+      height: kFieldHeight,
+      child: Row(
+        children: [
+          SizedBox(
+            width: 24.0,
+            child: Icon(Icons.list_alt, size: 18.0, color: theme.hintColor),
+          ),
+          const SizedBox(width: 6.0),
+          Expanded(child: Text(name, style: theme.textTheme.labelSmall)),
+          const VerticalDivider(indent: 0.0, endIndent: 0.0),
+          const SizedBox(width: 4.0),
+          Expanded(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              value: selectedValue,
+              hint: Text(type, style: theme.textTheme.bodySmall),
+              underline: const SizedBox.shrink(),
+              onChanged: !editable || onChanged == null
+                  ? null
+                  : (next) {
+                      if (next != null) onChanged!(next);
+                    },
+              items: [
+                for (final option in options)
+                  DropdownMenuItem(value: option, child: Text(option)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -444,10 +628,7 @@ class PropertyFieldState extends State<PropertyField> {
                     'String' || 'int' || 'double' || 'num' => buildEditable(),
                     'Color' => buildColorPicker(),
                     'bool' => buildFlagSwitch(),
-                    _ => const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8.0),
-                      child: Placeholder(),
-                    ),
+                    _ => buildUnsupported(),
                   },
                 ),
               ],
@@ -545,7 +726,12 @@ class PropertyFieldState extends State<PropertyField> {
   Widget buildColorPicker() {
     return Builder(
       builder: (context) {
-        final color = ValuesParser.parseColor(widget.value);
+        Color? color;
+        try {
+          color = ValuesParser.parseColor(widget.value);
+        } on Object {
+          return buildUnsupported(label: 'Invalid color');
+        }
 
         return Padding(
           padding: const EdgeInsetsDirectional.symmetric(vertical: 5.0),
@@ -557,10 +743,9 @@ class PropertyFieldState extends State<PropertyField> {
                       context: context,
                       builder: (context) {
                         return SimpleDialog(
-                          // title: const Text('Pick a color'),
                           children: [
                             ColorPicker(
-                              pickerColor: color,
+                              pickerColor: color!,
                               paletteType: PaletteType.hsv,
                               labelTypes: const [ColorLabelType.rgb],
                               portraitOnly: true,
@@ -570,13 +755,25 @@ class PropertyFieldState extends State<PropertyField> {
                         );
                       },
                     );
-                    widget.onChanged?.call('const $newColor');
+                    if (newColor != null) {
+                      widget.onChanged?.call(
+                        'const Color(0x${newColor!.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()})',
+                      );
+                    }
                   }
                 : null,
             child: Container(color: color),
           ),
         );
       },
+    );
+  }
+
+  Widget buildUnsupported({String? label}) {
+    final text = label ?? 'Unsupported (${widget.type})';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Text(text, style: const TextStyle(fontStyle: FontStyle.italic)),
     );
   }
 

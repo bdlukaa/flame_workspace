@@ -62,12 +62,16 @@ class WorkspacePropertyDefinition {
   final String type;
   final Object? defaultValue;
   final bool inherited;
+  final bool editable;
+  final List<String> enumValues;
 
   const WorkspacePropertyDefinition({
     required this.name,
     required this.type,
     this.defaultValue,
     this.inherited = false,
+    this.editable = true,
+    this.enumValues = const [],
   });
 
   factory WorkspacePropertyDefinition.fromJson(Map<String, Object?> json) {
@@ -76,6 +80,8 @@ class WorkspacePropertyDefinition {
       type: _requiredString(json, 'type'),
       defaultValue: json['defaultValue'],
       inherited: json['inherited'] as bool? ?? false,
+      editable: json['editable'] as bool? ?? true,
+      enumValues: _list(json['enumValues']).whereType<String>().toList(),
     );
   }
 
@@ -86,6 +92,8 @@ class WorkspacePropertyDefinition {
     'type': type,
     if (defaultValue != null) 'defaultValue': defaultValue,
     if (inherited) 'inherited': true,
+    if (!editable) 'editable': false,
+    if (enumValues.isNotEmpty) 'enumValues': enumValues,
   };
 }
 

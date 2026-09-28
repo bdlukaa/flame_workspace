@@ -86,6 +86,7 @@ class FlameTypeResolver {
             false,
             false,
             property.hasSetter,
+            property.namedValues,
           ),
         );
       }

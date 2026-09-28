@@ -129,6 +129,10 @@ class FlameProjectState with ChangeNotifier {
     return workspaceModel.updateTransform(componentId, transform);
   }
 
+  bool setComponentPriority(String componentId, int priority) {
+    return workspaceModel.setPriority(componentId, priority);
+  }
+
   bool addWorkspaceComponent(ComponentInstance component, {String? parentId}) {
     return workspaceModel.addComponent(component, parentId: parentId);
   }

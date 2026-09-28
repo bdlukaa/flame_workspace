@@ -57,7 +57,8 @@ class FlameComponentObject {
     buffer.write('key: FlameKey(\'$declarationName\'),');
 
     for (final parameter in parameters) {
-      final isRequired = !parameter.isNullable &&
+      final isRequired =
+          !parameter.isNullable &&
           (parameter.defaultValue == null || parameter.defaultValue == 'null');
 
       if (isRequired) {
@@ -116,6 +117,9 @@ class FlameComponentField {
   /// Whether this field is local, but has a getter and a setter
   final bool hasSetter;
 
+  /// Named values discovered for enum-like Flame types such as Anchor.
+  final List<String> enumValues;
+
   FlameComponentField(
     this.name,
     this.type, [
@@ -124,17 +128,20 @@ class FlameComponentField {
     this.isLocalField = false,
     this.isFinalField = false,
     this.hasSetter = false,
+    this.enumValues = const [],
   ]);
 
   @override
-  String toString() => "FlameComponentField("
+  String toString() =>
+      "FlameComponentField("
       "'$name', "
       "'$type', "
       "'$defaultValue', "
       "${superComponents == null ? 'null, ' : "[${superComponents!.map((e) => "'$e'").join(', ')}], "}"
       "$isLocalField, "
       "$isFinalField,"
-      "$hasSetter"
+      "$hasSetter,"
+      "$enumValues"
       ")";
 
   bool get isNullable => type == 'dynamic' || type.endsWith('?');
