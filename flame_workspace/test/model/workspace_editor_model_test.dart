@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
 import 'package:flame_workspace/workbench/model/workspace_editor_model.dart';
 import 'package:flame_workspace/workbench/project/project.dart';
+import 'package:flame_workspace_communication_bridge/runtime_client.dart';
+import 'package:flame_workspace_protocol/runtime.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -64,6 +66,42 @@ void main() {
     expect(parent.properties['speed'], '4');
     expect(editor.removeComponent('child'), isTrue);
     expect(parent.children, isEmpty);
+  });
+
+  test('local edits survive a failed runtime synchronization', () async {
+    final component = _component('player', 'Player');
+    final editor = WorkspaceEditorModel(
+      WorkspaceProject(
+        id: 'project',
+        name: 'Game',
+        scenes: [
+          SceneDefinition(
+            id: 'scene-main',
+            name: 'Main',
+            components: [component],
+          ),
+        ],
+      ),
+    );
+    editor.updateProperty(component.id, 'speed', 4.0);
+    final client = WorkspaceRuntimeClient.fromInvoker((_, _) {
+      return Future.value(
+        const WorkspaceRuntimeResponse.failure(
+          error: WorkspaceRuntimeError(
+            code: 'runtime_disconnected',
+            message: 'The preview disconnected.',
+          ),
+        ).toMap(),
+      );
+    });
+
+    await expectLater(
+      client.invoke(WorkspaceExtensionNames.setProperty),
+      throwsA(isA<WorkspaceRuntimeException>()),
+    );
+
+    expect(component.properties['speed'], 4.0);
+    expect(editor.isDirty, isTrue);
   });
 
   test(

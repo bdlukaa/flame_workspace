@@ -17,36 +17,51 @@ class _GamePreviewViewState extends State<GamePreviewView> {
       listenable: workbench.runner,
       builder: (context, child) => Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(12.0),
+        child: Column(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: workbench.runner.buildPreview(),
+              ),
             ),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: workbench.runner.buildPreview(),
-            ),
-          ),
-          const SizedBox(height: 8.0),
-          Expanded(
-            child: ClipRect(
-              child: Card(
-                margin: EdgeInsets.zero,
-                shape: const RoundedRectangleBorder(),
-                child: ColoredBox(
-                  color: Colors.black,
-                  child: SingleChildScrollView(
-                    reverse: true,
-                    padding: const EdgeInsetsDirectional.all(14.0),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: SelectableText(
-                        workbench.runner.logs.join('\n'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'monospace',
-                          fontSize: 12.0,
+            if (workbench.runner.runtimeError case final error?)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    error,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 8.0),
+            Expanded(
+              child: ClipRect(
+                child: Card(
+                  margin: EdgeInsets.zero,
+                  shape: const RoundedRectangleBorder(),
+                  child: ColoredBox(
+                    color: Colors.black,
+                    child: SingleChildScrollView(
+                      reverse: true,
+                      padding: const EdgeInsetsDirectional.all(14.0),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: SelectableText(
+                          workbench.runner.logs.join('\n'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'monospace',
+                            fontSize: 12.0,
+                          ),
                         ),
                       ),
                     ),
@@ -54,8 +69,8 @@ class _GamePreviewViewState extends State<GamePreviewView> {
                 ),
               ),
             ),
-          ),
-        ]),
+          ],
+        ),
       ),
     );
   }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
@@ -52,12 +54,16 @@ class ComponentView extends StatelessWidget {
         definition.name,
         edit.modelValue,
       );
-      workbench.runner.setProperty(
-        componentId: component.declarationName ?? component.id,
-        property: definition.name,
-        type: definition.type,
-        value: edit.runtimeValue,
-      );
+      if (workbench.runner.canControlRuntime) {
+        unawaited(
+          workbench.runner.setProperty(
+            componentId: component.declarationName ?? component.id,
+            property: definition.name,
+            type: definition.type,
+            value: edit.runtimeValue,
+          ),
+        );
+      }
     }
 
     return Padding(
@@ -175,9 +181,6 @@ class ComponentView extends StatelessWidget {
                       component.transform.copyWith(
                         anchor: SemanticPropertyEditor.anchorVector(value),
                       ),
-                      property: 'anchor',
-                      type: 'Anchor',
-                      runtimeValue: edit.runtimeValue,
                     );
                   },
                 ),
@@ -196,12 +199,17 @@ class ComponentView extends StatelessWidget {
                       component.id,
                       edit!.modelValue! as int,
                     );
-                    workbench.runner.setProperty(
-                      componentId: component.declarationName ?? component.id,
-                      property: 'priority',
-                      type: 'int',
-                      value: edit.runtimeValue,
-                    );
+                    if (workbench.runner.canControlRuntime) {
+                      unawaited(
+                        workbench.runner.setProperty(
+                          componentId:
+                              component.declarationName ?? component.id,
+                          property: 'priority',
+                          type: 'int',
+                          value: edit.runtimeValue,
+                        ),
+                      );
+                    }
                   },
                 ),
               ],
@@ -270,40 +278,17 @@ class ComponentView extends StatelessWidget {
   static void _updateTransform(
     Workbench workbench,
     ComponentInstance component,
-    WorkspaceTransform transform, {
-    String? property,
-    String? type,
-    String? runtimeValue,
-  }) {
+    WorkspaceTransform transform,
+  ) {
     workbench.state.updateComponentTransform(component.id, transform);
-    final componentId = component.declarationName ?? component.id;
-    if (property != null && type != null && runtimeValue != null) {
-      workbench.runner.setProperty(
-        componentId: componentId,
-        property: property,
-        type: type,
-        value: runtimeValue,
+    if (workbench.runner.canControlRuntime) {
+      unawaited(
+        workbench.runner.setTransform(
+          componentId: component.declarationName ?? component.id,
+          transform: transform,
+        ),
       );
-      return;
     }
-    workbench.runner.setProperty(
-      componentId: componentId,
-      property: 'position',
-      type: 'Vector2',
-      value: 'Vector2(${transform.position.x}, ${transform.position.y})',
-    );
-    workbench.runner.setProperty(
-      componentId: componentId,
-      property: 'size',
-      type: 'Vector2',
-      value: 'Vector2(${transform.size.x}, ${transform.size.y})',
-    );
-    workbench.runner.setProperty(
-      componentId: componentId,
-      property: 'angle',
-      type: 'double',
-      value: '${transform.angle}',
-    );
   }
 
   static String _anchorName(WorkspaceVector2 anchor) {

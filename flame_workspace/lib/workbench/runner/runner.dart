@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:flame_workspace_communication_bridge/workspace.dart';
 import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
+import '../model/semantic_model.dart';
 import '../project/project.dart';
 
 const kWorkspaceLogPrefix = 'flame_workspace: ';
@@ -32,6 +33,9 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   /// Called after the VM Service connection is established.
   final Future<void> Function()? onRuntimeConnected;
 
+  /// Optional runtime client override used by focused synchronization tests.
+  final WorkspaceRuntimeClient? runtimeClientOverride;
+
   late final FlutterProjectRunner processRunner = FlutterProjectRunner(
     projectDirectory: project.location,
   );
@@ -40,6 +44,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   FlameProjectRunner(
     this.project, {
     this.onRuntimeConnected,
+    this.runtimeClientOverride,
     PreviewSurface? previewSurface,
   }) : previewRunner = PreviewProjectRunner(
          runner: FlutterProjectRunner(projectDirectory: project.location),
@@ -49,9 +54,19 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   }
 
   bool _isRunning = false;
+  String? _runtimeError;
 
   /// Whether the project is running.
   bool get isRunning => _isRunning;
+
+  /// The most recent runtime synchronization failure, if any.
+  String? get runtimeError => _runtimeError;
+
+  void clearRuntimeError() {
+    if (_runtimeError == null) return;
+    _runtimeError = null;
+    notifyListeners();
+  }
 
   ProjectRunnerState get runnerState => processRunner.state;
   PreviewState get previewState => previewRunner.state;
@@ -70,14 +85,14 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     unawaited(_setPaused(false));
   }
 
-  Future<void> setScene(String sceneName) {
+  Future<bool> setScene(String sceneName) {
     return _invokeRuntime(
       WorkspaceExtensionNames.setScene,
       arguments: {'scene': sceneName},
     );
   }
 
-  Future<void> setProperty({
+  Future<bool> setProperty({
     required String componentId,
     required String property,
     required String type,
@@ -94,45 +109,74 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     );
   }
 
-  Future<void> addComponent(String declarationName) {
+  Future<bool> setTransform({
+    required String componentId,
+    required WorkspaceTransform transform,
+  }) {
+    return _invokeRuntime(
+      WorkspaceExtensionNames.setTransform,
+      arguments: {
+        'componentId': componentId,
+        'transform': {
+          'position': {'x': transform.position.x, 'y': transform.position.y},
+          'size': {'x': transform.size.x, 'y': transform.size.y},
+          'angle': transform.angle,
+          'anchor': {'x': transform.anchor.x, 'y': transform.anchor.y},
+        },
+      },
+    );
+  }
+
+  Future<bool> addComponent(String declarationName) {
     return _invokeRuntime(
       WorkspaceExtensionNames.addComponent,
       arguments: {'declarationName': declarationName},
     );
   }
 
-  Future<void> removeComponent(String declarationName) {
+  Future<bool> removeComponent(String declarationName) {
     return _invokeRuntime(
       WorkspaceExtensionNames.removeComponent,
       arguments: {'declarationName': declarationName},
     );
   }
 
-  Future<void> _invokeRuntime(
+  Future<bool> _invokeRuntime(
     String method, {
     Map<String, dynamic> arguments = const {},
   }) async {
-    final client = runtimeClient;
+    final client = runtimeClientOverride ?? runtimeClient;
     if (client == null) {
-      emitLog('Runtime is not connected.', kWorkspaceLogPrefix);
-      return;
+      _reportRuntimeError('Runtime is not connected.');
+      return false;
     }
 
     try {
       await client.invoke(method, arguments: arguments);
+      if (_runtimeError != null) {
+        _runtimeError = null;
+        notifyListeners();
+      }
+      return true;
     } on WorkspaceRuntimeException catch (error) {
-      emitLog(error.toString(), kWorkspaceLogPrefix);
+      _reportRuntimeError('Runtime synchronization failed: $error');
+      return false;
     } catch (error) {
-      emitLog('Runtime command failed: $error', kWorkspaceLogPrefix);
+      _reportRuntimeError('Runtime synchronization failed: $error');
+      return false;
     }
   }
 
+  void _reportRuntimeError(String message) {
+    _runtimeError = message;
+    emitLog(message, kWorkspaceLogPrefix);
+  }
+
   Future<void> _setPaused(bool paused) async {
-    final client = runtimeClient;
+    final client = runtimeClientOverride ?? runtimeClient;
     if (client == null) {
-      emitLog(
+      _reportRuntimeError(
         'Runtime is not connected; cannot ${paused ? 'pause' : 'resume'}.',
-        kWorkspaceLogPrefix,
       );
       return;
     }
@@ -144,9 +188,9 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
       _gameState = _gameState.copyWith(paused: paused);
       notifyListeners();
     } on WorkspaceRuntimeException catch (error) {
-      emitLog(error.toString(), kWorkspaceLogPrefix);
+      _reportRuntimeError('Runtime command failed: $error');
     } catch (error) {
-      emitLog('Runtime command failed: $error', kWorkspaceLogPrefix);
+      _reportRuntimeError('Runtime command failed: $error');
     }
   }
 

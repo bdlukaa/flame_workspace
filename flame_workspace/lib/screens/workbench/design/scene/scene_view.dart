@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../../workbench/model/semantic_model.dart';
@@ -197,7 +199,25 @@ class _SceneViewState extends State<SceneView> {
                           scene: scene,
                           selectedComponentId: state.selectedComponent?.id,
                           projectRootPath: workbench.project.location.path,
-                          onTransformChanged: state.updateComponentTransform,
+                          onTransformChanged: (componentId, transform) {
+                            state.updateComponentTransform(
+                              componentId,
+                              transform,
+                            );
+                            if (workbench.runner.canControlRuntime) {
+                              unawaited(
+                                workbench.runner.setTransform(
+                                  componentId:
+                                      state
+                                          .workspaceModel
+                                          .selectedComponent
+                                          ?.declarationName ??
+                                      componentId,
+                                  transform: transform,
+                                ),
+                              );
+                            }
+                          },
                           onSelectionChanged: (componentId) {
                             state.selectComponent(componentId);
                             if (componentId == null) {
