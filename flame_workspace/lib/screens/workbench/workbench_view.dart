@@ -2,7 +2,7 @@ import 'package:flame_workspace/screens/workbench/design/script_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../../workbench/project/objects/component.dart';
+import '../../workbench/model/semantic_model.dart';
 import '../../workbench/project/project.dart';
 import '../../workbench/runner/runner.dart';
 import '../../workbench/runner/state.dart';
@@ -32,7 +32,7 @@ class Workbench extends InheritedWidget {
   /// The current state of the [project].
   final FlameProjectState state;
 
-  final ValueChanged<FlameComponentObject?> onComponentSelected;
+  final ValueChanged<ComponentInstance?> onComponentSelected;
 
   final VoidCallback onEditScript;
 
@@ -83,7 +83,7 @@ enum WorkbenchViewMode {
   /// See also:
   ///
   ///  * [ConfigurationView]
-  configuration;
+  configuration,
 }
 
 class WorkbenchView extends StatefulWidget {
@@ -137,11 +137,17 @@ class _WorkbenchViewState extends State<WorkbenchView> {
           child: Card(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Text('Indexing project...', style: theme.textTheme.labelLarge),
-                const SizedBox(height: 12.0),
-                const CircularProgressIndicator.adaptive(strokeWidth: 2.1),
-              ]),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Indexing project...',
+                    style: theme.textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 12.0),
+                  const CircularProgressIndicator.adaptive(strokeWidth: 2.1),
+                ],
+              ),
             ),
           ),
         ),
@@ -155,33 +161,36 @@ class _WorkbenchViewState extends State<WorkbenchView> {
         runner: runner,
         state: state,
         onComponentSelected: (component) {
-          state.selectedComponent = component;
+          state.selectComponent(component?.id);
         },
         onEditScript: () {
           setState(() => _editingScript = !_editingScript);
         },
         child: Scaffold(
-          body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Card(
-              margin: EdgeInsets.zero,
-              shape: const RoundedRectangleBorder(),
-              child: Container(
-                height: 38.0,
-                padding: const EdgeInsetsDirectional.all(4.0),
-                child: Builder(builder: _buildToolbar),
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Card(
+                margin: EdgeInsets.zero,
+                shape: const RoundedRectangleBorder(),
+                child: Container(
+                  height: 38.0,
+                  padding: const EdgeInsetsDirectional.all(4.0),
+                  child: Builder(builder: _buildToolbar),
+                ),
               ),
-            ),
-            Expanded(
-              child: switch (mode) {
-                WorkbenchViewMode.design => DesignView(
+              Expanded(
+                child: switch (mode) {
+                  WorkbenchViewMode.design => DesignView(
                     isEditingScript: _editingScript,
                   ),
-                WorkbenchViewMode.project => const ProjectView(),
-                WorkbenchViewMode.assets => const AssetsView(),
-                WorkbenchViewMode.configuration => const ConfigurationView(),
-              },
-            )
-          ]),
+                  WorkbenchViewMode.project => const ProjectView(),
+                  WorkbenchViewMode.assets => const AssetsView(),
+                  WorkbenchViewMode.configuration => const ConfigurationView(),
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -189,141 +198,168 @@ class _WorkbenchViewState extends State<WorkbenchView> {
 
   Widget _buildToolbar(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const SizedBox(width: 24.0),
-      Expanded(
-        child: Row(children: [
-          InkedIconButton(
-            onTap: state.indexProject,
-            tooltip: 'Reindex project',
-            icon: const Icon(Icons.lan),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(width: 24.0),
+        Expanded(
+          child: Row(
+            children: [
+              InkedIconButton(
+                onTap: state.indexProject,
+                tooltip: 'Reindex project',
+                icon: const Icon(Icons.lan),
+              ),
+              const SizedBox(width: 8.0),
+              InkedIconButton(
+                onTap: state.isDirty ? state.saveWorkspace : null,
+                tooltip: 'Save scene',
+                icon: const Icon(Icons.save),
+              ),
+              const SizedBox(width: 8.0),
+              const NotificationsField(),
+            ],
           ),
-          const SizedBox(width: 8.0),
-          const NotificationsField(),
-        ]),
-      ),
-      Expanded(
-        child: Builder(builder: (context) {
-          if (_editingScript) {
-            final editor = scriptEditorKey.currentState;
-            return AnimatedBuilder(
-              animation: editor?.controller ?? Listenable.merge([]),
-              builder: (context, _) => Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      (editor?.file.path ?? '').split(widget.project.name).last,
-                      style: theme.textTheme.labelMedium,
+        ),
+        Expanded(
+          child: Builder(
+            builder: (context) {
+              if (_editingScript) {
+                final editor = scriptEditorKey.currentState;
+                return AnimatedBuilder(
+                  animation: editor?.controller ?? Listenable.merge([]),
+                  builder: (context, _) => Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          (editor?.file.path ?? '')
+                              .split(widget.project.name)
+                              .last,
+                          style: theme.textTheme.labelMedium,
+                        ),
+                        const SizedBox(width: 8.0),
+                        InkedIconButton(
+                          onTap: () =>
+                              setState(() => _editingScript = !_editingScript),
+                          icon: const Icon(Icons.close, size: 16.0),
+                          tooltip: 'Close',
+                        ),
+                        const SizedBox(width: 8.0),
+                        InkedIconButton(
+                          onTap: editor?.isSaved ?? false ? null : editor?.save,
+                          icon: const Icon(Icons.save, size: 16.0),
+                          tooltip: 'Save',
+                        ),
+                        const SizedBox(width: 8.0),
+                        InkedIconButton(
+                          onTap: editor?.format,
+                          icon: const Icon(Icons.segment, size: 16.0),
+                          tooltip: 'Format',
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8.0),
-                    InkedIconButton(
-                      onTap: () =>
-                          setState(() => _editingScript = !_editingScript),
-                      icon: const Icon(Icons.close, size: 16.0),
-                      tooltip: 'Close',
-                    ),
-                    const SizedBox(width: 8.0),
-                    InkedIconButton(
-                      onTap: editor?.isSaved ?? false ? null : editor?.save,
-                      icon: const Icon(Icons.save, size: 16.0),
-                      tooltip: 'Save',
-                    ),
-                    const SizedBox(width: 8.0),
-                    InkedIconButton(
-                      onTap: editor?.format,
-                      icon: const Icon(Icons.segment, size: 16.0),
-                      tooltip: 'Format',
-                    ),
-                  ],
+                  ),
+                );
+              }
+              return Center(
+                child: ToggleButtons(
+                  isSelected: WorkbenchViewMode.values
+                      .map((m) => m == mode)
+                      .toList(),
+                  children:
+                      const [
+                        (Icon(Icons.design_services), 'DESIGN'),
+                        (Icon(Icons.apps), 'PROJECT'),
+                        (Icon(Icons.web_stories), 'ASSETS'),
+                        (Icon(Icons.settings), 'CONFIG'),
+                      ].indexed.map((e) {
+                        final isSelected =
+                            WorkbenchViewMode.values.indexed
+                                .firstWhere((mode) => mode.$1 == e.$1)
+                                .$2 ==
+                            mode;
+
+                        final (icon, text) = e.$2;
+
+                        return AnimatedSize(
+                          duration: const Duration(milliseconds: 200),
+                          child: isSelected
+                              ? Padding(
+                                  padding:
+                                      const EdgeInsetsDirectional.symmetric(
+                                        horizontal: 12.0,
+                                      ),
+                                  child: Row(
+                                    children: [
+                                      icon,
+                                      const SizedBox(width: 8.0),
+                                      Text(
+                                        text,
+                                        style: theme.textTheme.labelMedium,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : e.$2.$1,
+                        );
+                      }).toList(),
+                  onPressed: (index) => setState(() {
+                    mode = WorkbenchViewMode.values[index];
+                  }),
+                ),
+              );
+            },
+          ),
+        ),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              InkedIconButton(
+                onTap: !runner.canControlRuntime ? null : runner.hotReload,
+                tooltip: 'Hot reload',
+                icon: Icon(Icons.bolt, color: theme.colorScheme.primary),
+              ),
+              const SizedBox(width: 8.0),
+              InkedIconButton(
+                onTap: !runner.canControlRuntime ? null : runner.hotRestart,
+                tooltip: 'Hot restart',
+                icon: Icon(
+                  Icons.local_fire_department,
+                  color: theme.colorScheme.tertiary,
                 ),
               ),
-            );
-          }
-          return Center(
-            child: ToggleButtons(
-              isSelected:
-                  WorkbenchViewMode.values.map((m) => m == mode).toList(),
-              children: const [
-                (Icon(Icons.design_services), 'DESIGN'),
-                (Icon(Icons.apps), 'PROJECT'),
-                (Icon(Icons.web_stories), 'ASSETS'),
-                (Icon(Icons.settings), 'CONFIG'),
-              ].indexed.map((e) {
-                final isSelected = WorkbenchViewMode.values.indexed
-                        .firstWhere((mode) => mode.$1 == e.$1)
-                        .$2 ==
-                    mode;
-
-                final (icon, text) = e.$2;
-
-                return AnimatedSize(
-                  duration: const Duration(milliseconds: 200),
-                  child: isSelected
-                      ? Padding(
-                          padding: const EdgeInsetsDirectional.symmetric(
-                            horizontal: 12.0,
-                          ),
-                          child: Row(children: [
-                            icon,
-                            const SizedBox(width: 8.0),
-                            Text(text, style: theme.textTheme.labelMedium),
-                          ]),
-                        )
-                      : e.$2.$1,
-                );
-              }).toList(),
-              onPressed: (index) => setState(() {
-                mode = WorkbenchViewMode.values[index];
-              }),
-            ),
-          );
-        }),
-      ),
-      Expanded(
-        child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-          InkedIconButton(
-            onTap: !runner.canControlRuntime ? null : runner.hotReload,
-            tooltip: 'Hot reload',
-            icon: Icon(Icons.bolt, color: theme.colorScheme.primary),
-          ),
-          const SizedBox(width: 8.0),
-          InkedIconButton(
-            onTap: !runner.canControlRuntime ? null : runner.hotRestart,
-            tooltip: 'Hot restart',
-            icon: Icon(
-              Icons.local_fire_department,
-              color: theme.colorScheme.tertiary,
-            ),
-          ),
-          const VerticalDivider(),
-          InkedIconButton(
-            onTap: !runner.isRunning
-                ? runner.runPreview
-                : runner.gameState.paused
+              const VerticalDivider(),
+              InkedIconButton(
+                onTap: !runner.isRunning
+                    ? runner.runPreview
+                    : runner.gameState.paused
                     ? runner.resume
                     : null,
-            tooltip: 'Run',
-            icon: const Icon(Icons.play_arrow, color: Colors.lightBlue),
+                tooltip: 'Run',
+                icon: const Icon(Icons.play_arrow, color: Colors.lightBlue),
+              ),
+              const SizedBox(width: 8.0),
+              InkedIconButton(
+                onTap: !runner.isViewReady || runner.gameState.paused
+                    ? null
+                    : runner.pause,
+                tooltip: 'Pause',
+                icon: const Icon(Icons.pause),
+              ),
+              const SizedBox(width: 8.0),
+              InkedIconButton(
+                onTap: !runner.isRunning ? null : runner.stop,
+                tooltip: 'Stop',
+                icon: const Icon(Icons.stop, color: Colors.red),
+              ),
+            ],
           ),
-          const SizedBox(width: 8.0),
-          InkedIconButton(
-            onTap: !runner.isViewReady || runner.gameState.paused
-                ? null
-                : runner.pause,
-            tooltip: 'Pause',
-            icon: const Icon(Icons.pause),
-          ),
-          const SizedBox(width: 8.0),
-          InkedIconButton(
-            onTap: !runner.isRunning ? null : runner.stop,
-            tooltip: 'Stop',
-            icon: const Icon(Icons.stop, color: Colors.red),
-          ),
-        ]),
-      ),
-      const SizedBox(width: 24.0),
-    ]);
+        ),
+        const SizedBox(width: 24.0),
+      ],
+    );
   }
 }
 
@@ -365,23 +401,22 @@ class NotificationsField extends StatelessWidget {
           onTap: () {},
           icon: Padding(
             padding: const EdgeInsets.all(6.0),
-            child: Row(children: [
-              const Icon(Icons.notifications, size: 16.0),
-              const SizedBox(width: 8.0),
-              Expanded(
-                child: Text(
-                  text,
-                  style: theme.textTheme.labelMedium,
-                ),
-              ),
-              const SizedBox(width: 12.0),
-              if (hasActivity)
-                const SizedBox(
-                  height: 16.0,
-                  width: 16.0,
-                  child: CircularProgressIndicator.adaptive(strokeWidth: 1.25),
-                ),
-            ]),
+            child: Row(
+              children: [
+                const Icon(Icons.notifications, size: 16.0),
+                const SizedBox(width: 8.0),
+                Expanded(child: Text(text, style: theme.textTheme.labelMedium)),
+                const SizedBox(width: 12.0),
+                if (hasActivity)
+                  const SizedBox(
+                    height: 16.0,
+                    width: 16.0,
+                    child: CircularProgressIndicator.adaptive(
+                      strokeWidth: 1.25,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

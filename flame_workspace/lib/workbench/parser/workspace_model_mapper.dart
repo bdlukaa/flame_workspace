@@ -99,6 +99,17 @@ class WorkspaceModelMapper {
       properties[parameter.name] = parameter.defaultValue;
     }
 
+    final propertyDefinitions = component.parameters
+        .map(
+          (parameter) => WorkspacePropertyDefinition(
+            name: parameter.name,
+            type: parameter.type,
+            defaultValue: parameter.defaultValue,
+            inherited: parameter.superComponents?.isNotEmpty ?? false,
+          ),
+        )
+        .toList();
+
     return ComponentInstance(
       id: WorkspaceIds.component(
         sceneId: sceneId,
@@ -113,6 +124,7 @@ class WorkspaceModelMapper {
           (parameter) =>
               parameter.superComponents?.contains('PositionComponent') ?? false,
         ),
+        properties: propertyDefinitions,
       ),
       declarationName: component.declarationName ?? component.name,
       sourcePath: component.filePath,

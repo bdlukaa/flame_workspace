@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../workbench/model/semantic_model.dart';
 import '../../../../workbench/parser/scene.dart';
-import '../../../../workbench/project/objects/component.dart';
 import '../../../../widgets/tree_view.dart';
 import '../../workbench_view.dart';
 import 'add_component.dart';
@@ -87,153 +87,221 @@ class _SceneViewState extends State<SceneView> {
     final theme = Theme.of(context);
     final workbench = Workbench.of(context);
 
-    final scene = workbench.state.currentScene;
-    final sceneHelper = SceneHelper.fromWorkbench(scene, workbench);
+    final state = workbench.state;
+    final scene = state.currentScene;
+    final sourceScene = state.currentSceneSource;
+    final sceneHelper = sourceScene == null
+        ? null
+        : SceneHelper.fromWorkbench(sourceScene, workbench);
 
     return Padding(
       padding: const EdgeInsetsDirectional.all(12.0),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          workbench.onComponentSelected(null);
+          state.selectComponent(null);
           FocusScope.of(context).unfocus();
         },
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Expanded(
-              child: InkWell(
-                onTap: () => setState(() => choosingScene = !choosingScene),
-                child: Row(children: [
-                  const SizedBox(
-                    width: toggleBoxWidth,
-                    child: Icon(Icons.keyboard_arrow_down, size: 12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () => setState(() => choosingScene = !choosingScene),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: toggleBoxWidth,
+                          child: Icon(Icons.keyboard_arrow_down, size: 12.0),
+                        ),
+                        Text(scene.name, style: theme.textTheme.labelMedium),
+                      ],
+                    ),
                   ),
-                  Text(scene.name, style: theme.textTheme.labelMedium),
-                ]),
-              ),
-            ),
-            if (choosingScene)
-              Tooltip(
-                message: 'Create scene',
-                child: InkWell(
-                  child: const Icon(Icons.add),
-                  onTap: () async {
-                    await showCreateSceneDialog(context, workbench);
-                  },
                 ),
-              )
-            else
-              Tooltip(
-                message: 'Add component',
-                child: InkWell(
-                  child: const Icon(Icons.add),
-                  onTap: () async {
-                    final result = await showAddComponentDialog(context);
-
-                    if (result != null && context.mounted) {
-                      if (!sceneHelper.hasComponent(result.$2)) {
-                        await sceneHelper.declareComponent(
-                          result,
-                          workbench.state,
-                        );
-                        sceneHelper.addComponent(result.$2);
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Could not add ${result.$2} to ${scene.name} '
-                              'because the element already exists',
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                ),
-              ),
-          ]),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 125),
-              child: Builder(
-                key: ValueKey(choosingScene),
-                builder: (context) {
-                  if (choosingScene) {
-                    return ListView.builder(
-                      itemCount: workbench.state.scenes.length,
-                      itemBuilder: (context, index) {
-                        final sceneResult = workbench.state.scenes[index];
-                        final scene = sceneResult.$1;
-                        return ListTile(
-                          title: Text(scene.name),
-                          trailing: const Icon(Icons.select_all),
-                          dense: true,
-                          contentPadding: const EdgeInsetsDirectional.only(
-                            start: toggleBoxWidth,
-                          ),
-                          onTap: () {
-                            workbench.state.currentScene = scene;
-                            workbench.runner.setScene(scene.name);
-                            setState(() => choosingScene = false);
-                          },
-                        );
+                if (choosingScene)
+                  Tooltip(
+                    message: 'Create scene',
+                    child: InkWell(
+                      child: const Icon(Icons.add),
+                      onTap: () async {
+                        await showCreateSceneDialog(context, workbench);
                       },
-                    );
-                  }
-                  return TreeView(
-                    nodes: scene.components.map((component) {
-                      TreeNode buildNode(FlameComponentObject component) {
-                        final isSelected =
-                            workbench.state.selectedComponent == component;
+                    ),
+                  )
+                else
+                  Tooltip(
+                    message: 'Add component',
+                    child: InkWell(
+                      child: const Icon(Icons.add),
+                      onTap: () async {
+                        final result = await showAddComponentDialog(context);
 
-                        return TreeNode(
-                          value: component,
-                          icon: iconForComponent(component.name) ??
-                              iconForComponent(component.type) ??
-                              Icons.square,
-                          text: component.declarationName ?? component.name,
-                          isSelected: isSelected,
-                          onTap: () {
-                            workbench.onComponentSelected(component);
-                          },
-                          onSecondaryTapUp: (d) {
-                            showMenu(
-                              context: context,
-                              position: RelativeRect.fromRect(
-                                d.globalPosition & const Size(40, 40),
-                                Offset.zero & MediaQuery.sizeOf(context),
-                              ),
-                              items: [
-                                PopupMenuItem(
-                                  child: const Text('Remove'),
-                                  onTap: () async {
-                                    workbench.onComponentSelected(null);
-                                    sceneHelper.removeComponent(
-                                      component.declarationName!,
-                                    );
-                                    await sceneHelper.removeDeclaration(
-                                      component.declarationName!,
-                                    );
-                                  },
-                                ),
-                              ],
+                        if (result != null && context.mounted) {
+                          if (!state.hasWorkspaceComponent(result.$2)) {
+                            if (sceneHelper != null) {
+                              await sceneHelper.declareComponent(result, state);
+                            }
+                            state.addWorkspaceComponent(
+                              _componentFromSelection(result, scene),
                             );
-                          },
-                          children: component.components.isEmpty
-                              ? null
-                              : component.components.map(buildNode).toList(),
-                        );
-                      }
+                            if (sceneHelper != null) {
+                              await sceneHelper.addComponent(result.$2);
+                            }
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Could not add ${result.$2} to ${scene.name} '
+                                  'because the element already exists',
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ),
+              ],
+            ),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 125),
+                child: Builder(
+                  key: ValueKey(choosingScene),
+                  builder: (context) {
+                    if (choosingScene) {
+                      return ListView.builder(
+                        itemCount: state.workspaceProject.scenes.length,
+                        itemBuilder: (context, index) {
+                          final scene = state.workspaceProject.scenes[index];
+                          return ListTile(
+                            title: Text(scene.name),
+                            trailing: const Icon(Icons.select_all),
+                            dense: true,
+                            contentPadding: const EdgeInsetsDirectional.only(
+                              start: toggleBoxWidth,
+                            ),
+                            onTap: () {
+                              state.workspaceModel.selectScene(scene.id);
+                              workbench.runner.setScene(scene.name);
+                              setState(() => choosingScene = false);
+                            },
+                          );
+                        },
+                      );
+                    }
+                    return TreeView(
+                      nodes: scene.components.map((component) {
+                        TreeNode buildNode(ComponentInstance component) {
+                          final isSelected =
+                              state.selectedComponent?.id == component.id;
 
-                      return buildNode(component);
-                    }).toList(),
-                  );
-                },
+                          return TreeNode(
+                            value: component,
+                            icon:
+                                iconForComponent(component.type.name) ??
+                                iconForComponent(
+                                  component.type.baseType ?? '',
+                                ) ??
+                                Icons.square,
+                            text:
+                                component.declarationName ??
+                                component.type.name,
+                            isSelected: isSelected,
+                            onTap: () => state.selectComponent(component.id),
+                            onSecondaryTapUp: (d) {
+                              showMenu(
+                                context: context,
+                                position: RelativeRect.fromRect(
+                                  d.globalPosition & const Size(40, 40),
+                                  Offset.zero & MediaQuery.sizeOf(context),
+                                ),
+                                items: [
+                                  PopupMenuItem(
+                                    child: const Text('Remove'),
+                                    onTap: () async {
+                                      state.selectComponent(null);
+                                      state.removeWorkspaceComponent(
+                                        component.id,
+                                      );
+                                      if (sceneHelper != null &&
+                                          component.declarationName != null) {
+                                        await sceneHelper.removeComponent(
+                                          component.declarationName!,
+                                        );
+                                        await sceneHelper.removeDeclaration(
+                                          component.declarationName!,
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
+                            children: component.children.isEmpty
+                                ? null
+                                : component.children.map(buildNode).toList(),
+                          );
+                        }
+
+                        return buildNode(component);
+                      }).toList(),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        ]),
+          ],
+        ),
       ),
     );
   }
+}
+
+ComponentInstance _componentFromSelection(
+  AddIndexedComponent selection,
+  SceneDefinition scene,
+) {
+  final indexed = selection.$1;
+  final properties = <String, Object?>{
+    for (final parameter in indexed.parameters)
+      parameter.name: selection.$3[parameter.name] ?? parameter.defaultValue,
+  };
+  final definitions = indexed.parameters
+      .map(
+        (parameter) => WorkspacePropertyDefinition(
+          name: parameter.name,
+          type: parameter.type,
+          defaultValue: parameter.defaultValue,
+          inherited: parameter.superComponents?.isNotEmpty ?? false,
+        ),
+      )
+      .toList();
+
+  return ComponentInstance(
+    id: WorkspaceIds.component(
+      sceneId: scene.id,
+      name: selection.$2,
+      ordinal: scene.components.length,
+    ),
+    type: ComponentType(
+      id: indexed.name,
+      name: indexed.name,
+      baseType: indexed.type,
+      isPositionComponent:
+          indexed.type == 'PositionComponent' ||
+          indexed.parameters.any(
+            (parameter) =>
+                parameter.superComponents?.contains('PositionComponent') ??
+                false,
+          ),
+      properties: definitions,
+    ),
+    declarationName: selection.$2,
+    sourcePath: indexed.filePath,
+    properties: properties,
+  );
 }

@@ -17,28 +17,34 @@ class DesignView extends StatelessWidget {
     final workbench = Workbench.of(context);
 
     if (isEditingScript) {
-      return Row(children: [
-        const Expanded(child: GamePreviewView()),
-        Expanded(
-          child: ScriptEditor(
-            key: scriptEditorKey,
-            scriptPath: workbench.state.currentScene.script!.filePath,
+      return Row(
+        children: [
+          const Expanded(child: GamePreviewView()),
+          Expanded(
+            child: ScriptEditor(
+              key: scriptEditorKey,
+              scriptPath: workbench.state.currentSceneSource!.script!.filePath,
+            ),
           ),
-        ),
-      ]);
+        ],
+      );
     }
 
-    return const Row(children: [
-      Expanded(
-        flex: 1,
-        child: Column(children: [
-          Expanded(flex: 3, child: SceneView()),
-          Divider(),
-          Expanded(flex: 2, child: ProjectStructureView()),
-        ]),
-      ),
-      Expanded(flex: 3, child: GamePreviewView()),
-      Expanded(flex: 1, child: ComponentView()),
-    ]);
+    return const Row(
+      children: [
+        Expanded(
+          flex: 1,
+          child: Column(
+            children: [
+              Expanded(flex: 3, child: SceneView()),
+              Divider(),
+              Expanded(flex: 2, child: ProjectStructureView()),
+            ],
+          ),
+        ),
+        Expanded(flex: 3, child: GamePreviewView()),
+        Expanded(flex: 1, child: ComponentView()),
+      ],
+    );
   }
 }

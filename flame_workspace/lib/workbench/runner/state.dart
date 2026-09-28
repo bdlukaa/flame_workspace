@@ -7,6 +7,7 @@ import 'package:flame_workspace/workbench/generators/properties_generator.dart';
 import 'package:flame_workspace/workbench/generators/scene_persistence_generator.dart';
 import 'package:flame_workspace/workbench/model/scene_persistence.dart';
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
+import 'package:flame_workspace/workbench/model/workspace_editor_model.dart';
 import 'package:flame_workspace/workbench/parser/workspace_model_mapper.dart';
 import 'package:flame_workspace/workbench/parser/type_resolver.dart';
 import 'package:flutter/foundation.dart';
@@ -20,10 +21,27 @@ import '../project/project.dart';
 
 class FlameProjectState with ChangeNotifier {
   final FlameProject project;
+  final WorkspaceEditorModel workspaceModel;
 
   bool initialized = false;
 
-  FlameProjectState(this.project) {
+  FlameProjectState(this.project)
+    : workspaceModel = WorkspaceEditorModel(
+        WorkspaceProject(
+          id: 'project:${project.name}',
+          name: project.name,
+          scenes: [
+            SceneDefinition(
+              id: WorkspaceIds.scene(
+                sourcePath: project.location.path,
+                name: project.initialScene,
+              ),
+              name: project.initialScene,
+            ),
+          ],
+        ),
+      ) {
+    workspaceModel.addListener(_onWorkspaceModelChanged);
     files = project.location.listSync();
     sortFiles(files);
     _filesSubscription = project.location.watch(recursive: true).listen((
@@ -78,29 +96,53 @@ class FlameProjectState with ChangeNotifier {
     });
   }
 
-  late var _currentSceneName = project.initialScene;
   final scenes = <IndexedScene>[];
-  FlameSceneObject get currentScene => scenes
-      .map((e) => e.$1)
-      .firstWhere(
-        (scene) => scene.name == _currentSceneName,
-        orElse: () => scenes.first.$1,
-      );
-  set currentScene(FlameSceneObject value) {
-    _currentSceneName = value.name;
-    notifyListeners();
-  }
-
   final components = <IndexedComponent>[];
   final flameComponents = <FlameComponentObject>[];
   final flameMixins = <FlameMixin>[];
 
-  FlameComponentObject? _selectedComponent;
-  FlameComponentObject? get selectedComponent => _selectedComponent;
-  set selectedComponent(FlameComponentObject? value) {
-    _selectedComponent = value;
-    notifyListeners();
+  WorkspaceProject get workspaceProject => workspaceModel.project;
+  SceneDefinition get currentScene => workspaceModel.currentScene!;
+  FlameSceneObject? get currentSceneSource {
+    final sceneName = currentScene.name;
+    for (final scene in scenes) {
+      if (scene.$1.name == sceneName) return scene.$1;
+    }
+    return null;
   }
+
+  ComponentInstance? get selectedComponent => workspaceModel.selectedComponent;
+  bool get isDirty => workspaceModel.isDirty;
+
+  void selectComponent(String? componentId) {
+    workspaceModel.selectComponent(componentId);
+  }
+
+  bool updateComponentProperty(String componentId, String name, Object? value) {
+    return workspaceModel.updateProperty(componentId, name, value);
+  }
+
+  bool updateComponentTransform(
+    String componentId,
+    WorkspaceTransform transform,
+  ) {
+    return workspaceModel.updateTransform(componentId, transform);
+  }
+
+  bool addWorkspaceComponent(ComponentInstance component, {String? parentId}) {
+    return workspaceModel.addComponent(component, parentId: parentId);
+  }
+
+  bool removeWorkspaceComponent(String componentId) {
+    return workspaceModel.removeComponent(componentId);
+  }
+
+  bool hasWorkspaceComponent(String declarationName) {
+    return workspaceModel.hasComponentDeclaration(declarationName);
+  }
+
+  Future<void> saveWorkspace() => workspaceModel.save(project);
+  Future<void> resetWorkspace() => workspaceModel.reset(project);
 
   bool isIndexing = false;
 
@@ -126,6 +168,7 @@ class FlameProjectState with ChangeNotifier {
       scenesResult,
       flameComponentsResult,
       flameMixinsResult,
+      workspaceProjectResult,
     ) = await compute(_indexProject, {
       'project': project,
       'indexed': indexed,
@@ -148,6 +191,9 @@ class FlameProjectState with ChangeNotifier {
     flameMixins
       ..clear()
       ..addAll(flameMixinsResult);
+    if (workspaceProjectResult != null) {
+      workspaceModel.replaceProject(workspaceProjectResult);
+    }
 
     isIndexing = false;
     notifyListeners();
@@ -160,6 +206,7 @@ class FlameProjectState with ChangeNotifier {
       List<IndexedScene>,
       List<FlameComponentObject>,
       List<FlameMixin>,
+      WorkspaceProject?,
     )
   >
   _indexProject(Map data) async {
@@ -207,33 +254,42 @@ class FlameProjectState with ChangeNotifier {
         await resolver.dispose();
       }
 
+      if (!onlyParse && workspaceProject != null) {
+        final persistedScenes = <SceneDefinition>[];
+        for (final scene in workspaceProject.scenes) {
+          final persisted = await WorkspaceScenePersistence.loadOrCreate(
+            project: project,
+            fallback: scene,
+          );
+          persistedScenes.add(persisted);
+          if (includeOnly == null ||
+              includeOnly.isEmpty ||
+              includeOnly.contains(scene.sourcePath)) {
+            await ScenePersistenceGenerator.writeForScene(persisted, project);
+          }
+        }
+        workspaceProject = WorkspaceProject(
+          id: workspaceProject.id,
+          name: workspaceProject.name,
+          scenes: persistedScenes,
+        );
+      }
+
       if ((includeOnly == null || includeOnly.isEmpty) && !onlyParse) {
         await PropertiesGenerator.writeForComponents([
           ...components.map((e) => e.$1),
           ...flameComponents,
         ], project);
-
-        for (final scene in workspaceProject?.scenes ?? const []) {
-          final persisted = await WorkspaceScenePersistence.loadOrCreate(
-            project: project,
-            fallback: scene,
-          );
-          await ScenePersistenceGenerator.writeForScene(persisted, project);
-        }
-      } else if ((includeOnly != null && includeOnly.isNotEmpty) &&
-          !onlyParse) {
-        for (final scene in workspaceProject?.scenes ?? const []) {
-          if (includeOnly.contains(scene.sourcePath)) {
-            final persisted = await WorkspaceScenePersistence.loadOrCreate(
-              project: project,
-              fallback: scene,
-            );
-            await ScenePersistenceGenerator.writeForScene(persisted, project);
-          }
-        }
       }
 
-      return (indexed, components, scenes, flameComponents, flameMixins);
+      return (
+        indexed,
+        components,
+        scenes,
+        flameComponents,
+        flameMixins,
+        workspaceProject,
+      );
     } catch (error, stack) {
       debugPrint('Failed to index project: $error \n $stack');
       return (
@@ -242,13 +298,20 @@ class FlameProjectState with ChangeNotifier {
         <IndexedScene>[],
         <FlameComponentObject>[],
         <FlameMixin>[],
+        null,
       );
     }
+  }
+
+  void _onWorkspaceModelChanged() {
+    notifyListeners();
   }
 
   @override
   void dispose() {
     _filesSubscription.cancel();
+    workspaceModel.removeListener(_onWorkspaceModelChanged);
+    workspaceModel.dispose();
     super.dispose();
   }
 }

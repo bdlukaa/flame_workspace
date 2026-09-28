@@ -57,17 +57,51 @@ class SceneDefinition {
   };
 }
 
+class WorkspacePropertyDefinition {
+  final String name;
+  final String type;
+  final Object? defaultValue;
+  final bool inherited;
+
+  const WorkspacePropertyDefinition({
+    required this.name,
+    required this.type,
+    this.defaultValue,
+    this.inherited = false,
+  });
+
+  factory WorkspacePropertyDefinition.fromJson(Map<String, Object?> json) {
+    return WorkspacePropertyDefinition(
+      name: _requiredString(json, 'name'),
+      type: _requiredString(json, 'type'),
+      defaultValue: json['defaultValue'],
+      inherited: json['inherited'] as bool? ?? false,
+    );
+  }
+
+  String get nonNullableType => type.replaceAll('?', '');
+
+  Map<String, Object?> toJson() => {
+    'name': name,
+    'type': type,
+    if (defaultValue != null) 'defaultValue': defaultValue,
+    if (inherited) 'inherited': true,
+  };
+}
+
 class ComponentType {
   final String id;
   final String name;
   final String? baseType;
   final bool isPositionComponent;
+  final List<WorkspacePropertyDefinition> properties;
 
   const ComponentType({
     required this.id,
     required this.name,
     this.baseType,
     this.isPositionComponent = false,
+    this.properties = const [],
   });
 
   factory ComponentType.fromJson(Map<String, Object?> json) {
@@ -76,6 +110,12 @@ class ComponentType {
       name: _requiredString(json, 'name'),
       baseType: json['baseType'] as String?,
       isPositionComponent: json['isPositionComponent'] as bool? ?? false,
+      properties: _list(json['properties'])
+          .map(
+            (property) =>
+                WorkspacePropertyDefinition.fromJson(_object(property)),
+          )
+          .toList(),
     );
   }
 
@@ -84,6 +124,8 @@ class ComponentType {
     'name': name,
     if (baseType != null) 'baseType': baseType,
     if (isPositionComponent) 'isPositionComponent': true,
+    if (properties.isNotEmpty)
+      'properties': properties.map((property) => property.toJson()).toList(),
   };
 }
 
