@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:flame_workspace/workbench/generators/properties_generator.dart';
 import 'package:flame_workspace/workbench/generators/scene_generator.dart';
+import 'package:flame_workspace/workbench/parser/type_resolver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 
@@ -22,13 +23,12 @@ class FlameProjectState with ChangeNotifier {
   FlameProjectState(this.project) {
     files = project.location.listSync();
     sortFiles(files);
-    _filesSubscription =
-        project.location.watch(recursive: true).listen((FileSystemEvent event) {
+    _filesSubscription = project.location.watch(recursive: true).listen((
+      FileSystemEvent event,
+    ) {
       // Only listen to dart files and ignore generated files.
       if (!event.path.endsWith('.dart') ||
-          event.path.contains(
-            path.join(project.name, 'lib', 'generated'),
-          )) {
+          event.path.contains(path.join(project.name, 'lib', 'generated'))) {
         return;
       }
 
@@ -77,7 +77,9 @@ class FlameProjectState with ChangeNotifier {
 
   late var _currentSceneName = project.initialScene;
   final scenes = <IndexedScene>[];
-  FlameSceneObject get currentScene => scenes.map((e) => e.$1).firstWhere(
+  FlameSceneObject get currentScene => scenes
+      .map((e) => e.$1)
+      .firstWhere(
         (scene) => scene.name == _currentSceneName,
         orElse: () => scenes.first.$1,
       );
@@ -113,16 +115,15 @@ class FlameProjectState with ChangeNotifier {
     if (includeOnly == null || includeOnly.isEmpty) indexed = null;
     notifyListeners();
 
-    final (
-      indexedResult,
-      componentsResult,
-      scenesResult,
-    ) = await compute(_indexProject, {
-      'project': project,
-      'indexed': indexed,
-      'includeOnly': includeOnly,
-      'onlyParse': onlyParse,
-    });
+    final (indexedResult, componentsResult, scenesResult) = await compute(
+      _indexProject,
+      {
+        'project': project,
+        'indexed': indexed,
+        'includeOnly': includeOnly,
+        'onlyParse': onlyParse,
+      },
+    );
 
     indexed = indexedResult;
     components
@@ -138,12 +139,8 @@ class FlameProjectState with ChangeNotifier {
     notifyListeners();
   }
 
-  static Future<
-      (
-        IndexedProject?,
-        List<IndexedComponent>,
-        List<IndexedScene>,
-      )> _indexProject(Map data) async {
+  static Future<(IndexedProject?, List<IndexedComponent>, List<IndexedScene>)>
+  _indexProject(Map data) async {
     try {
       final project = data['project'] as FlameProject;
       final includeOnly = data['includeOnly'] as Iterable<String>?;
@@ -168,19 +165,21 @@ class FlameProjectState with ChangeNotifier {
         }
       }
       if (indexed != null) {
+        final resolver = await FlameTypeResolver.forProject(project.location);
         components
           ..clear()
-          ..addAll(ProjectIndexer.componentsFrom(indexed));
+          ..addAll(ProjectIndexer.componentsFrom(indexed, resolver: resolver));
         scenes
           ..clear()
-          ..addAll(ProjectIndexer.scenesFrom(indexed));
+          ..addAll(ProjectIndexer.scenesFrom(indexed, resolver: resolver));
+        await resolver.dispose();
       }
 
       if ((includeOnly == null || includeOnly.isEmpty) && !onlyParse) {
-        await PropertiesGenerator.writeForComponents(
-          [...components.map((e) => e.$1), ...builtInComponents],
-          project,
-        );
+        await PropertiesGenerator.writeForComponents([
+          ...components.map((e) => e.$1),
+          ...builtInComponents,
+        ], project);
 
         for (final scene in scenes) {
           await SceneGenerator.writeForScene(scene.$1, project);

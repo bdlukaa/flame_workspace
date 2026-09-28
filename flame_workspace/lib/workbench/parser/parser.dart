@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:dartdoc_json/dartdoc_json.dart' as dartdoc;
+
 import 'package:flame_workspace/workbench/project/objects/component.dart';
 import 'package:flame_workspace/workbench/project/objects/mixin.dart';
 import 'package:flame_workspace/workbench/project/objects/scene.dart';
@@ -13,23 +13,98 @@ import 'package:flame_workspace_runtime/utils.dart';
 
 import '../../compilation_unit_helper.dart';
 import '../project/objects/built_in_components.dart';
+import 'type_resolver.dart';
 
 typedef IndexedProject = List<(IndexedUnit indexed, CompilationUnit unit)>;
 typedef IndexedComponent = (
   FlameComponentObject component,
   IndexedUnit indexedUnit,
-  CompilationUnit unit
+  CompilationUnit unit,
 );
 typedef IndexedScene = (
   FlameSceneObject scene,
   IndexedUnit indexedUnit,
-  CompilationUnit unit
+  CompilationUnit unit,
 );
 typedef IndexedMixin = (
   FlameMixin mixin,
   IndexedUnit indexedUnit,
-  CompilationUnit unit
+  CompilationUnit unit,
 );
+
+Map<String, dynamic> serializeCompilationUnit(CompilationUnit unit) {
+  final declarations = <Map<String, dynamic>>[];
+  for (final declaration in unit.declarations) {
+    if (declaration is ClassDeclaration) {
+      declarations.add(_serializeClass(declaration));
+    } else if (declaration is MixinDeclaration) {
+      declarations.add({
+        'kind': 'mixin',
+        'name': declaration.name.lexeme,
+        'members': declaration.members.map(_serializeMember).toList(),
+      });
+    } else if (declaration is TopLevelVariableDeclaration) {
+      for (final variable in declaration.variables.variables) {
+        declarations.add({
+          'kind': 'variable',
+          'name': variable.name.lexeme,
+          'type': declaration.variables.type?.toSource(),
+        });
+      }
+    }
+  }
+  return {if (declarations.isNotEmpty) 'declarations': declarations};
+}
+
+Map<String, dynamic> _serializeClass(ClassDeclaration declaration) {
+  final extendsClause = declaration.extendsClause;
+  final withClause = declaration.withClause;
+  return {
+    'kind': 'class',
+    'name': declaration.name.lexeme,
+    if (extendsClause != null) 'extends': extendsClause.superclass.toSource(),
+    if (withClause != null)
+      'with': withClause.mixinTypes.map((type) => type.toSource()).toList(),
+    'members': declaration.members.map(_serializeMember).toList(),
+  };
+}
+
+Map<String, dynamic> _serializeMember(ClassMember member) {
+  if (member is FieldDeclaration) {
+    return {
+      'kind': 'field',
+      'name': member.fields.variables.first.name.lexeme,
+      'type': member.fields.type?.toSource(),
+      'final': member.fields.isFinal,
+    };
+  }
+  if (member is ConstructorDeclaration) {
+    return {
+      'kind': 'constructor',
+      'name': member.name == null
+          ? member.typeName?.toSource() ?? ''
+          : '${member.typeName?.toSource() ?? ''}.${member.name!.lexeme}',
+      'factory': member.factoryKeyword != null,
+      'parameters': {
+        'all': member.parameters.parameters.map((parameter) {
+          final name = parameter.name?.lexeme ?? parameter.toSource();
+          return {
+            'name': name,
+            'type': parameter is DefaultFormalParameter
+                ? parameter.parameter.toSource()
+                : parameter.toSource(),
+            if (parameter is DefaultFormalParameter)
+              'default': parameter.defaultValue?.toSource(),
+          };
+        }).toList(),
+      },
+    };
+  }
+  if (member is MethodDeclaration) {
+    return {'kind': 'method', 'name': member.name.lexeme};
+  }
+  return {'kind': 'member'};
+}
 
 class ProjectIndexer {
   const ProjectIndexer._();
@@ -48,9 +123,10 @@ class ProjectIndexer {
 
     libDir = Directory(path.join(libDir.path, 'lib'));
 
-    await for (final file in libDir
-        .list(recursive: true)
-        .where((f) => f is File && path.extension(f.path) == '.dart')) {
+    await for (final file
+        in libDir
+            .list(recursive: true)
+            .where((f) => f is File && path.extension(f.path) == '.dart')) {
       if (includeOnly != null && !includeOnly.contains(file.path)) continue;
 
       final parsed = parseFile(
@@ -58,7 +134,7 @@ class ProjectIndexer {
         featureSet: FeatureSet.latestLanguageVersion(),
         throwIfDiagnostics: false, // Do not throw on errors/linting
       );
-      final unit = dartdoc.serializeCompilationUnit(parsed.unit);
+      final unit = serializeCompilationUnit(parsed.unit);
       unit['source'] = file.path;
       files.add((unit, parsed.unit));
     }
@@ -76,10 +152,11 @@ class ProjectIndexer {
   /// [components] represents all the components in the project. If `null`, the
   /// components will be searched for.
   static Iterable<IndexedScene> scenesFrom(
-    IndexedProject indexed, [
+    IndexedProject indexed, {
+    required FlameTypeResolver resolver,
     Iterable<IndexedComponent>? components,
-  ]) {
-    components ??= ProjectIndexer.componentsFrom(indexed);
+  }) {
+    components ??= ProjectIndexer.componentsFrom(indexed, resolver: resolver);
 
     final scenes = <IndexedScene>[];
     for (final index in indexed) {
@@ -89,50 +166,56 @@ class ProjectIndexer {
       // If the file has no declarations, we skip it.
       if (file['declarations'] == null) continue;
 
-      final declarations = (file['declarations'] as List)
-          .cast<Map>()
-          .map((e) => e as IndexedUnit);
-      scenes.addAll(declarations.where((d) {
-        // Only add the classes that extend FlameScene
-        // return d['kind'] == 'class' && d['extends'] == 'FlameScene';
-        return d['kind'] == 'class';
-      }).map((d) {
-        final members = (d['members'] as List? ?? const <dynamic>[]).cast<Map>();
-        final className = d['name'] as String;
-        final fields = members.where((m) => m['kind'] == 'field');
+      final declarations = (file['declarations'] as List).cast<Map>().map(
+        (e) => e as IndexedUnit,
+      );
+      scenes.addAll(
+        declarations
+            .where((d) {
+              // Only add the classes that extend FlameScene
+              // return d['kind'] == 'class' && d['extends'] == 'FlameScene';
+              return d['kind'] == 'class';
+            })
+            .map((d) {
+              final members = (d['members'] as List? ?? const <dynamic>[])
+                  .cast<Map>();
+              final className = d['name'] as String;
+              final fields = members.where((m) => m['kind'] == 'field');
 
-        return (
-          FlameSceneObject(
-            name: className,
-            components: _componentsFromClassFields(
-              components!.map((e) => e.$1),
-              fields,
-            ),
-            filePath: file['source'],
-            indexedUnit: index,
-            modifiers:
-                (d['with'] as List<String>? ?? []).map<FlameMixin>((mixin) {
-              return FlameMixin(
-                name: mixin,
-                types: mixin.split('<').map((e) {
-                  final name = e.split(' ').last;
-                  final extendsIndex = name.indexOf('extends');
-                  if (extendsIndex == -1) return (name, null);
-                  return (
-                    name.substring(0, extendsIndex),
-                    name.substring(extendsIndex + 7)
-                  );
-                }).toList(),
-                isComponentRestricted: false,
-                isSceneRestricted: false,
-                on: [],
+              return (
+                FlameSceneObject(
+                  name: className,
+                  components: _componentsFromClassFields(
+                    components!.map((e) => e.$1),
+                    fields,
+                  ),
+                  filePath: file['source'],
+                  indexedUnit: index,
+                  modifiers: (d['with'] as List<String>? ?? []).map<FlameMixin>(
+                    (mixin) {
+                      return FlameMixin(
+                        name: mixin,
+                        types: mixin.split('<').map((e) {
+                          final name = e.split(' ').last;
+                          final extendsIndex = name.indexOf('extends');
+                          if (extendsIndex == -1) return (name, null);
+                          return (
+                            name.substring(0, extendsIndex),
+                            name.substring(extendsIndex + 7),
+                          );
+                        }).toList(),
+                        isComponentRestricted: false,
+                        isSceneRestricted: false,
+                        on: [],
+                      );
+                    },
+                  ).toList(),
+                ),
+                file,
+                unit,
               );
-            }).toList(),
-          ),
-          file,
-          unit,
-        );
-      }));
+            }),
+      );
     }
 
     for (final scene in scenes) {
@@ -142,8 +225,10 @@ class ProjectIndexer {
     }
 
     scenes.removeWhere((scene) {
-      return scene.$1.script == null &&
-          scene.$2['declarations'].first['extends'] != 'FlameScene';
+      final declaration = (scene.$2['declarations'] as List).firstWhere(
+        (candidate) => candidate['name'] == scene.$1.name,
+      );
+      return scene.$1.script == null && declaration['extends'] != 'FlameScene';
     });
 
     return scenes;
@@ -164,53 +249,32 @@ class ProjectIndexer {
     Iterable<Map> fields,
   ) {
     components = [...builtInComponents, ...components];
-    return fields.where((field) {
-      return components.any((component) => field['type'] == component.name);
-    }).map((field) {
-      final component = components.firstWhere((component) {
-        return field['type'] == component.name;
-      });
+    return fields
+        .where((field) {
+          return components.any((component) => field['type'] == component.name);
+        })
+        .map((field) {
+          final component = components.firstWhere((component) {
+            return field['type'] == component.name;
+          });
 
-      return FlameComponentObject(
-        name: component.name,
-        type: component.type,
-        data: component.data,
-        parameters: component.parameters,
-        declarationName: field['name'],
-      )..components.addAll(component.components);
-    }).toList();
+          return FlameComponentObject(
+            name: component.name,
+            type: component.type,
+            data: component.data,
+            parameters: component.parameters,
+            declarationName: field['name'],
+          )..components.addAll(component.components);
+        })
+        .toList();
   }
 
   /// Returns all the components in the project and its compilation unit.
-  static Iterable<IndexedComponent> componentsFrom(IndexedProject indexed) {
+  static Iterable<IndexedComponent> componentsFrom(
+    IndexedProject indexed, {
+    FlameTypeResolver? resolver,
+  }) {
     final components = <IndexedComponent>[];
-    final declarationsByName = <String, IndexedUnit>{
-      for (final entry in indexed)
-        for (final declaration in ((entry.$1['declarations'] as List?) ?? const []).cast<Map>())
-          if (declaration['kind'] == 'class')
-            declaration['name'] as String: declaration.cast<String, dynamic>(),
-    };
-    final builtInComponentNames = builtInComponents
-        .map((component) => component.name)
-        .toSet()
-      ..removeAll({'FlameGame', 'World'});
-
-    bool extendsComponent(String? type, [Set<String>? visited]) {
-      if (type == null || type == 'FlameGame' || type == 'World') return false;
-      if (type == 'PositionComponent' ||
-          type == 'Component' ||
-          builtInComponentNames.contains(type)) {
-        return true;
-      }
-
-      visited ??= <String>{};
-      if (!visited.add(type)) return false;
-      final declaration = declarationsByName[type];
-      if (declaration == null) return false;
-      final mixins = (declaration['with'] as List?)?.cast<String>() ?? const [];
-      return extendsComponent(declaration['extends'] as String?, visited) ||
-          mixins.any((mixin) => mixin.split('<').first == 'FlameComponent');
-    }
 
     for (final index in indexed) {
       final indexedUnit = index.$1;
@@ -220,119 +284,134 @@ class ProjectIndexer {
           .cast<Map>()
           .map((e) => e as IndexedUnit);
 
-      components.addAll(declarations.where((d) {
-        return d['kind'] == 'class' && extendsComponent(d['name'] as String?);
-      }).map((d) {
-        final componentParameters = <FlameComponentField>[];
+      components.addAll(
+        declarations
+            .where((d) {
+              final sourcePath = indexedUnit['source'] as String;
+              final className = d['name'] as String;
+              return d['kind'] == 'class' &&
+                  (resolver?.isFlameComponent(
+                        sourcePath: sourcePath,
+                        className: className,
+                      ) ??
+                      builtInComponents.any(
+                        (component) => component.name == d['extends'],
+                      ));
+            })
+            .map((d) {
+              final componentParameters = <FlameComponentField>[];
 
-        if (d['members'] != null) {
-          final members = (d['members'] as List? ?? const <dynamic>[]).cast<Map>();
-          for (final member in members) {
-            // TODO: add support for multiple constructors
-            //       (factory constructors / named constructors)
-            if (member['kind'] == 'constructor' &&
-                member['factory'] != true &&
-                !(member['name'] as String).contains('.')) {
-              final parameters =
-                  (member['parameters']?['all'] as List?)?.cast<Map>() ?? [];
-              for (final parameter in parameters) {
-                var name = parameter['name'] as String;
-                var type = parameter['type'] as String?;
-                final defaultValue = parameter['default'] as String?;
-                FlameComponentObject? superComponent;
-                FlameComponentField? superParameter;
+              if (d['members'] != null) {
+                final members = (d['members'] as List? ?? const <dynamic>[])
+                    .cast<Map>();
+                for (final member in members) {
+                  // TODO: add support for multiple constructors
+                  //       (factory constructors / named constructors)
+                  if (member['kind'] == 'constructor' &&
+                      member['factory'] != true &&
+                      !(member['name'] as String).contains('.')) {
+                    final parameters =
+                        (member['parameters']?['all'] as List?)?.cast<Map>() ??
+                        [];
+                    for (final parameter in parameters) {
+                      var name = parameter['name'] as String;
+                      var type = parameter['type'] as String?;
+                      final defaultValue = parameter['default'] as String?;
+                      FlameComponentObject? superComponent;
+                      FlameComponentField? superParameter;
 
-                bool isFinal = false;
+                      bool isFinal = false;
 
-                if (type == null) {
-                  if (name.startsWith('super.')) {
-                    final superclass = d['extends'] as String?;
-                    assert(
-                      superclass != null,
-                      'Cannot use super. without a superclass',
-                    );
-                    superComponent = [
-                      ...components.map((e) => e.$1),
-                      ...builtInComponents,
-                    ].firstWhereOrNull((c) => c.name == superclass);
+                      if (type == null) {
+                        if (name.startsWith('super.')) {
+                          final superclass = d['extends'] as String?;
+                          assert(
+                            superclass != null,
+                            'Cannot use super. without a superclass',
+                          );
+                          superComponent = [
+                            ...components.map((e) => e.$1),
+                            ...builtInComponents,
+                          ].firstWhereOrNull((c) => c.name == superclass);
 
-                    superParameter =
-                        superComponent?.parameters.firstWhereOrNull(
-                      (p) {
-                        return p.name == name.replaceAll('super.', '');
-                      },
-                    );
-                    type = superParameter?.type;
-                    isFinal = superParameter?.isFinalField ?? isFinal;
+                          superParameter = superComponent?.parameters
+                              .firstWhereOrNull((p) {
+                                return p.name == name.replaceAll('super.', '');
+                              });
+                          type = superParameter?.type;
+                          isFinal = superParameter?.isFinalField ?? isFinal;
 
-                    name = name.replaceAll('super.', '');
-                  } else {
-                    assert(
-                      name.startsWith('this.'),
-                      'Only members parameters are allowed',
-                    );
-                    // If type is null, we search through the fields to find the type.
-                    final field = members.firstWhereOrNull(
-                      (m) =>
-                          m['kind'] == 'field' &&
-                          m['name'] == name.replaceAll('this.', ''),
-                    );
-                    final fieldType = field?['type'] as String?;
-                    type = fieldType;
+                          name = name.replaceAll('super.', '');
+                        } else {
+                          assert(
+                            name.startsWith('this.'),
+                            'Only members parameters are allowed',
+                          );
+                          // If type is null, we search through the fields to find the type.
+                          final field = members.firstWhereOrNull(
+                            (m) =>
+                                m['kind'] == 'field' &&
+                                m['name'] == name.replaceAll('this.', ''),
+                          );
+                          final fieldType = field?['type'] as String?;
+                          type = fieldType;
 
-                    isFinal = field?['final'] == true;
+                          isFinal = field?['final'] == true;
+                        }
+                      }
+                      type ??= 'dynamic';
+
+                      final fieldName = name.replaceAll('this.', '');
+                      final hasSetter = members.any(
+                        (element) =>
+                            element['kind'] == 'setter' &&
+                            element['name'] == fieldName,
+                      );
+
+                      componentParameters.add(
+                        FlameComponentField(
+                          fieldName,
+                          type,
+                          defaultValue,
+                          superComponent == null
+                              ? null
+                              : [
+                                  superComponent.name,
+                                  if (superParameter?.superComponents != null)
+                                    ...superParameter!.superComponents!,
+                                ],
+                          name.startsWith('this.'),
+                          isFinal,
+                          hasSetter,
+                        ),
+                      );
+                    }
                   }
                 }
-                type ??= 'dynamic';
-
-                final fieldName = name.replaceAll('this.', '');
-                final hasSetter = members.any(
-                  (element) =>
-                      element['kind'] == 'setter' &&
-                      element['name'] == fieldName,
-                );
-
-                componentParameters.add(FlameComponentField(
-                  fieldName,
-                  type,
-                  defaultValue,
-                  superComponent == null
-                      ? null
-                      : [
-                          superComponent.name,
-                          if (superParameter?.superComponents != null)
-                            ...superParameter!.superComponents!,
-                        ],
-                  name.startsWith('this.'),
-                  isFinal,
-                  hasSetter,
-                ));
               }
-            }
-          }
-        }
 
-        return (
-          FlameComponentObject(
-            name: d['name'],
-            type: d['extends'],
-            parameters: componentParameters,
-            data: d,
-            filePath: indexedUnit['source'],
-          ),
-          indexedUnit,
-          unit,
-        );
-      }));
+              return (
+                FlameComponentObject(
+                  name: d['name'],
+                  type: d['extends'],
+                  parameters: componentParameters,
+                  data: d,
+                  filePath: indexedUnit['source'],
+                ),
+                indexedUnit,
+                unit,
+              );
+            }),
+      );
     }
 
     // Populates the components with their children recursively.
     void populateComponents(Iterable<FlameComponentObject> components) {
       for (final parent in components) {
         if (parent.data['members'] == null) continue;
-        final fields = (parent.data['members'] as List)
-            .cast<Map>()
-            .where((d) => d['kind'] == 'field');
+        final fields = (parent.data['members'] as List).cast<Map>().where(
+          (d) => d['kind'] == 'field',
+        );
 
         if (fields.isEmpty) continue;
 
@@ -398,27 +477,33 @@ class ProjectIndexer {
           .cast<Map>()
           .map((e) => e as IndexedUnit);
 
-      mixins.addAll(declarations.where((d) {
-        return d['kind'] == 'mixin';
-      }).map((mixin) {
-        final mixinName = mixin['name'] as String;
-        final typeParameters = List<Map>.from(mixin['typeParameters'] ?? [])
-            .map<MixinType>((mixin) {
-          return (mixin['name'], mixin['extends']);
-        }).toList();
+      mixins.addAll(
+        declarations
+            .where((d) {
+              return d['kind'] == 'mixin';
+            })
+            .map((mixin) {
+              final mixinName = mixin['name'] as String;
+              final typeParameters =
+                  List<Map>.from(mixin['typeParameters'] ?? [])
+                      .map<MixinType>((mixin) {
+                        return (mixin['name'], mixin['extends']);
+                      })
+                      .toList();
 
-        return (
-          FlameMixin(
-            name: mixinName,
-            types: typeParameters,
-            isComponentRestricted: false,
-            isSceneRestricted: false,
-            on: mixin['on'] ?? [],
-          ),
-          indexedUnit,
-          unit,
-        );
-      }));
+              return (
+                FlameMixin(
+                  name: mixinName,
+                  types: typeParameters,
+                  isComponentRestricted: false,
+                  isSceneRestricted: false,
+                  on: mixin['on'] ?? [],
+                ),
+                indexedUnit,
+                unit,
+              );
+            }),
+      );
     }
 
     return mixins;

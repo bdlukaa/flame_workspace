@@ -5,18 +5,18 @@ packages:
     dependency: transitive
     description:
       name: _fe_analyzer_shared
-      sha256: da0d9209ca76bde579f2da330aeb9df62b6319c834fa7baae052021b0462401f
+      sha256: "3b19a47f6ea7c2632760777c78174f47f6aec1e05f0cd611380d4593b8af1dbc"
       url: "https://pub.dev"
     source: hosted
-    version: "85.0.0"
+    version: "96.0.0"
   analyzer:
     dependency: "direct main"
     description:
       name: analyzer
-      sha256: "974859dc0ff5f37bc4313244b3218c791810d03ab3470a579580279ba971a48d"
+      sha256: "0c516bc4ad36a1a75759e54d5047cb9d15cded4459df01aa35a0b5ec7db2c2a0"
       url: "https://pub.dev"
     source: hosted
-    version: "7.7.1"
+    version: "10.2.0"
   args:
     dependency: transitive
     description:
@@ -101,18 +101,10 @@ packages:
     dependency: "direct main"
     description:
       name: dart_style
-      sha256: "8a0e5fba27e8ee025d2ffb4ee820b4e6e2cf5e4246a6b1a477eb66866947e0bb"
+      sha256: "29f7ecc274a86d32920b1d9cfc7502fa87220da41ec60b55f329559d5732e2b2"
       url: "https://pub.dev"
     source: hosted
-    version: "3.1.1"
-  dartdoc_json:
-    dependency: "direct main"
-    description:
-      name: dartdoc_json
-      sha256: "02044ffcf6966aaa0233a1a39fd01c1e28e31c585f3673046424f6406e3618b8"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.6.0"
+    version: "3.1.7"
   fake_async:
     dependency: transitive
     description:

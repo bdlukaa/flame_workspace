@@ -5,3 +5,5 @@ class Player extends PositionComponent {
 }
 
 class PlayerSprite extends SpriteComponent {}
+
+class NotAComponent {}

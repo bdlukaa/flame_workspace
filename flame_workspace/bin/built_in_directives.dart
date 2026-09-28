@@ -18,7 +18,6 @@ import 'package:flame_workspace/workbench/project/objects/component.dart';
 import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/project/objects/mixin.dart';
 import 'package:http/http.dart' as http;
-import 'package:dartdoc_json/dartdoc_json.dart' as dartdoc;
 
 void main() async {
   print('Generating!');
@@ -78,13 +77,14 @@ Future<void> getAll(List<Map<dynamic, dynamic>> files) async {
             print('    Failed to get for file $name: \n$e\n$s');
           }
         }
-      }()
+      }(),
   ]);
 
   print('Parsing components');
   // First, get all the components
-  var components =
-      ProjectIndexer.componentsFrom(indexed).map((e) => e.$1).toList();
+  var components = ProjectIndexer.componentsFrom(indexed)
+      .map((e) => e.$1)
+      .toList();
 
   // Remove duplicates
   for (final component in List<FlameComponentObject>.from(components)) {
@@ -114,7 +114,8 @@ ${component.components.map(forComponent).join(',\n')}
 
   print('    Writing to file');
   final componentFile = File(
-      r'flame_workspace\lib\workbench\project\objects\built_in_components.dart');
+    r'flame_workspace\lib\workbench\project\objects\built_in_components.dart',
+  );
   if (!await componentFile.exists()) {
     await componentFile.create(recursive: true);
   }
@@ -154,7 +155,8 @@ final builtInComponents = <FlameComponentObject>[
 
   print('    Writing to file');
   final mixinFile = File(
-      r'flame_workspace\lib\workbench\project\objects\built_in_mixins.dart');
+    r'flame_workspace\lib\workbench\project\objects\built_in_mixins.dart',
+  );
   if (!await mixinFile.exists()) {
     await mixinFile.create(recursive: true);
   }
@@ -175,7 +177,7 @@ Future<IndexedProject> forFile(String path) async {
       content: localFile.readAsStringSync(),
       featureSet: FeatureSet.latestLanguageVersion(),
     );
-    final serialized = dartdoc.serializeCompilationUnit(parsed.unit);
+    final serialized = serializeCompilationUnit(parsed.unit);
     serialized['source'] = path;
 
     return [(serialized, parsed.unit)];
@@ -184,7 +186,8 @@ Future<IndexedProject> forFile(String path) async {
   print('    Getting for file $path');
   final response = await http.get(
     Uri.parse(
-        'https://raw.githubusercontent.com/flame-engine/flame/main/packages/flame/lib/$path'),
+      'https://raw.githubusercontent.com/flame-engine/flame/main/packages/flame/lib/$path',
+    ),
   );
 
   if (response.statusCode == 200) {
@@ -226,7 +229,7 @@ Future<IndexedProject> forFile(String path) async {
                     .join('\n'),
                 featureSet: FeatureSet.latestLanguageVersion(),
               );
-              final serialized = dartdoc.serializeCompilationUnit(parsed.unit);
+              final serialized = serializeCompilationUnit(parsed.unit);
               serialized['source'] = path;
 
               indexed.add((serialized, parsed.unit));
@@ -236,7 +239,7 @@ Future<IndexedProject> forFile(String path) async {
           } else {
             print('    Failed to download the file $path');
           }
-        }()
+        }(),
     ]);
 
     return indexed;

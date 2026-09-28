@@ -1,4 +1,6 @@
-import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
+import 'package:flame/components.dart';
+
+abstract class FlameScene extends World {}
 
 class LevelOne extends FlameScene {}
 

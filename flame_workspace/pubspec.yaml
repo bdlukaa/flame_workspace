@@ -16,11 +16,10 @@ dependencies:
   flame: ^1.38.2
 
   # Project indexer/analyzer
-  analyzer: ^7.7.1
-  dartdoc_json: ^0.6.0
+  analyzer: ^10.2.0
   http: ^1.6.0
   recase: ^4.1.0
-  dart_style: ^3.1.1
+  dart_style: ^3.1.7
 
   # External functionality
   file_picker: ^8.0.7

@@ -167,9 +167,8 @@ Selected direct dependency constraints:
 | Package area | Selected constraint | Resolved version observed |
 | --- | --- | --- |
 | Flame | `^1.38.2` | `1.38.2` |
-| Analyzer | `^7.7.1` | `7.7.1` |
-| `dartdoc_json` | `^0.6.0` | `0.6.0` |
-| `dart_style` | `^3.1.1` | `3.1.1` |
+| Analyzer | `^10.2.0` | `10.2.0` |
+| `dart_style` | `^3.1.7` | `3.1.7` |
 | VM Service bridge | `^15.3.0` | `15.3.0` |
 | `window_manager` | `^0.5.2` | `0.5.2` |
 | `path` | `^1.9.1` | `1.9.1` |
@@ -177,7 +176,7 @@ Selected direct dependency constraints:
 | `file_picker` | `^8.0.7` | `8.0.7` |
 | Flutter linting | `^6.0.0` | `6.0.0` |
 
-`dart_style` 3.1.13 was not selected: its published constraint requires Analyzer `>=13.1.0`, while `dartdoc_json` 0.6.0 and the current analyzer integration resolve to Analyzer 7.7.1. `dart_style` 3.1.1 is the compatible resolution and requires passing an explicit `languageVersion` to `DartFormatter`; the writer now supplies `DartFormatter.latestLanguageVersion`.
+Analyzer 10.2.0 is selected because it supports the resolved Flame 1.38.2 source while retaining the AST APIs used by the existing parser. `dartdoc_json` 0.6.0 was removed because it constrains Analyzer to the incompatible 7.x line; the parser now serializes the small AST subset it owns directly. `dart_style` 3.1.7 follows Analyzer 10 and requires passing an explicit `languageVersion` to `DartFormatter`; the writer supplies `DartFormatter.latestLanguageVersion`.
 
 The editor's unused `code_builder` and `source_gen` constraints were removed. `flame_workspace_core` and the checked-in template no longer declare unused `flame_audio`, `flame_forge2d`, or `flame_isolate` dependencies. The generated project defaults retain only Flame, `flame_workspace_runtime`, and `window_manager`; `window_manager` remains because the current generated game imports and uses it. The editor-specific value parser has since moved into `flame_workspace`, so the former core-to-editor path dependency is no longer required.
 

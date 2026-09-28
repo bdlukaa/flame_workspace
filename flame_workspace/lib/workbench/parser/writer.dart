@@ -39,7 +39,7 @@ class Writer {
     );
 
     return cls.withClause?.mixinTypes.any(
-          (mixin) => mixin.name2.lexeme == mixinName,
+          (mixin) => mixin.name.lexeme == mixinName,
         ) ??
         false;
   }

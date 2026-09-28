@@ -9,5 +9,3 @@ dependencies:
   flutter:
     sdk: flutter
   flame: ^1.38.2
-  flame_workspace_runtime:
-    path: ../../flame_workspace_runtime
