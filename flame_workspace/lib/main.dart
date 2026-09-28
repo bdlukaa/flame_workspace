@@ -1,14 +1,15 @@
 import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
 import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
+import 'package:flame_workspace/workbench/runner/view.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_native_view/flutter_native_view.dart';
 
 import 'screens/welcome/welcome.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FlutterNativeView.ensureInitialized();
+  await initializeRunnerView();
+
   FlameWorkspaceCore.isGame = false;
 
   runApp(const FlameWorkspaceApp());
