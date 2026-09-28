@@ -4,7 +4,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flame_workspace/workbench/generators/properties_generator.dart';
-import 'package:flame_workspace/workbench/generators/scene_generator.dart';
+import 'package:flame_workspace/workbench/generators/scene_persistence_generator.dart';
+import 'package:flame_workspace/workbench/model/scene_persistence.dart';
+import 'package:flame_workspace/workbench/model/semantic_model.dart';
+import 'package:flame_workspace/workbench/parser/workspace_model_mapper.dart';
 import 'package:flame_workspace/workbench/parser/type_resolver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
@@ -169,6 +172,7 @@ class FlameProjectState with ChangeNotifier {
       var scenes = <IndexedScene>[];
       var flameComponents = <FlameComponentObject>[];
       var flameMixins = <FlameMixin>[];
+      WorkspaceProject? workspaceProject;
 
       if (!onlyParse) {
         final result = await ProjectIndexer.indexProject(
@@ -195,6 +199,11 @@ class FlameProjectState with ChangeNotifier {
           ..addAll(ProjectIndexer.scenesFrom(indexed, resolver: resolver));
         flameComponents = resolver.flameComponents;
         flameMixins = resolver.flameMixins;
+        workspaceProject = WorkspaceModelMapper.fromIndexed(
+          indexed,
+          resolver: resolver,
+          projectName: project.name,
+        );
         await resolver.dispose();
       }
 
@@ -204,16 +213,22 @@ class FlameProjectState with ChangeNotifier {
           ...flameComponents,
         ], project);
 
-        for (final scene in scenes) {
-          await SceneGenerator.writeForScene(scene.$1, project);
-          await SceneGenerator.writeSetScenes(project, [scene.$1]);
+        for (final scene in workspaceProject?.scenes ?? const []) {
+          final persisted = await WorkspaceScenePersistence.loadOrCreate(
+            project: project,
+            fallback: scene,
+          );
+          await ScenePersistenceGenerator.writeForScene(persisted, project);
         }
       } else if ((includeOnly != null && includeOnly.isNotEmpty) &&
           !onlyParse) {
-        for (final scene in scenes) {
-          if (includeOnly.contains(scene.$1.filePath)) {
-            await SceneGenerator.writeForScene(scene.$1, project);
-            await SceneGenerator.writeSetScenes(project, [scene.$1]);
+        for (final scene in workspaceProject?.scenes ?? const []) {
+          if (includeOnly.contains(scene.sourcePath)) {
+            final persisted = await WorkspaceScenePersistence.loadOrCreate(
+              project: project,
+              fallback: scene,
+            );
+            await ScenePersistenceGenerator.writeForScene(persisted, project);
           }
         }
       }

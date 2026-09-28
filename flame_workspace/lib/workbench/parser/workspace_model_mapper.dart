@@ -105,7 +105,15 @@ class WorkspaceModelMapper {
         name: component.declarationName ?? component.name,
         ordinal: ordinal,
       ),
-      type: ComponentType(id: component.type, name: component.type),
+      type: ComponentType(
+        id: component.name,
+        name: component.name,
+        baseType: component.type,
+        isPositionComponent: component.parameters.any(
+          (parameter) =>
+              parameter.superComponents?.contains('PositionComponent') ?? false,
+        ),
+      ),
       declarationName: component.declarationName ?? component.name,
       sourcePath: component.filePath,
       properties: properties,

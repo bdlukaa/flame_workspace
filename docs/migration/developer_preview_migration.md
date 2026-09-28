@@ -206,7 +206,7 @@ The generated template keeps the existing minimal runtime dependency set (`flame
 
 `flame_workspace/lib/workbench/model/semantic_model.dart` now contains the first widget-independent semantic model. `WorkspaceProject` owns `SceneDefinition` objects, which own `ComponentInstance` hierarchies. Instances reference a `ComponentType`, stable deterministic IDs, editable properties, and a `WorkspaceTransform` containing position, size, angle, and anchor data plus priority.
 
-`WorkspaceModelMapper` copies the existing Analyzer/indexer results into this model for the current simple fixture path. The model does not retain AST nodes; the existing indexer DTOs remain a compatibility boundary until later editor migration work. Persistence and Scene View editing are intentionally not implemented yet.
+`WorkspaceModelMapper` copies the existing Analyzer/indexer results into this model for the current simple fixture path. The model does not retain AST nodes; the existing indexer DTOs remain a compatibility boundary until later editor migration work. Scene composition persistence is now implemented separately from the developer-owned Dart scene classes; Scene View editing remains intentionally limited.
 
 ## Cross-platform project runner
 
@@ -266,3 +266,9 @@ The editor now discovers Flame classes, constructors, constructor parameters, in
 Component classification remains semantic: project classes are resolved through their actual type hierarchy, so direct and multi-level descendants such as `Enemy`, `Boss`, and `FinalBoss` are recognized without matching source text. Broken or unresolved files produce `TypeResolutionDiagnostic` entries and do not abort indexing.
 
 The old `built_in_components.dart`, `built_in_mixins.dart`, and hardcoded/network-backed `built_in_directives.dart` snapshot path have been removed. The base editor package no longer carries the HTTP dependency that existed only for that generator. Fixture tests cover the resolved `PositionComponent`, `SpriteComponent`, and `World` metadata, mixin discovery, inherited transform properties, and exclusion of unrelated classes.
+
+## Scene persistence and deterministic generation
+
+`WorkspaceScenePersistence` stores each scene as human-readable, indented JSON under `.flame_workspace/scenes/<scene>.json`. The document contains the scene identity, concrete component type and base type, stable instance IDs, ordered child hierarchy, transform values, priority, and editable property values. Models provide `fromJson`/`toJson` round trips with sorted property keys so equivalent data produces stable output.
+
+`ScenePersistenceGenerator` writes additive adapters to `lib/.generated/scenes/*.workspace.dart`. Each adapter is generated only from the persisted semantic scene and exposes a `populate...WorkspaceScene(World world)` function; it imports project component source files and adds components in persisted hierarchy order. It does not rewrite developer-owned scene or behavior classes. The project indexing flow loads existing Workspace documents instead of overwriting them, creates missing documents from the analyzed model, and regenerates the adapter deterministically.

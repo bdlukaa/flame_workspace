@@ -10,6 +10,15 @@ class WorkspaceProject {
     Iterable<SceneDefinition> scenes = const [],
   }) : scenes = List<SceneDefinition>.of(scenes);
 
+  factory WorkspaceProject.fromJson(Map<String, Object?> json) {
+    return WorkspaceProject(
+      id: _requiredString(json, 'id'),
+      name: _requiredString(json, 'name'),
+      scenes: _list(json['scenes'])
+          .map((scene) => SceneDefinition.fromJson(_object(scene))),
+    );
+  }
+
   Map<String, Object?> toJson() => {
     'id': id,
     'name': name,
@@ -30,6 +39,16 @@ class SceneDefinition {
     Iterable<ComponentInstance> components = const [],
   }) : components = List<ComponentInstance>.of(components);
 
+  factory SceneDefinition.fromJson(Map<String, Object?> json) {
+    return SceneDefinition(
+      id: _requiredString(json, 'id'),
+      name: _requiredString(json, 'name'),
+      sourcePath: json['sourcePath'] as String?,
+      components: _list(json['components'])
+          .map((component) => ComponentInstance.fromJson(_object(component))),
+    );
+  }
+
   Map<String, Object?> toJson() => {
     'id': id,
     'name': name,
@@ -41,10 +60,31 @@ class SceneDefinition {
 class ComponentType {
   final String id;
   final String name;
+  final String? baseType;
+  final bool isPositionComponent;
 
-  const ComponentType({required this.id, required this.name});
+  const ComponentType({
+    required this.id,
+    required this.name,
+    this.baseType,
+    this.isPositionComponent = false,
+  });
 
-  Map<String, Object?> toJson() => {'id': id, 'name': name};
+  factory ComponentType.fromJson(Map<String, Object?> json) {
+    return ComponentType(
+      id: _requiredString(json, 'id'),
+      name: _requiredString(json, 'name'),
+      baseType: json['baseType'] as String?,
+      isPositionComponent: json['isPositionComponent'] as bool? ?? false,
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    if (baseType != null) 'baseType': baseType,
+    if (isPositionComponent) 'isPositionComponent': true,
+  };
 }
 
 class ComponentInstance {
@@ -70,6 +110,20 @@ class ComponentInstance {
        properties = Map<String, Object?>.of(properties),
        transform = transform ?? const WorkspaceTransform();
 
+  factory ComponentInstance.fromJson(Map<String, Object?> json) {
+    return ComponentInstance(
+      id: _requiredString(json, 'id'),
+      type: ComponentType.fromJson(_object(json['type'])),
+      declarationName: json['declarationName'] as String?,
+      sourcePath: json['sourcePath'] as String?,
+      children: _list(json['children'])
+          .map((child) => ComponentInstance.fromJson(_object(child))),
+      properties: _object(json['properties'] ?? const {}),
+      transform: WorkspaceTransform.fromJson(_object(json['transform'])),
+      priority: (json['priority'] as num?)?.toInt() ?? 0,
+    );
+  }
+
   void setProperty(String name, Object? value) => properties[name] = value;
 
   void setTransform(WorkspaceTransform value) => transform = value;
@@ -80,7 +134,7 @@ class ComponentInstance {
     if (declarationName != null) 'declarationName': declarationName,
     if (sourcePath != null) 'sourcePath': sourcePath,
     'children': children.map((child) => child.toJson()).toList(),
-    'properties': Map<String, Object?>.of(properties),
+    'properties': _sortedObject(properties),
     'transform': transform.toJson(),
     'priority': priority,
   };
@@ -98,6 +152,17 @@ class WorkspaceTransform {
     this.angle = 0,
     this.anchor = const WorkspaceVector2.zero(),
   });
+
+  factory WorkspaceTransform.fromJson(Map<String, Object?> json) {
+    return WorkspaceTransform(
+      position: WorkspaceVector2.fromJson(
+        _object(json['position'] ?? const {}),
+      ),
+      size: WorkspaceVector2.fromJson(_object(json['size'] ?? const {})),
+      angle: (json['angle'] as num?)?.toDouble() ?? 0,
+      anchor: WorkspaceVector2.fromJson(_object(json['anchor'] ?? const {})),
+    );
+  }
 
   WorkspaceTransform copyWith({
     WorkspaceVector2? position,
@@ -127,6 +192,13 @@ class WorkspaceVector2 {
 
   const WorkspaceVector2(this.x, this.y);
   const WorkspaceVector2.zero() : this(0, 0);
+
+  factory WorkspaceVector2.fromJson(Map<String, Object?> json) {
+    return WorkspaceVector2(
+      (json['x'] as num?)?.toDouble() ?? 0,
+      (json['y'] as num?)?.toDouble() ?? 0,
+    );
+  }
 
   Map<String, Object> toJson() => {'x': x, 'y': y};
 
@@ -162,4 +234,40 @@ class WorkspaceIds {
     }
     return hash.toRadixString(16).padLeft(8, '0');
   }
+}
+
+Map<String, Object?> _object(Object? value) {
+  if (value is! Map) {
+    throw const FormatException('Expected a JSON object.');
+  }
+  return value.map<String, Object?>((key, value) {
+    return MapEntry(key.toString(), value);
+  });
+}
+
+List<Object?> _list(Object? value) {
+  if (value == null) return const [];
+  if (value is! List) {
+    throw const FormatException('Expected a JSON list.');
+  }
+  return value.cast<Object?>();
+}
+
+String _requiredString(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is! String || value.isEmpty) {
+    throw FormatException('Expected a non-empty string for "$key".');
+  }
+  return value;
+}
+
+Map<String, Object?> _sortedObject(Map<String, Object?> value) {
+  final keys = value.keys.toList()..sort();
+  return {for (final key in keys) key: _sortJsonValue(value[key])};
+}
+
+Object? _sortJsonValue(Object? value) {
+  if (value is Map) return _sortedObject(_object(value));
+  if (value is List) return value.map(_sortJsonValue).toList();
+  return value;
 }

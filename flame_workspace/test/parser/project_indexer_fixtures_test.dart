@@ -48,7 +48,7 @@ void main() {
       expect(model.scenes, hasLength(1));
       expect(
         model.scenes.single.components.map((component) => component.type.name),
-        containsAll(<String>['PositionComponent', 'SpriteComponent']),
+        containsAll(<String>['Player', 'PlayerSprite']),
       );
       expect(
         model.scenes.single.components.every((component) {
