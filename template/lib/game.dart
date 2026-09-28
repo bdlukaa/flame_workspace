@@ -18,7 +18,7 @@ class MyGame extends FlameGame with SingleGameInstance, WindowListener {
   }
 
   @override
-  Future<void> update(double dt) async {
+  void update(double dt) {
     super.update(dt);
   }
 

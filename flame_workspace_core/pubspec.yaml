@@ -6,8 +6,8 @@ homepage:
 publish_to: "none"
 
 environment:
-  sdk: '>=3.2.0-41.0.dev <4.0.0'
-  flutter: ">=1.17.0"
+  sdk: '>=3.13.0 <4.0.0'
+  flutter: ">=3.47.0"
 
 dependencies:
   flutter:
@@ -16,10 +16,7 @@ dependencies:
     path: ../flame_workspace
 
   # Flame
-  flame: ^1.13.0
-  flame_audio: 2.1.1
-  flame_forge2d: 0.15.0+1
-  flame_isolate: 0.5.0+1
+  flame: ^1.38.2
 
   # Connection
   web_socket_channel: ^2.4.0
@@ -27,6 +24,6 @@ dependencies:
   shelf_web_socket: ^1.0.4
 
 dev_dependencies:
-  flutter_lints: ^2.0.0
+  flutter_lints: ^6.0.0
 
 flutter:

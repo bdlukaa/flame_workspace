@@ -21,7 +21,9 @@ class Writer {
 
   /// Formats a dart string.
   static String formatDartString(String content) {
-    final fomratter = DartFormatter();
+    final fomratter = DartFormatter(
+      languageVersion: DartFormatter.latestLanguageVersion,
+    );
     return fomratter.format(content);
   }
 
@@ -32,12 +34,13 @@ class Writer {
 
   /// Whether [className] has a mixin named [mixinName].
   bool hasMixin(String className, String mixinName) {
-    final cls = unit.declarations
-        .whereType<ClassDeclaration>()
-        .firstWhere((c) => c.name.lexeme == className);
+    final cls = unit.declarations.whereType<ClassDeclaration>().firstWhere(
+      (c) => c.name.lexeme == className,
+    );
 
-    return cls.withClause?.mixinTypes
-            .any((mixin) => mixin.name2.lexeme == mixinName) ??
+    return cls.withClause?.mixinTypes.any(
+          (mixin) => mixin.name2.lexeme == mixinName,
+        ) ??
         false;
   }
 
@@ -52,9 +55,9 @@ class Writer {
     if (hasMixin(className, mixinName)) return null;
 
     // The class declaration of [className]
-    final cls = unit.declarations
-        .whereType<ClassDeclaration>()
-        .firstWhere((c) => c.name.lexeme == className);
+    final cls = unit.declarations.whereType<ClassDeclaration>().firstWhere(
+      (c) => c.name.lexeme == className,
+    );
 
     final file = File(filePath);
     var text = await file.readAsString();

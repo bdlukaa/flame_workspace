@@ -82,7 +82,8 @@ class SceneGenerator {
     }
     buffer.writeln('      default:');
     buffer.writeln(
-        '        throw ArgumentError(declarationName, \'Component not found for scene \${scene.sceneName}\',);');
+      '        throw ArgumentError(declarationName, \'Component not found for scene \${scene.sceneName}\',);',
+    );
     buffer.writeln('    }');
     buffer.writeln('  }');
     // remove component function
@@ -100,7 +101,8 @@ class SceneGenerator {
     }
     buffer.writeln('      default:');
     buffer.writeln(
-        '        throw ArgumentError(declarationName, \'Component not found for scene \${scene.sceneName}\',);');
+      '        throw ArgumentError(declarationName, \'Component not found for scene \${scene.sceneName}\',);',
+    );
     buffer.writeln('    }');
     buffer.writeln('  }');
     // set scene
@@ -160,10 +162,9 @@ class SceneGenerator {
     final classDeclaration = unitHelper.findClass(scene.name)!;
     final scriptDeclaration = unitHelper.findClass(scene.script?.name);
 
-    buffer.writeln(_generateForClassesDeclaration(
-      classDeclaration,
-      scriptDeclaration,
-    ));
+    buffer.writeln(
+      _generateForClassesDeclaration(classDeclaration, scriptDeclaration),
+    );
 
     final file = File(scene.debugPath);
     if (!(await file.exists())) await file.create(recursive: true);
@@ -303,7 +304,7 @@ class SceneGenerator {
       defaultImports,
       "import '${name.snakeCase}.dart';",
       '',
-      'class Scene${name.pascalCase} extends \$Scene${name.pascalCase} with HasGameRef {',
+      'class Scene${name.pascalCase} extends \$Scene${name.pascalCase} with HasGameReference<FlameGame> {',
       '  @override',
       '  Future<void> onLoad() async {',
       '    super.onLoad();',
@@ -311,20 +312,22 @@ class SceneGenerator {
       '  }',
       '',
       '  @override',
-      '  Future<void> update(dt) async {',
+      '  void update(double dt) {',
       '    super.update(dt);',
       '    // TODO: Implement update',
       '  }',
       '}',
     ], '\n');
 
-    final sceneScriptFile = File(path.join(
-      project.location.path,
-      'lib',
-      'scenes',
-      name.snakeCase,
-      '${name.snakeCase}_script.dart',
-    ));
+    final sceneScriptFile = File(
+      path.join(
+        project.location.path,
+        'lib',
+        'scenes',
+        name.snakeCase,
+        '${name.snakeCase}_script.dart',
+      ),
+    );
     if (!(await sceneScriptFile.exists())) {
       await sceneScriptFile.create(recursive: true);
     }

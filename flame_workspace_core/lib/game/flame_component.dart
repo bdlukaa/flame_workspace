@@ -43,8 +43,8 @@ mixin FlameComponent on PositionComponent {
 
   @override
   @mustCallSuper
-  void update(double t) {
-    super.update(t);
+  void update(double dt) {
+    super.update(dt);
 
     if (FlameWorkspaceCore.instance.currentSelectedComponent ==
         targetComponent) {
@@ -73,11 +73,7 @@ class FlameSelectionComponent extends PositionComponent {
     Vector2? size,
     Anchor anchor = Anchor.center,
     Color color = const Color(0xFFffb431),
-  }) : super(
-          position: position,
-          size: size,
-          anchor: anchor,
-        ) {
+  }) : super(position: position, size: size, anchor: anchor) {
     _paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke;
@@ -96,7 +92,7 @@ class FlameSelectionComponent extends PositionComponent {
 }
 
 class _FlameComponentWrapper extends PositionComponent
-    with FlameComponent, HasGameRef, TapCallbacks, DragCallbacks {
+    with FlameComponent, TapCallbacks, DragCallbacks {
   _FlameComponentWrapper(this.component) : super(children: [component]);
 
   final Component component;

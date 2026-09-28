@@ -38,7 +38,7 @@ class ComponentGenerator {
       '  }',
       '',
       '  @override',
-      '  Future<void> render(Canvas canvas) async {',
+      '  void render(Canvas canvas) {',
       '    super.render(canvas);',
       '  }',
       '}',
@@ -52,12 +52,14 @@ class ComponentGenerator {
   /// Use [project] to define the project where the component will be created.
   static Future<void> writeComponent(FlameProject project, String name) async {
     final component = generateComponent(name);
-    final componentFile = File(path.join(
-      project.location.path,
-      'lib',
-      'components',
-      '${name.snakeCase}.dart',
-    ));
+    final componentFile = File(
+      path.join(
+        project.location.path,
+        'lib',
+        'components',
+        '${name.snakeCase}.dart',
+      ),
+    );
     if (!(await componentFile.exists())) {
       await componentFile.create(recursive: true);
     }

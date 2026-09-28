@@ -96,13 +96,6 @@ const builtInMixins = <FlameMixin>[
     on: ['Component'],
   ),
   FlameMixin(
-    name: 'HasGameRef',
-    types: [('T', 'FlameGame')],
-    isComponentRestricted: false,
-    isSceneRestricted: false,
-    on: ['Component'],
-  ),
-  FlameMixin(
     name: 'HasGameReference',
     types: [('T', 'FlameGame')],
     isComponentRestricted: false,

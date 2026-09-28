@@ -16,7 +16,7 @@ class MySquareComponent extends PositionComponent with FlameComponent {
   }
 
   @override
-  Future<void> render(Canvas canvas) async {
+  void render(Canvas canvas) {
     super.render(canvas);
   }
 }

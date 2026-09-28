@@ -49,7 +49,8 @@ Future<void> main() async {
 }''';
 
 /// The game.dart file.
-String game$dart(String gameName) => '''import 'package:flame/components.dart';
+String game$dart(String gameName) =>
+    '''import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/palette.dart';
 import 'package:flame_workspace_core/flame_workspace_core.dart';
@@ -118,7 +119,7 @@ class Scene${sceneName.camelCase} extends \$Scene${sceneName.camelCase}} {
   bool _upping = false;
 
   @override
-  void update(dt) async {
+  void update(double dt) {
     super.update(dt);
     if (circle.radius == 100.0) {
       _upping = false;
@@ -134,7 +135,8 @@ class Scene${sceneName.camelCase} extends \$Scene${sceneName.camelCase}} {
   }
 }''';
 
-String component$dart(String componentName) => '''import 'dart:ui';
+String component$dart(String componentName) =>
+    '''import 'dart:ui';
 
 import 'package:flame/components.dart';
 
@@ -171,34 +173,29 @@ publish_to: 'none'
 version: 0.0.1+1
 
 environment:
-  sdk: '>=3.2.0-41.0.dev <4.0.0'
+  sdk: '>=3.13.0 <4.0.0'
+  flutter: '>=3.47.0'
 
 dependencies:
   flutter:
     sdk: flutter
 
   # Required dependencies
-  flame: ^1.13.1
+  flame: ^1.38.2
   flame_workspace_core:
-    git: 
+    git:
       url: https://github.com/bdlukaa/flame_workspace
       path: flame_workspace_core/
-  flame_audio: ^2.1.6
-  flame_forge2d: ^0.16.0+3
-  flame_isolate: ^0.5.0+6
-  window_manager: ^0.3.7 # Used internally by the Flame Workspace to manage the window on preview mode
+  window_manager: ^0.5.2 # Used internally by the Flame Workspace to manage the window on preview mode
 
   # Dependencies used by the app
-  
 
 dev_dependencies:
-  flutter_lints: ^2.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true
 
-  assets:
-    - assets/
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a

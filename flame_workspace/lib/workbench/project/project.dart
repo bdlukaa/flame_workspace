@@ -17,28 +17,16 @@ class DartDependency {
 
   const DartDependency({required this.name, this.version, this.comment});
 
-  static const flame = DartDependency(name: 'flame', version: '1.9.1');
-  static const flameAudio =
-      DartDependency(name: 'flame_audio', version: '2.1.1');
-  static const flameForge2d =
-      DartDependency(name: 'flame_forge2d', version: '0.15.0+1');
-  static const flameIsolate =
-      DartDependency(name: 'flame_isolate', version: '0.5.0+1');
+  static const flame = DartDependency(name: 'flame', version: '1.38.2');
+
   static const windowManager = DartDependency(
     name: 'window_manager',
-    version: '0.3.7',
-    comment:
-        'Used internally by the Flame Workspace to manage the window on preview mode',
+    version: '0.5.2',
+    comment: 'Used internally by the Flame Workspace to manage the window on preview mode',
   );
 
   /// The default dependencies of a Flame project.
-  static const defaultDependencies = <DartDependency>[
-    flame,
-    flameAudio,
-    flameForge2d,
-    flameIsolate,
-    windowManager,
-  ];
+  static const defaultDependencies = <DartDependency>[flame, windowManager];
 
   @override
   String toString() {
@@ -91,9 +79,10 @@ class FlameProject {
   /// The list of assets of the project.
   ///
   /// All the assets are declared inside the `assets` folder.
-  Iterable<File> get assets => Directory(path.join(location.path, 'assets'))
-      .listSync(recursive: true)
-      .whereType<File>();
+  Iterable<File> get assets =>
+      Directory(path.join(location.path, 'assets'))
+          .listSync(recursive: true)
+          .whereType<File>();
 }
 
 void openProject(BuildContext context, FlameProject project) {

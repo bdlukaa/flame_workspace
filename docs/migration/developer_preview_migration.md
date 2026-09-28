@@ -156,4 +156,29 @@ These are sequencing proposals based on the baseline, not completed work:
 
 ## Scope and remaining limitations
 
-This baseline intentionally did not fix the listed analyzer errors, deprecated APIs, package cycle, generated output, preview runner, or missing tests. The only repository change intended by this task is this document. Dependency-resolution commands did refresh some local generated metadata during the investigation; unrelated command-generated changes were restored, and pre-existing working-tree changes were preserved.
+This baseline intentionally did not fix the listed analyzer errors, deprecated APIs, package cycle, generated output, preview runner, or missing tests. Dependency-resolution commands did refresh some local generated metadata during the investigation; unrelated command-generated changes were restored, and pre-existing working-tree changes were preserved.
+
+## Dependency modernization update
+
+The repository now targets the installed stable toolchain: Dart `>=3.13.0 <4.0.0` and Flutter `>=3.47.0` in all four package manifests.
+
+Selected direct dependency constraints:
+
+| Package area | Selected constraint | Resolved version observed |
+| --- | --- | --- |
+| Flame | `^1.38.2` | `1.38.2` |
+| Analyzer | `^7.7.1` | `7.7.1` |
+| `dartdoc_json` | `^0.6.0` | `0.6.0` |
+| `dart_style` | `^3.1.1` | `3.1.1` |
+| VM Service bridge | `^15.3.0` | `15.3.0` |
+| `window_manager` | `^0.5.2` | `0.5.2` |
+| `path` | `^1.9.1` | `1.9.1` |
+| `yaml` | `^3.1.4` | `3.1.4` |
+| `file_picker` | `^8.0.7` | `8.0.7` |
+| Flutter linting | `^6.0.0` | `6.0.0` |
+
+`dart_style` 3.1.13 was not selected: its published constraint requires Analyzer `>=13.1.0`, while `dartdoc_json` 0.6.0 and the current analyzer integration resolve to Analyzer 7.7.1. `dart_style` 3.1.1 is the compatible resolution and requires passing an explicit `languageVersion` to `DartFormatter`; the writer now supplies `DartFormatter.latestLanguageVersion`.
+
+The editor's unused `code_builder` and `source_gen` constraints were removed. `flame_workspace_core` and the checked-in template no longer declare unused `flame_audio`, `flame_forge2d`, or `flame_isolate` dependencies. The generated project defaults retain only Flame, `flame_workspace_core`, and `window_manager`; `window_manager` remains because the current generated game imports and uses it. The existing core-to-editor path dependency remains temporarily because `flame_workspace_core/lib/communication/parser_values.dart` still consumes the editor's `FlameComponentObject`; removing that dependency belongs to the later package-boundary migration.
+
+Direct compatibility updates included the Flutter 3.47 theme data types, the ambiguous `Matrix4` export, current synchronous generated `update`/`render` signatures, and replacement of runtime/template `HasGameRef` usage with `HasGameReference<FlameGame>`. `flutter pub get` succeeds in all four packages without dependency overrides.

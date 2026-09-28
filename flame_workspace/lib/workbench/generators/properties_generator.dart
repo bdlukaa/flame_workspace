@@ -52,7 +52,9 @@ class PropertiesGenerator {
       'GlowEffect',
       'MoveEffect',
       'ViewportAwareBoundsBehavior',
-    ].contains(component.name)) return '';
+    ].contains(component.name)) {
+      return '';
+    }
 
     final className = component.name;
     final properties = component.parameters.where(

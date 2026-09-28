@@ -28,7 +28,9 @@ class FlameProjectState with ChangeNotifier {
       if (!event.path.endsWith('.dart') ||
           event.path.contains(
             path.join(project.name, 'lib', 'generated'),
-          )) return;
+          )) {
+        return;
+      }
 
       project.location.list().toList().then((value) {
         files = value;

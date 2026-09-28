@@ -30,7 +30,7 @@ class FlameWorkspaceApp extends StatelessWidget {
           // surface: Colors.blueGrey,
         ),
         visualDensity: VisualDensity.compact,
-        cardTheme: const CardTheme(
+        cardTheme: const CardThemeData(
           shape: RoundedRectangleBorder(),
           margin: EdgeInsets.zero,
         ),
@@ -54,23 +54,18 @@ class FlameWorkspaceApp extends StatelessWidget {
             shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
           ),
         ),
-        dialogTheme: const DialogTheme(
-          shape: RoundedRectangleBorder(),
-        ),
+        dialogTheme: const DialogThemeData(shape: RoundedRectangleBorder()),
         bottomSheetTheme: const BottomSheetThemeData(
           shape: RoundedRectangleBorder(),
         ),
       ),
       initialRoute: '/',
-      routes: {
-        '/': (_) => const WelcomeView(),
-      },
+      routes: {'/': (_) => const WelcomeView()},
       onGenerateRoute: (settings) {
         if (settings.name == '/project') {
           return MaterialPageRoute(
-            builder: (_) => WorkbenchView(
-              project: settings.arguments as FlameProject,
-            ),
+            builder: (_) =>
+                WorkbenchView(project: settings.arguments as FlameProject),
           );
         }
         return null;
