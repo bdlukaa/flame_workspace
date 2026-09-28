@@ -78,25 +78,39 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
 
   IOWebSocketChannel? _channel;
 
-  late VM vm;
-
-  String get isolateId {
-    return vm.isolates!.first.id!;
-  }
-
   GameState _gameState = const GameState.initial();
   GameState get gameState => _gameState;
-  set gameState(GameState state) {
-    _gameState = state;
-    send(WorkbenchMessages.setGameState, state.toMap());
-  }
 
   void pause() {
-    gameState = gameState.copyWith(paused: true);
-    vmService?.pause(isolateId);
+    unawaited(_setPaused(true));
   }
 
-  void resume() => gameState = gameState.copyWith(paused: false);
+  void resume() {
+    unawaited(_setPaused(false));
+  }
+
+  Future<void> _setPaused(bool paused) async {
+    final client = runtimeClient;
+    if (client == null) {
+      emitLog(
+        'Runtime is not connected; cannot ${paused ? 'pause' : 'resume'}.',
+        kWorkspaceLogPrefix,
+      );
+      return;
+    }
+
+    try {
+      await client.invoke(
+        paused ? WorkspaceExtensionNames.pause : WorkspaceExtensionNames.resume,
+      );
+      _gameState = _gameState.copyWith(paused: paused);
+      notifyListeners();
+    } on WorkspaceRuntimeException catch (error) {
+      emitLog(error.toString(), kWorkspaceLogPrefix);
+    } catch (error) {
+      emitLog('Runtime command failed: $error', kWorkspaceLogPrefix);
+    }
+  }
 
   Future<void> connectChannel(String url) async {
     final channel = IOWebSocketChannel.connect(url);

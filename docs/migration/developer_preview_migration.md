@@ -213,3 +213,31 @@ The generated template keeps the existing minimal runtime dependency set (`flame
 `flame_workspace/lib/workbench/runner/project_runner.dart` now owns Flutter process execution behind `ProjectProcessLauncher` and `ProjectProcess` abstractions. `FlutterTarget` represents an explicit device discovered from `flutter devices --machine`, while omitting a target lets Flutter select its normal default. The runner owns start/stop, output streams, `r`/`R` commands, exit state, and cleanup.
 
 `preview.dart` adds a separate web-server preview path using `flutter run -d web-server`, robust URL extraction, preview lifecycle state, and the platform-neutral `PreviewSurface` contract. The current fallback surface records the URL and the Workspace UI displays it; no embedded browser dependency is currently configured, and the legacy native view remains limited to native Run rather than being extended for web preview.
+
+## VM Service runtime bridge
+
+The current runtime communication boundary is now split into three responsibilities:
+
+- `flame_workspace_protocol/lib/runtime.dart` contains stable extension names and JSON request/response DTOs. It has no Flutter, Flame, or editor dependency.
+- `flame_workspace_runtime/lib/vm_service_extensions.dart` registers the stable `ext.flameWorkspace.*` extensions and dispatches validated requests against the existing `FlameWorkspaceCore`, `FlameScene`, `World`, and component tree.
+- `flame_workspace_communication_bridge/lib/runtime_client.dart` invokes extensions from the editor side through `vm_service`, encodes structured arguments in a single `request` parameter, and exposes typed failures.
+
+The implemented extension names are:
+
+```text
+ext.flameWorkspace.getState
+ext.flameWorkspace.getComponentTree
+ext.flameWorkspace.setProperty
+ext.flameWorkspace.setTransform
+ext.flameWorkspace.addComponent
+ext.flameWorkspace.removeComponent
+ext.flameWorkspace.setScene
+ext.flameWorkspace.pause
+ext.flameWorkspace.resume
+```
+
+`FlameWorkspaceCore.ensureInitialized` registers the bridge after assigning the real `FlameGame`. State and component-tree responses are derived from the current Flame `World`; transform changes operate on `PositionComponent`; property, scene, add, and remove operations delegate to the generated hooks already installed by a project. Pause and resume call Flame's engine controls. Invalid JSON, missing arguments, unknown methods, unavailable scenes, unsupported mutations, and runtime failures return structured `{ok: false, error: ...}` responses without escaping from the service-extension handler.
+
+The runner's pause/resume controls use this client when a VM Service connection is available. The old Shelf/WebSocket server and its message types remain migration code for existing native-preview behavior; no new VM operations are implemented there, and it is not the source of truth for the stable runtime API.
+
+The checked-in template already calls `FlameWorkspaceCore.ensureInitialized` during startup, so generated/template games register the runtime extensions without requiring a second scene system. The current limitation is that generic component creation/removal still requires the generated scene hooks and generic property mutation still requires the project's generated property callback. A live process-level fixture launch and VM Service invocation remains an end-to-end validation item; the package tests cover real Flame objects, protocol round trips, malformed requests, client failures, and command dispatch.

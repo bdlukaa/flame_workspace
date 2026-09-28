@@ -1,6 +1,3 @@
-/// The part where the game is called.
-library fwcb_game;
-
 import 'dart:developer';
 
 import 'package:vm_service/vm_service.dart';
@@ -13,9 +10,7 @@ void registerGame() async {
   final info = await Service.getInfo();
   final serverUri = info.serverUri;
   if (serverUri != null) {
-    vmService = await vmServiceConnectUri(
-      info.serverWebSocketUri!.toString(),
-    );
+    vmService = await vmServiceConnectUri(info.serverWebSocketUri!.toString());
   }
 }
 
@@ -33,12 +28,14 @@ Future<InstanceRef?> initializeClass(
     [
       className,
       '(',
-      namedParameters.entries.map((entry) {
-        if (entry.value is String) {
-          return '${entry.key}: "${entry.value}"';
-        }
-        return '${entry.key}: ${entry.value}';
-      }).join(', '),
+      namedParameters.entries
+          .map((entry) {
+            if (entry.value is String) {
+              return '${entry.key}: "${entry.value}"';
+            }
+            return '${entry.key}: ${entry.value}';
+          })
+          .join(', '),
       ')',
     ].join(),
   );

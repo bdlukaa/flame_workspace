@@ -8,14 +8,17 @@ import 'package:flame_workspace_protocol/state.dart';
 
 import 'communication/debug_server.dart' as ds;
 import 'game/scene.dart';
+import 'vm_service_extensions.dart';
 
 export 'package:flame_workspace_protocol/messages.dart';
+export 'package:flame_workspace_protocol/runtime.dart';
 export 'package:flame_workspace_protocol/state.dart';
 export 'package:flame_workspace_runtime/communication/value_parser.dart';
 export 'package:flame_workspace_runtime/exports.dart';
 export 'package:flame_workspace_runtime/game/flame_component.dart';
 export 'package:flame_workspace_runtime/game/key.dart';
 export 'package:flame_workspace_runtime/game/scene.dart';
+export 'package:flame_workspace_runtime/vm_service_extensions.dart';
 
 typedef SetPropertyValue = void Function(
   String className,
@@ -40,6 +43,7 @@ class FlameWorkspaceCore {
   static Future<void> ensureInitialized(FlameGame game) async {
     assert(isGame);
     instance.game = game;
+    registerFlameWorkspaceExtensions(instance);
     if (kDebugMode) {
       assert(!kIsWeb, 'Can not run in web mode');
       debugPrint('Initializing Flame Workspace Core');
@@ -63,15 +67,28 @@ class FlameWorkspaceCore {
     _currentSelectedComponent = component;
   }
 
-  late FlameScene _currentScene;
-  FlameScene get currentScene => _currentScene;
+  FlameScene? _currentScene;
+  FlameScene get currentScene =>
+      _currentScene ??
+      (throw StateError('No current Flame Workspace scene is loaded.'));
+  FlameScene? get currentSceneOrNull => _currentScene;
+
   set currentScene(FlameScene scene) {
     _currentScene = scene;
     game.world = scene;
   }
 
-  late SetPropertyValue setPropertyValue;
-  late SetScene setScene;
+  SetPropertyValue? _setPropertyValue;
+  SetPropertyValue get setPropertyValue =>
+      _setPropertyValue ??
+      (throw StateError('The game has not registered a property handler.'));
+  set setPropertyValue(SetPropertyValue value) => _setPropertyValue = value;
+
+  SetScene? _setScene;
+  SetScene get setScene =>
+      _setScene ??
+      (throw StateError('The game has not registered a scene handler.'));
+  set setScene(SetScene value) => _setScene = value;
 
   void setGameState(GameState state) {
     // if (state.paused) {

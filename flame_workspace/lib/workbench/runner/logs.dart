@@ -46,7 +46,6 @@ extension RunnerLogs on FlameProjectRunner {
       debugPrint('VM service at $wsUri');
 
       await registerWorkspace(wsUri.toString());
-      vm = await vmService!.getVM();
 
       notifyListeners();
     } else if (line.trim().contains('flutter: Serving at ')) {
