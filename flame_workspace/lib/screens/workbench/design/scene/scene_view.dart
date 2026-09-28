@@ -199,6 +199,10 @@ class _SceneViewState extends State<SceneView> {
                           scene: scene,
                           selectedComponentId: state.selectedComponent?.id,
                           projectRootPath: workbench.project.location.path,
+                          onTransformEditStart:
+                              state.workspaceModel.beginTransformEdit,
+                          onTransformEditEnd:
+                              state.workspaceModel.endTransformEdit,
                           onTransformChanged: (componentId, transform) {
                             state.updateComponentTransform(
                               componentId,
@@ -260,7 +264,6 @@ class _SceneViewState extends State<SceneView> {
                                       PopupMenuItem(
                                         child: const Text('Remove'),
                                         onTap: () async {
-                                          state.selectComponent(null);
                                           state.removeWorkspaceComponent(
                                             component.id,
                                           );

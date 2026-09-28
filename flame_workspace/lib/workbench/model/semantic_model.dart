@@ -242,6 +242,18 @@ class WorkspaceTransform {
     'angle': angle,
     'anchor': anchor.toJson(),
   };
+
+  @override
+  bool operator ==(Object other) {
+    return other is WorkspaceTransform &&
+        other.position == position &&
+        other.size == size &&
+        other.angle == angle &&
+        other.anchor == anchor;
+  }
+
+  @override
+  int get hashCode => Object.hash(position, size, angle, anchor);
 }
 
 class WorkspaceVector2 {

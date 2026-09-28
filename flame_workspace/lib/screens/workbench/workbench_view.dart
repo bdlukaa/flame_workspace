@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flame_workspace/screens/workbench/design/script_editor.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../workbench/model/semantic_model.dart';
@@ -158,42 +159,55 @@ class _WorkbenchViewState extends State<WorkbenchView> {
       );
     }
 
-    return AbsorbPointer(
-      absorbing: state.isIndexing,
-      child: Workbench(
-        project: widget.project,
-        runner: runner,
-        state: state,
-        onComponentSelected: (component) {
-          state.selectComponent(component?.id);
-        },
-        onEditScript: () {
-          setState(() => _editingScript = !_editingScript);
-        },
-        child: Scaffold(
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Card(
-                margin: EdgeInsets.zero,
-                shape: const RoundedRectangleBorder(),
-                child: Container(
-                  height: 38.0,
-                  padding: const EdgeInsetsDirectional.all(4.0),
-                  child: Builder(builder: _buildToolbar),
-                ),
-              ),
-              Expanded(
-                child: switch (mode) {
-                  WorkbenchViewMode.design => DesignView(
-                    isEditingScript: _editingScript,
+    return CallbackShortcuts(
+      bindings: {
+        SingleActivator(LogicalKeyboardKey.keyZ, control: true):
+            state.undoWorkspace,
+        SingleActivator(LogicalKeyboardKey.keyZ, meta: true):
+            state.undoWorkspace,
+        SingleActivator(LogicalKeyboardKey.keyZ, control: true, shift: true):
+            state.redoWorkspace,
+        SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true):
+            state.redoWorkspace,
+      },
+      child: AbsorbPointer(
+        absorbing: state.isIndexing,
+        child: Workbench(
+          project: widget.project,
+          runner: runner,
+          state: state,
+          onComponentSelected: (component) {
+            state.selectComponent(component?.id);
+          },
+          onEditScript: () {
+            setState(() => _editingScript = !_editingScript);
+          },
+          child: Scaffold(
+            body: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Card(
+                  margin: EdgeInsets.zero,
+                  shape: const RoundedRectangleBorder(),
+                  child: Container(
+                    height: 38.0,
+                    padding: const EdgeInsetsDirectional.all(4.0),
+                    child: Builder(builder: _buildToolbar),
                   ),
-                  WorkbenchViewMode.project => const ProjectView(),
-                  WorkbenchViewMode.assets => const AssetsView(),
-                  WorkbenchViewMode.configuration => const ConfigurationView(),
-                },
-              ),
-            ],
+                ),
+                Expanded(
+                  child: switch (mode) {
+                    WorkbenchViewMode.design => DesignView(
+                      isEditingScript: _editingScript,
+                    ),
+                    WorkbenchViewMode.project => const ProjectView(),
+                    WorkbenchViewMode.assets => const AssetsView(),
+                    WorkbenchViewMode.configuration =>
+                      const ConfigurationView(),
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -219,6 +233,18 @@ class _WorkbenchViewState extends State<WorkbenchView> {
                 onTap: state.isDirty ? state.saveWorkspace : null,
                 tooltip: 'Save scene',
                 icon: const Icon(Icons.save),
+              ),
+              const SizedBox(width: 8.0),
+              InkedIconButton(
+                onTap: state.canUndo ? state.undoWorkspace : null,
+                tooltip: 'Undo (Ctrl/Cmd+Z)',
+                icon: const Icon(Icons.undo),
+              ),
+              const SizedBox(width: 8.0),
+              InkedIconButton(
+                onTap: state.canRedo ? state.redoWorkspace : null,
+                tooltip: 'Redo (Ctrl/Cmd+Shift+Z)',
+                icon: const Icon(Icons.redo),
               ),
               const SizedBox(width: 8.0),
               const NotificationsField(),

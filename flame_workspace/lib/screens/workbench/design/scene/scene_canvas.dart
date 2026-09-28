@@ -279,6 +279,8 @@ class SceneCanvas extends StatefulWidget {
   final ValueChanged<String?> onSelectionChanged;
   final void Function(String componentId, WorkspaceTransform transform)?
   onTransformChanged;
+  final ValueChanged<String>? onTransformEditStart;
+  final VoidCallback? onTransformEditEnd;
   final String? projectRootPath;
 
   const SceneCanvas({
@@ -287,6 +289,8 @@ class SceneCanvas extends StatefulWidget {
     required this.selectedComponentId,
     required this.onSelectionChanged,
     this.onTransformChanged,
+    this.onTransformEditStart,
+    this.onTransformEditEnd,
     this.projectRootPath,
   });
 
@@ -341,6 +345,10 @@ class _SceneCanvasState extends State<SceneCanvas> {
               _pointerDownPosition = event.localPosition;
               _pointerMoved = false;
               _beginEdit(viewport.viewportToWorld(event.localPosition));
+              final frame = _editFrame;
+              if (_editOperation != null && frame != null) {
+                widget.onTransformEditStart?.call(frame.component.id);
+              }
             },
             onPointerMove: (event) {
               final down = _pointerDownPosition;
@@ -356,7 +364,10 @@ class _SceneCanvasState extends State<SceneCanvas> {
               _clearEdit();
               _pointerDownPosition = null;
               _pointerMoved = false;
-              if (wasEditing) return;
+              if (wasEditing) {
+                widget.onTransformEditEnd?.call();
+                return;
+              }
               if (wasTap) {
                 final component = SceneCanvasGeometry.hitTest(
                   widget.scene,
@@ -366,6 +377,7 @@ class _SceneCanvasState extends State<SceneCanvas> {
               }
             },
             onPointerCancel: (_) {
+              if (_editOperation != null) widget.onTransformEditEnd?.call();
               _clearEdit();
               _pointerDownPosition = null;
               _pointerMoved = false;

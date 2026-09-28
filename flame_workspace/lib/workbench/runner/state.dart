@@ -135,6 +135,16 @@ class FlameProjectState with ChangeNotifier {
 
   ComponentInstance? get selectedComponent => workspaceModel.selectedComponent;
   bool get isDirty => workspaceModel.isDirty;
+  bool get canUndo => workspaceModel.canUndo;
+  bool get canRedo => workspaceModel.canRedo;
+
+  void undoWorkspace() {
+    workspaceModel.undo();
+  }
+
+  void redoWorkspace() {
+    workspaceModel.redo();
+  }
 
   void selectComponent(String? componentId) {
     workspaceModel.selectComponent(componentId);

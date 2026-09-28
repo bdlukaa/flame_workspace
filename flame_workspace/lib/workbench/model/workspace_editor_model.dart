@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../project/project.dart';
+import 'editor_history.dart';
 import 'scene_persistence.dart';
 import 'semantic_model.dart';
 import '../generators/scene_persistence_generator.dart';
@@ -11,6 +12,8 @@ class WorkspaceEditorModel extends ChangeNotifier {
   String? _currentSceneId;
   String? _selectedComponentId;
   bool _isDirty = false;
+  final EditorHistory _history = EditorHistory();
+  String? _activeTransformHistoryKey;
 
   WorkspaceEditorModel(this._project, {String? currentSceneId})
     : _currentSceneId =
@@ -19,6 +22,8 @@ class WorkspaceEditorModel extends ChangeNotifier {
 
   WorkspaceProject get project => _project;
   bool get isDirty => _isDirty;
+  bool get canUndo => _history.canUndo;
+  bool get canRedo => _history.canRedo;
   String? get currentSceneId => _currentSceneId;
   String? get selectedComponentId => _selectedComponentId;
 
@@ -52,6 +57,8 @@ class WorkspaceEditorModel extends ChangeNotifier {
     _selectedComponentId = _componentExistsInCurrentScene(previousComponentId)
         ? previousComponentId
         : null;
+    _activeTransformHistoryKey = null;
+    _history.clear();
     notifyListeners();
   }
 
@@ -77,31 +84,81 @@ class WorkspaceEditorModel extends ChangeNotifier {
   bool updateProperty(String componentId, String name, Object? value) {
     final component = _componentInCurrentScene(componentId);
     if (component == null) return false;
-    component.setProperty(name, value);
+
+    final hadValue = component.properties.containsKey(name);
+    final previousValue = component.properties[name];
+    if (hadValue && previousValue == value) return false;
+    if (!hadValue && value == null) return false;
+
+    final command = EditorCommand(
+      description: 'Change $name',
+      redoAction: () => _setProperty(component, name, value),
+      undoAction: () {
+        if (hadValue) {
+          _setProperty(component, name, previousValue);
+        } else {
+          component.properties.remove(name);
+        }
+      },
+    );
+    command.redo();
+    _history.record(command);
     _markDirty();
     return true;
   }
 
+  void beginTransformEdit(String componentId) {
+    if (_componentInCurrentScene(componentId) != null) {
+      _activeTransformHistoryKey = 'transform:$componentId';
+    }
+  }
+
+  void endTransformEdit() {
+    _activeTransformHistoryKey = null;
+  }
+
   bool updateTransform(String componentId, WorkspaceTransform transform) {
     final component = _componentInCurrentScene(componentId);
-    if (component == null) return false;
-    component.setTransform(transform);
+    if (component == null || component.transform == transform) return false;
+    final previousTransform = component.transform;
+    final command = EditorCommand(
+      description: 'Change transform',
+      coalesceKey: _activeTransformHistoryKey,
+      redoAction: () => component.setTransform(transform),
+      undoAction: () => component.setTransform(previousTransform),
+    );
+    command.redo();
+    _history.record(command);
     _markDirty();
     return true;
   }
 
   bool updateAssetPath(String componentId, String? assetPath) {
     final component = _componentInCurrentScene(componentId);
-    if (component == null) return false;
-    component.setAssetPath(assetPath);
+    if (component == null || component.assetPath == assetPath) return false;
+    final previousAssetPath = component.assetPath;
+    final command = EditorCommand(
+      description: 'Change asset',
+      redoAction: () => component.setAssetPath(assetPath),
+      undoAction: () => component.setAssetPath(previousAssetPath),
+    );
+    command.redo();
+    _history.record(command);
     _markDirty();
     return true;
   }
 
   bool setPriority(String componentId, int priority) {
     final component = _componentInCurrentScene(componentId);
-    if (component == null) return false;
-    component.priority = priority;
+    if (component == null || component.priority == priority) return false;
+    final previousPriority = component.priority;
+    final command = EditorCommand(
+      description: 'Change priority',
+      redoAction: () => component.priority = priority,
+      undoAction: () => component.priority = previousPriority,
+    );
+    command.redo();
+    _history.record(command);
     _markDirty();
     return true;
   }
@@ -112,25 +169,67 @@ class WorkspaceEditorModel extends ChangeNotifier {
         _findComponent(scene.components, component.id) != null) {
       return false;
     }
-    if (parentId == null) {
-      scene.components.add(component);
-    } else {
-      final parent = _findComponent(scene.components, parentId);
-      if (parent == null) return false;
-      parent.children.add(component);
-    }
+
+    final target = parentId == null
+        ? scene.components
+        : _findComponent(scene.components, parentId)?.children;
+    if (target == null) return false;
+    final index = target.length;
+    final command = EditorCommand(
+      description: 'Add component',
+      redoAction: () {
+        if (_findComponent(scene.components, component.id) == null) {
+          target.insert(index.clamp(0, target.length), component);
+        }
+      },
+      undoAction: () => target.remove(component),
+    );
+    command.redo();
+    _history.record(command);
     _markDirty();
     return true;
   }
 
   bool removeComponent(String componentId) {
     final scene = currentScene;
-    if (scene == null || !_removeComponent(scene.components, componentId)) {
-      return false;
-    }
-    if (!_componentExistsInCurrentScene(_selectedComponentId)) {
-      _selectedComponentId = null;
-    }
+    if (scene == null) return false;
+    final location = _findComponentLocation(scene.components, componentId);
+    if (location == null) return false;
+
+    final previousSelection = _selectedComponentId;
+    final selectionWasRemoved =
+        previousSelection != null &&
+        _containsComponent(location.component, previousSelection);
+    final command = EditorCommand(
+      description: 'Remove component',
+      redoAction: () {
+        location.components.remove(location.component);
+        if (selectionWasRemoved) _selectedComponentId = null;
+      },
+      undoAction: () {
+        if (_findComponent(scene.components, location.component.id) == null) {
+          location.components.insert(
+            location.index.clamp(0, location.components.length),
+            location.component,
+          );
+        }
+        _selectedComponentId = previousSelection;
+      },
+    );
+    command.redo();
+    _history.record(command);
+    _markDirty();
+    return true;
+  }
+
+  bool undo() {
+    if (!_history.undo()) return false;
+    _markDirty();
+    return true;
+  }
+
+  bool redo() {
+    if (!_history.redo()) return false;
     _markDirty();
     return true;
   }
@@ -166,6 +265,8 @@ class WorkspaceEditorModel extends ChangeNotifier {
       WorkspaceProject(id: _project.id, name: _project.name, scenes: scenes),
       preserveUnsavedChanges: false,
     );
+    _history.clear();
+    _activeTransformHistoryKey = null;
     _isDirty = false;
     notifyListeners();
   }
@@ -206,18 +307,32 @@ class WorkspaceEditorModel extends ChangeNotifier {
     return null;
   }
 
-  static bool _removeComponent(
+  static _ComponentLocation? _findComponentLocation(
     List<ComponentInstance> components,
     String componentId,
   ) {
-    final removed = components.removeWhereAndReturn(
-      (component) => component.id == componentId,
-    );
-    if (removed) return true;
-    for (final component in components) {
-      if (_removeComponent(component.children, componentId)) return true;
+    for (var index = 0; index < components.length; index++) {
+      final component = components[index];
+      if (component.id == componentId) {
+        return _ComponentLocation(components, index, component);
+      }
+      final nested = _findComponentLocation(component.children, componentId);
+      if (nested != null) return nested;
     }
-    return false;
+    return null;
+  }
+
+  static bool _containsComponent(ComponentInstance component, String id) {
+    if (component.id == id) return true;
+    return component.children.any((child) => _containsComponent(child, id));
+  }
+
+  static void _setProperty(
+    ComponentInstance component,
+    String name,
+    Object? value,
+  ) {
+    component.setProperty(name, value);
   }
 
   static Iterable<ComponentInstance> _allComponents(
@@ -230,16 +345,12 @@ class WorkspaceEditorModel extends ChangeNotifier {
   }
 }
 
-extension on List<ComponentInstance> {
-  bool removeWhereAndReturn(bool Function(ComponentInstance) test) {
-    for (var index = 0; index < length; index++) {
-      if (test(this[index])) {
-        removeAt(index);
-        return true;
-      }
-    }
-    return false;
-  }
+class _ComponentLocation {
+  final List<ComponentInstance> components;
+  final int index;
+  final ComponentInstance component;
+
+  const _ComponentLocation(this.components, this.index, this.component);
 }
 
 extension on Iterable<SceneDefinition> {
