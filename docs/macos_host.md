@@ -20,9 +20,14 @@ The macOS deployment target is 12.0 and Runner uses C++20. The Podfile's
 `post_install` installs the plugin's CEF helper-app embedding build phase. This
 is required for the supported multi-process CEF configuration; omitting it
 falls back to unsupported single-process mode. Debug and release entitlements
-allow the sandboxed app to make network client connections to the local preview
-server. CEF remains enabled in release builds because the editor's embedded
-preview is a product feature.
+retain the network client/server permissions used by the local preview host. CEF
+remains enabled in release builds because the editor's embedded
+preview is a product feature. The host intentionally disables App Sandbox so it
+can launch Flutter from an external SDK and operate on developer project files.
+This is a developer-tool security tradeoff: user code is run only through
+explicit actions such as Preview, Run, or Test; opening/indexing remains static.
+See [`platform_requirements.md`](platform_requirements.md) for the security
+implications and requirements for any future sandboxed distribution.
 
 From `flame_workspace/`:
 

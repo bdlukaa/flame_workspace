@@ -1,5 +1,13 @@
 # Flame Workspace
 
+## Host platform requirements
+
+Flame Workspace is a desktop editor for Windows 10+, macOS 12+, and Linux
+(x64/arm64), subject to each platform's Flutter and CEF native toolchain
+requirements. See [`docs/platform_requirements.md`](docs/platform_requirements.md)
+for the host matrix, dependency-specific limits, and macOS subprocess permission
+requirements.
+
 Flame Workspace is a visual development environment for normal Flutter + Flame
 projects. Flame remains the runtime engine and Dart remains the source of game
 behavior; Workspace owns project analysis, scene composition, editing, and
