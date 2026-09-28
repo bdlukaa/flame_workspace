@@ -12,7 +12,5 @@ Future<void> main() async {
   FlameWorkspaceCore.instance.setScene = setScene;
   await FlameWorkspaceCore.ensureInitialized(game);
 
-  runApp(GameWidget<MyGame>(
-    game: FlameWorkspaceCore.instance.game as MyGame,
-  ));
+  runApp(GameWidget<MyGame>(game: FlameWorkspaceCore.instance.game as MyGame));
 }

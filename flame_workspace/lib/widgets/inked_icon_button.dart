@@ -28,10 +28,7 @@ class InkedIconButton extends StatelessWidget {
     );
 
     if (tooltip != null && enabled) {
-      child = Tooltip(
-        message: tooltip!,
-        child: child,
-      );
+      child = Tooltip(message: tooltip!, child: child);
     }
 
     return child;

@@ -2,10 +2,7 @@ import 'package:flame_workspace/screens/workbench/workbench_view.dart';
 import 'package:flame_workspace/workbench/generators/scene_generator.dart';
 import 'package:flutter/material.dart';
 
-Future<void> showCreateSceneDialog(
-  BuildContext context,
-  Workbench workbench,
-) {
+Future<void> showCreateSceneDialog(BuildContext context, Workbench workbench) {
   return showDialog<void>(
     context: context,
     builder: (context) {
@@ -61,18 +58,16 @@ class _CreateSceneDialogState extends State<CreateSceneDialog> {
                   },
                 ),
                 const SizedBox(height: 8.0),
-                Text(
-                  'Options',
-                  style: theme.textTheme.labelLarge,
-                ),
+                Text('Options', style: theme.textTheme.labelLarge),
                 CheckboxListTile.adaptive(
                   value: _createScript,
                   onChanged: (v) {
                     setState(() => _createScript = v ?? _createScript);
                   },
                   title: const Text('Create Scene Script'),
-                  subtitle:
-                      const Text('The script can be added manually later.'),
+                  subtitle: const Text(
+                    'The script can be added manually later.',
+                  ),
                   controlAffinity: ListTileControlAffinity.leading,
                 ),
               ],

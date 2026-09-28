@@ -48,8 +48,10 @@ class ComponentHelper {
 
     final helper = CompilationUnitHelper(indexed: parent.$2, unit: parent.$3);
     final parentClass = helper.findClass(component.parent?.name ?? scene.name);
-    final declaration =
-        helper.findProperty(parentClass, component.declarationName!);
+    final declaration = helper.findProperty(
+      parentClass,
+      component.declarationName!,
+    );
 
     if (declaration == null) return;
 
@@ -69,7 +71,7 @@ class ComponentHelper {
   }
 
   Iterable<(String name, String expression, NamedExpression argument)>?
-      get initializerArguments {
+  get initializerArguments {
     final parent = parentUnit;
     if (parent == null) return null;
     final helper = CompilationUnitHelper(indexed: parent.$2, unit: parent.$3);
@@ -77,8 +79,9 @@ class ComponentHelper {
     final initializer = helper
         .findProperty(parentClass, component.declarationName!)
         ?.initializer;
-    final initializerExpression =
-        initializer == null ? null : helper.parseExpression(initializer)!.$2;
+    final initializerExpression = initializer == null
+        ? null
+        : helper.parseExpression(initializer)!.$2;
 
     return initializerExpression;
   }
@@ -88,10 +91,7 @@ class ComponentHelper {
     final parent = parentUnit;
     if (parent == null) return;
 
-    final helper = CompilationUnitHelper(
-      indexed: parent.$2,
-      unit: parent.$3,
-    );
+    final helper = CompilationUnitHelper(indexed: parent.$2, unit: parent.$3);
     final parentClass = helper.findClass(component.parent?.name ?? scene.name);
     final initializer = helper
         .findProperty(parentClass, component.declarationName!)

@@ -61,10 +61,7 @@ class _TreeNode extends StatefulWidget {
   final TreeNode node;
   final bool initiallyExpanded;
 
-  const _TreeNode({
-    required this.node,
-    required this.initiallyExpanded,
-  });
+  const _TreeNode({required this.node, required this.initiallyExpanded});
 
   @override
   State<_TreeNode> createState() => __TreeNodeState();
@@ -112,64 +109,68 @@ class __TreeNodeState extends State<_TreeNode> {
                 color: theme.colorScheme.primary,
               ),
             ),
-            child: Row(children: [
-              // if (widget.node.children != null)
-              GestureDetector(
-                onTap: toggleExpanded,
-                child: Container(
-                  width: toggleBoxWidth,
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsetsDirectional.only(start: 4.0),
-                  child: Icon(
-                    widget.node.children == null
-                        ? null
-                        : _isExpanded
-                            ? Icons.keyboard_arrow_down
-                            : Icons.keyboard_arrow_right,
-                    size: 12.0,
-                  ),
-                ),
-              ),
-              if (widget.node.icon != null)
-                SizedBox(
-                  width: toggleBoxWidth,
-                  child: Align(
-                    alignment: AlignmentDirectional.centerStart,
+            child: Row(
+              children: [
+                // if (widget.node.children != null)
+                GestureDetector(
+                  onTap: toggleExpanded,
+                  child: Container(
+                    width: toggleBoxWidth,
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsetsDirectional.only(start: 4.0),
                     child: Icon(
-                      widget.node.icon,
-                      size: 16.0,
-                      color: widget.node.iconColor,
+                      widget.node.children == null
+                          ? null
+                          : _isExpanded
+                          ? Icons.keyboard_arrow_down
+                          : Icons.keyboard_arrow_right,
+                      size: 12.0,
                     ),
                   ),
                 ),
-              Expanded(child: Text(widget.node.text)),
-              if (widget.node.trailing != null) widget.node.trailing!,
-            ]),
+                if (widget.node.icon != null)
+                  SizedBox(
+                    width: toggleBoxWidth,
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Icon(
+                        widget.node.icon,
+                        size: 16.0,
+                        color: widget.node.iconColor,
+                      ),
+                    ),
+                  ),
+                Expanded(child: Text(widget.node.text)),
+                if (widget.node.trailing != null) widget.node.trailing!,
+              ],
+            ),
           ),
         ),
         if (_isExpanded && widget.node.children != null)
           for (final child in widget.node.children!)
             IntrinsicHeight(
-              child: Row(children: [
-                Container(
-                  width: toggleBoxWidth,
-                  padding: const EdgeInsetsDirectional.only(start: 10.0),
-                  child: const Align(
-                    alignment: Alignment.centerLeft,
-                    child: VerticalDivider(
-                      width: 1.0,
-                      endIndent: 0.0,
-                      thickness: 1.0,
+              child: Row(
+                children: [
+                  Container(
+                    width: toggleBoxWidth,
+                    padding: const EdgeInsetsDirectional.only(start: 10.0),
+                    child: const Align(
+                      alignment: Alignment.centerLeft,
+                      child: VerticalDivider(
+                        width: 1.0,
+                        endIndent: 0.0,
+                        thickness: 1.0,
+                      ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: _TreeNode(
-                    node: child,
-                    initiallyExpanded: widget.initiallyExpanded,
+                  Expanded(
+                    child: _TreeNode(
+                      node: child,
+                      initiallyExpanded: widget.initiallyExpanded,
+                    ),
                   ),
-                ),
-              ]),
+                ],
+              ),
             ),
       ],
     );
@@ -189,13 +190,13 @@ class TreeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      for (final node in nodes)
-        _TreeNode(
-          node: node,
-          initiallyExpanded: initiallyExpanded,
-        ),
-    ]);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final node in nodes)
+          _TreeNode(node: node, initiallyExpanded: initiallyExpanded),
+      ],
+    );
   }
 }
 

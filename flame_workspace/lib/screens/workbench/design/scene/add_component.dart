@@ -30,10 +30,7 @@ Future<AddIndexedComponent?> showAddComponentDialog(BuildContext context) {
 class AddComponentDialog extends StatefulWidget {
   final Workbench workbench;
 
-  const AddComponentDialog({
-    super.key,
-    required this.workbench,
-  });
+  const AddComponentDialog({super.key, required this.workbench});
 
   @override
   State<AddComponentDialog> createState() => _AddComponentDialogState();
@@ -98,7 +95,8 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
     ]) {
       return TreeNode(
         value: component,
-        icon: iconForComponent(component.name) ??
+        icon:
+            iconForComponent(component.name) ??
             iconForComponent(component.type) ??
             Icons.square,
         text: component.name,
@@ -115,53 +113,60 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
       required Iterable<String> types,
       required Iterable<FlameComponentObject> components,
     }) {
-      return components.where((c) => types.contains(c.type)).map((component) {
-        var children = components.where((c) {
-          return c.type == component.name;
-        }).map<TreeNode>((childComponent) {
-          final children = componentsFor(
-            types: [childComponent.name],
-            components: components,
-          );
+      return components
+          .where((c) => types.contains(c.type))
+          .map((component) {
+            var children = components
+                .where((c) {
+                  return c.type == component.name;
+                })
+                .map<TreeNode>((childComponent) {
+                  final children = componentsFor(
+                    types: [childComponent.name],
+                    components: components,
+                  );
 
-          return buildComponentNode(childComponent, children);
-        });
+                  return buildComponentNode(childComponent, children);
+                });
 
-        return buildComponentNode(component, children);
-      }).where((node) {
-        bool searchChildren(TreeNode node) {
-          if (node.children == null) return search(node.value);
-          return node.children!.any(searchChildren) || search(node.value);
-        }
+            return buildComponentNode(component, children);
+          })
+          .where((node) {
+            bool searchChildren(TreeNode node) {
+              if (node.children == null) return search(node.value);
+              return node.children!.any(searchChildren) || search(node.value);
+            }
 
-        return search(node.value) || searchChildren(node);
-      }).map<TreeNode?>((node) {
-        TreeNode? mapChildren(TreeNode node) {
-          if (node.children == null || node.children!.isEmpty) {
-            return search(node.value) ? node : null;
-          }
+            return search(node.value) || searchChildren(node);
+          })
+          .map<TreeNode?>((node) {
+            TreeNode? mapChildren(TreeNode node) {
+              if (node.children == null || node.children!.isEmpty) {
+                return search(node.value) ? node : null;
+              }
 
-          return node.copyWith(
-            children:
-                node.children!.map(mapChildren).whereType<TreeNode>().toList(),
-          );
-        }
+              return node.copyWith(
+                children: node.children!
+                    .map(mapChildren)
+                    .whereType<TreeNode>()
+                    .toList(),
+              );
+            }
 
-        return mapChildren(node);
-      }).whereType<TreeNode>();
+            return mapChildren(node);
+          })
+          .whereType<TreeNode>();
     }
 
     rootComponents = componentsFor(
       types: ['Component'],
       components: widget.workbench.state.flameComponents,
-    ).toList()
-      ..sort(sorter);
+    ).toList()..sort(sorter);
 
     projectComponents = componentsFor(
       types: widget.workbench.state.flameComponents.map((e) => e.type),
       components: components.map((e) => e.$1),
-    ).toList()
-      ..sort(sorter);
+    ).toList()..sort(sorter);
   }
 
   @override
@@ -187,21 +192,21 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
           key: ValueKey<int>(page),
           child: switch (page) {
             0 => SelectComponentPage(
-                onNext: () => setState(() => page = 1),
-                onComponentSelected: (component) {
-                  setState(() => _selectedComponent = component);
-                },
-                selectedComponent: _selectedComponent,
-                searchController: _searchController,
-                projectComponents: projectComponents,
-                rootComponents: rootComponents,
-                workbench: widget.workbench,
-              ),
+              onNext: () => setState(() => page = 1),
+              onComponentSelected: (component) {
+                setState(() => _selectedComponent = component);
+              },
+              selectedComponent: _selectedComponent,
+              searchController: _searchController,
+              projectComponents: projectComponents,
+              rootComponents: rootComponents,
+              workbench: widget.workbench,
+            ),
             1 => ComponentPropertiesPage(
-                selectedComponent: _selectedComponent!,
-                projectComponents: projectComponents,
-                onBack: () => setState(() => page = 0),
-              ),
+              selectedComponent: _selectedComponent!,
+              projectComponents: projectComponents,
+              onBack: () => setState(() => page = 0),
+            ),
             _ => throw Exception('Invalid page: $page'),
           },
         ),
@@ -236,136 +241,143 @@ class SelectComponentPage extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => onComponentSelected(null),
-      child: Column(children: [
-        Container(
-          height: 48.0,
-          padding: const EdgeInsetsDirectional.symmetric(
-            horizontal: 24.0,
-            vertical: 8.0,
-          ),
-          child: Row(children: [
-            Expanded(
-              child: Text('Add Component', style: theme.textTheme.labelLarge),
+      child: Column(
+        children: [
+          Container(
+            height: 48.0,
+            padding: const EdgeInsetsDirectional.symmetric(
+              horizontal: 24.0,
+              vertical: 8.0,
             ),
-            Expanded(
-              flex: 2,
-              child: TextField(
-                controller: searchController,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Search',
-                  border: OutlineInputBorder(gapPadding: 0.0),
-                  isDense: true,
-                  contentPadding: EdgeInsetsDirectional.symmetric(
-                    vertical: 7.0,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Add Component',
+                    style: theme.textTheme.labelLarge,
                   ),
                 ),
-                cursorHeight: 20.0,
-                maxLines: 1,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            Expanded(
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton(
-                  onPressed: selectedComponent == null ? null : onNext,
-                  child: const Text('Next'),
-                ),
-              ),
-            ),
-          ]),
-        ),
-        Expanded(
-          child: CustomScrollView(slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsetsDirectional.symmetric(
-                  horizontal: 24.0,
-                  vertical: 12.0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Project Components',
-                      style: theme.textTheme.labelLarge,
-                    ),
-                    Text(
-                      '${projectComponents.length}',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsetsDirectional.symmetric(
-                  horizontal: 24.0,
-                  vertical: 8.0,
-                ),
-                child: TreeView(nodes: projectComponents),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Row(children: [
-                const Expanded(child: Divider()),
-                Padding(
-                  padding: const EdgeInsetsDirectional.symmetric(
-                    vertical: 8.0,
-                    horizontal: 16.0,
-                  ),
-                  child: OutlinedButton(
-                    style: ButtonStyle(
-                      padding: WidgetStateProperty.all(
-                        const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                        ),
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: searchController,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Search',
+                      border: OutlineInputBorder(gapPadding: 0.0),
+                      isDense: true,
+                      contentPadding: EdgeInsetsDirectional.symmetric(
+                        vertical: 7.0,
                       ),
                     ),
-                    onPressed: () => showCreateComponentDialog(
-                      context,
-                      workbench,
-                    ),
-                    child: const Text('Create component'),
+                    cursorHeight: 20.0,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
                   ),
                 ),
-              ]),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsetsDirectional.symmetric(
-                  horizontal: 24.0,
-                  vertical: 12.0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Flame Components',
-                      style: theme.textTheme.labelLarge,
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton(
+                      onPressed: selectedComponent == null ? null : onNext,
+                      child: const Text('Next'),
                     ),
-                    Text(
-                      '${workbench.state.flameComponents.length}',
-                      style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.symmetric(
+                      horizontal: 24.0,
+                      vertical: 12.0,
                     ),
-                  ],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Project Components',
+                          style: theme.textTheme.labelLarge,
+                        ),
+                        Text(
+                          '${projectComponents.length}',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsetsDirectional.symmetric(
-                  horizontal: 24.0,
-                  vertical: 8.0,
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.symmetric(
+                      horizontal: 24.0,
+                      vertical: 8.0,
+                    ),
+                    child: TreeView(nodes: projectComponents),
+                  ),
                 ),
-                child: TreeView(nodes: rootComponents),
-              ),
+                SliverToBoxAdapter(
+                  child: Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsetsDirectional.symmetric(
+                          vertical: 8.0,
+                          horizontal: 16.0,
+                        ),
+                        child: OutlinedButton(
+                          style: ButtonStyle(
+                            padding: WidgetStateProperty.all(
+                              const EdgeInsets.symmetric(horizontal: 16.0),
+                            ),
+                          ),
+                          onPressed: () =>
+                              showCreateComponentDialog(context, workbench),
+                          child: const Text('Create component'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.symmetric(
+                      horizontal: 24.0,
+                      vertical: 12.0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Flame Components',
+                          style: theme.textTheme.labelLarge,
+                        ),
+                        Text(
+                          '${workbench.state.flameComponents.length}',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.symmetric(
+                      horizontal: 24.0,
+                      vertical: 8.0,
+                    ),
+                    child: TreeView(nodes: rootComponents),
+                  ),
+                ),
+              ],
             ),
-          ]),
-        ),
-      ]),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -395,86 +407,93 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Column(children: [
-      Container(
-        height: 48.0,
-        padding: const EdgeInsetsDirectional.symmetric(
-          horizontal: 24.0,
-          vertical: 8.0,
-        ),
-        child: Row(children: [
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 8.0),
-            child: Tooltip(
-              message: MaterialLocalizations.of(context).backButtonTooltip,
-              child: InkedIconButton(
-                onTap: widget.onBack,
-                icon: const Icon(Icons.navigate_before),
+    return Column(
+      children: [
+        Container(
+          height: 48.0,
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: 24.0,
+            vertical: 8.0,
+          ),
+          child: Row(
+            children: [
+              Padding(
+                padding: const EdgeInsetsDirectional.only(end: 8.0),
+                child: Tooltip(
+                  message: MaterialLocalizations.of(context).backButtonTooltip,
+                  child: InkedIconButton(
+                    onTap: widget.onBack,
+                    icon: const Icon(Icons.navigate_before),
+                  ),
+                ),
               ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              widget.selectedComponent.name,
-              style: theme.textTheme.labelLarge,
-            ),
-          ),
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton(
-                onPressed: () {
-                  Navigator.of(context).pop<AddIndexedComponent>((
-                    widget.selectedComponent,
-                    declaredName,
-                    parameters,
-                  ));
-                },
-                child: const Text('Add'),
+              Expanded(
+                child: Text(
+                  widget.selectedComponent.name,
+                  style: theme.textTheme.labelLarge,
+                ),
               ),
-            ),
-          ),
-        ]),
-      ),
-      Padding(
-        padding: const EdgeInsetsDirectional.symmetric(horizontal: 24.0),
-        child: PropertyField(
-          name: 'Name',
-          value: declaredName,
-          type: '$String',
-          forceSingleLine: true,
-          onChanged: (text) => setState(
-            () => declaredName = text.removeQuoteMarks(),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton(
+                    onPressed: () {
+                      Navigator.of(context).pop<AddIndexedComponent>((
+                        widget.selectedComponent,
+                        declaredName,
+                        parameters,
+                      ));
+                    },
+                    child: const Text('Add'),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      ),
-      const Divider(),
-      for (final parameter in widget.selectedComponent.parameters)
         Padding(
           padding: const EdgeInsetsDirectional.symmetric(horizontal: 24.0),
-          child: Builder(builder: (context) {
-            if (parameter.nonNullableType == 'Vector2') {
-              (double x, double y)? vector2 = ValuesParser.parseVector2(
-                parameters[parameter.name] ?? parameter.defaultValue,
-              );
-              return PropertyField.vector2(
-                vector2,
-                first: '${parameter.name} | x',
-                second: '${parameter.name} | y',
-                onChanged: (text) => setState(
-                  () => parameters[parameter.name] = text,
-                ),
-              );
-            }
-            return PropertyField(
-              name: parameter.name,
-              type: parameter.nonNullableType,
-              value: parameters[parameter.name] ?? parameter.defaultValue ?? '',
-              onChanged: (text) =>
-                  setState(() => parameters[parameter.name] = text),
-            );
-          }),
+          child: PropertyField(
+            name: 'Name',
+            value: declaredName,
+            type: '$String',
+            forceSingleLine: true,
+            onChanged: (text) =>
+                setState(() => declaredName = text.removeQuoteMarks()),
+          ),
         ),
-    ]);
+        const Divider(),
+        for (final parameter in widget.selectedComponent.parameters)
+          Padding(
+            padding: const EdgeInsetsDirectional.symmetric(horizontal: 24.0),
+            child: Builder(
+              builder: (context) {
+                if (parameter.nonNullableType == 'Vector2') {
+                  (double x, double y)? vector2 = ValuesParser.parseVector2(
+                    parameters[parameter.name] ?? parameter.defaultValue,
+                  );
+                  return PropertyField.vector2(
+                    vector2,
+                    first: '${parameter.name} | x',
+                    second: '${parameter.name} | y',
+                    onChanged: (text) =>
+                        setState(() => parameters[parameter.name] = text),
+                  );
+                }
+                return PropertyField(
+                  name: parameter.name,
+                  type: parameter.nonNullableType,
+                  value:
+                      parameters[parameter.name] ??
+                      parameter.defaultValue ??
+                      '',
+                  onChanged: (text) =>
+                      setState(() => parameters[parameter.name] = text),
+                );
+              },
+            ),
+          ),
+      ],
+    );
   }
 }

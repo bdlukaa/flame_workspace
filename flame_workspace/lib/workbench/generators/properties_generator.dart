@@ -91,7 +91,8 @@ class PropertiesGenerator {
     }
     buffer.writeln('    default:');
     buffer.writeln(
-        '      throw ArgumentError.value(propertyName, \'Property not found\');');
+      '      throw ArgumentError.value(propertyName, \'Property not found\');',
+    );
     buffer.writeln('  }');
     buffer.writeln('}');
 
@@ -105,7 +106,8 @@ class PropertiesGenerator {
     final buffer = StringBuffer();
     buffer.writeln(generatedFileNotice);
     buffer.writeln(
-        '// ignore_for_file: unused_import, unnecessary_import, unnecessary_this');
+      '// ignore_for_file: unused_import, unnecessary_import, unnecessary_this',
+    );
     buffer.writeln(defaultImports);
 
     Set<String> imports = {};
@@ -114,8 +116,9 @@ class PropertiesGenerator {
       // component import
       final componentFilePath = component.filePath;
       if (componentFilePath == null) continue;
-      final componentPath =
-          componentFilePath.split(path.join(project.name, 'lib')).last;
+      final componentPath = componentFilePath
+          .split(path.join(project.name, 'lib'))
+          .last;
       imports.add(
         "import 'package:${project.name}${componentPath.replaceAll(r'\', '/')}';",
       );
@@ -148,12 +151,14 @@ class PropertiesGenerator {
       if (generateForFlameComponent(component).isEmpty) continue;
       buffer.writeln('    case \'${component.name}\':');
       buffer.writeln(
-          '      setPropertyValue${component.name}(cls as ${component.name}, propertyName, value);');
+        '      setPropertyValue${component.name}(cls as ${component.name}, propertyName, value);',
+      );
       buffer.writeln('      break;');
     }
     buffer.writeln('    default:');
     buffer.writeln(
-        '      throw ArgumentError.value(className, \'Class not found\');');
+      '      throw ArgumentError.value(className, \'Class not found\');',
+    );
     buffer.writeln('  }');
     buffer.writeln('}');
     buffer.writeln();

@@ -7,11 +7,6 @@ class ScriptOpen {
     FlameProject project,
     String scriptPath,
   ) async {
-    await Process.run('code', [
-      '-r',
-      project.location.path,
-      '-g',
-      scriptPath,
-    ]);
+    await Process.run('code', ['-r', project.location.path, '-g', scriptPath]);
   }
 }

@@ -50,10 +50,10 @@ class ModifiersSelector extends StatefulWidget {
   final Iterable<FlameMixin> mixins;
 
   ModifiersSelector({super.key, required this.target, required this.mixins})
-      : assert(
-          target.script != null,
-          'Can only open modifiers selector on scripts',
-        );
+    : assert(
+        target.script != null,
+        'Can only open modifiers selector on scripts',
+      );
 
   @override
   State<ModifiersSelector> createState() => _ModifiersSelectorState();
@@ -77,81 +77,97 @@ class _ModifiersSelectorState extends State<ModifiersSelector> {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => setState(() => selectedModifier = null),
-        child: Column(children: [
-          Container(
-            height: 48.0,
-            padding: const EdgeInsetsDirectional.symmetric(
-              horizontal: 24.0,
-              vertical: 8.0,
-            ),
-            child: Row(children: [
-              Expanded(
-                child: Text('Add Modifier', style: theme.textTheme.labelLarge),
+        child: Column(
+          children: [
+            Container(
+              height: 48.0,
+              padding: const EdgeInsetsDirectional.symmetric(
+                horizontal: 24.0,
+                vertical: 8.0,
               ),
-              Expanded(
-                flex: 2,
-                child: TextField(
-                  controller: searchController,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    hintText: 'Search',
-                    border: OutlineInputBorder(gapPadding: 0.0),
-                    isDense: true,
-                    contentPadding: EdgeInsetsDirectional.symmetric(
-                      vertical: 7.0,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Add Modifier',
+                      style: theme.textTheme.labelLarge,
                     ),
                   ),
-                  cursorHeight: 20.0,
-                  maxLines: 1,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: FilledButton(
-                    onPressed: selectedModifier == null ? null : onDone,
-                    child: const Text('Done'),
-                  ),
-                ),
-              ),
-            ]),
-          ),
-          Expanded(
-            child: AnimatedBuilder(
-              animation: searchController,
-              builder: (context, child) {
-                final search = searchController.text.toLowerCase();
-                final mixins = (search.isEmpty
-                        ? widget.mixins
-                        : widget.mixins.where((mixin) =>
-                            mixin.name.toLowerCase().contains(search)))
-                    .where((mixin) => mixin.on.contains('Component'));
-                return ListView.builder(
-                  itemCount: mixins.length,
-                  itemBuilder: (context, index) {
-                    final modifier = mixins.elementAt(index);
-                    final alreadyAdded =
-                        this.alreadyAdded.contains(modifier.name);
-                    return ListTile(
-                      leading: Icon(iconForModifier(modifier.name), size: 20.0),
-                      title: Text(modifier.name),
-                      subtitle:
-                          alreadyAdded ? const Text('Already added') : null,
-                      contentPadding: const EdgeInsetsDirectional.symmetric(
-                        horizontal: 24.0,
+                  Expanded(
+                    flex: 2,
+                    child: TextField(
+                      controller: searchController,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Search',
+                        border: OutlineInputBorder(gapPadding: 0.0),
+                        isDense: true,
+                        contentPadding: EdgeInsetsDirectional.symmetric(
+                          vertical: 7.0,
+                        ),
                       ),
-                      minTileHeight: 28.0,
-                      selected: selectedModifier == modifier,
-                      enabled: !alreadyAdded,
-                      onTap: () => setState(() => selectedModifier = modifier),
-                    );
-                  },
-                );
-              },
+                      cursorHeight: 20.0,
+                      maxLines: 1,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton(
+                        onPressed: selectedModifier == null ? null : onDone,
+                        child: const Text('Done'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ]),
+            Expanded(
+              child: AnimatedBuilder(
+                animation: searchController,
+                builder: (context, child) {
+                  final search = searchController.text.toLowerCase();
+                  final mixins =
+                      (search.isEmpty
+                              ? widget.mixins
+                              : widget.mixins.where(
+                                  (mixin) =>
+                                      mixin.name.toLowerCase().contains(search),
+                                ))
+                          .where((mixin) => mixin.on.contains('Component'));
+                  return ListView.builder(
+                    itemCount: mixins.length,
+                    itemBuilder: (context, index) {
+                      final modifier = mixins.elementAt(index);
+                      final alreadyAdded = this.alreadyAdded.contains(
+                        modifier.name,
+                      );
+                      return ListTile(
+                        leading: Icon(
+                          iconForModifier(modifier.name),
+                          size: 20.0,
+                        ),
+                        title: Text(modifier.name),
+                        subtitle: alreadyAdded
+                            ? const Text('Already added')
+                            : null,
+                        contentPadding: const EdgeInsetsDirectional.symmetric(
+                          horizontal: 24.0,
+                        ),
+                        minTileHeight: 28.0,
+                        selected: selectedModifier == modifier,
+                        enabled: !alreadyAdded,
+                        onTap: () =>
+                            setState(() => selectedModifier = modifier),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

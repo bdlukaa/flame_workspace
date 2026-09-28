@@ -14,8 +14,8 @@ class ProjectImporter {
 
     File? findFile(String name, [bool required = false]) {
       final file = files.whereType<File>().firstWhereOrNull(
-            (file) => file.path.endsWith(name),
-          );
+        (file) => file.path.endsWith(name),
+      );
       if (required && file == null) {
         throw Exception('No $name file found.');
       }
@@ -23,8 +23,10 @@ class ProjectImporter {
     }
 
     findFile('pubspec.yaml', true); // ensure it is a flutter project
-    final configContent =
-        findFile('flame_configuration.yaml', true)!.readAsStringSync();
+    final configContent = findFile(
+      'flame_configuration.yaml',
+      true,
+    )!.readAsStringSync();
 
     var doc = loadYaml(configContent) as Map;
 

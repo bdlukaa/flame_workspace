@@ -16,14 +16,22 @@ void main() async {
 }
 
 Future<void> runCommand(
-    String command, List<String> arguments, String workingDirectory) async {
-  final process = await Process.start(command, arguments,
-      workingDirectory: workingDirectory, runInShell: true);
+  String command,
+  List<String> arguments,
+  String workingDirectory,
+) async {
+  final process = await Process.start(
+    command,
+    arguments,
+    workingDirectory: workingDirectory,
+    runInShell: true,
+  );
   await stdout.addStream(process.stdout);
   await stderr.addStream(process.stderr);
   final exitCode = await process.exitCode;
   if (exitCode != 0) {
     print(
-        'Command $command ${arguments.join(' ')} failed with exit code $exitCode');
+      'Command $command ${arguments.join(' ')} failed with exit code $exitCode',
+    );
   }
 }

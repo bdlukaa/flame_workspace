@@ -23,42 +23,45 @@ class _ConfigurationViewState extends State<ConfigurationView> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsetsDirectional.all(8.0),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        NavigationRail(
-          selectedIndex: selectedIndex,
-          backgroundColor: Colors.transparent,
-          extended: true,
-          destinations: const [
-            NavigationRailDestination(
-              icon: Icon(Icons.dashboard),
-              label: Text('Project Configuration'),
-            ),
-            NavigationRailDestination(
-              icon: Icon(Icons.tune),
-              label: Text('Build Configuration'),
-            ),
-            NavigationRailDestination(
-              icon: Icon(Icons.business),
-              label: Text('Workspace Configuration'),
-            ),
-          ],
-          onDestinationSelected: (index) => setState(() {
-            selectedIndex = index;
-          }),
-        ),
-        const VerticalDivider(),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: switch (selectedIndex) {
-              0 => const _ProjectConfiguration(),
-              1 => const _BuildConfiguration(),
-              2 => const _WorkspaceConfiguration(),
-              _ => const SizedBox.shrink(),
-            },
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          NavigationRail(
+            selectedIndex: selectedIndex,
+            backgroundColor: Colors.transparent,
+            extended: true,
+            destinations: const [
+              NavigationRailDestination(
+                icon: Icon(Icons.dashboard),
+                label: Text('Project Configuration'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.tune),
+                label: Text('Build Configuration'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.business),
+                label: Text('Workspace Configuration'),
+              ),
+            ],
+            onDestinationSelected: (index) => setState(() {
+              selectedIndex = index;
+            }),
           ),
-        ),
-      ]),
+          const VerticalDivider(),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: switch (selectedIndex) {
+                0 => const _ProjectConfiguration(),
+                1 => const _BuildConfiguration(),
+                2 => const _WorkspaceConfiguration(),
+                _ => const SizedBox.shrink(),
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

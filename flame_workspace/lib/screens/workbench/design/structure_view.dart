@@ -32,7 +32,7 @@ class _ProjectStructureViewState extends State<ProjectStructureView> {
     'analysis_options.yaml',
     'pubspec.lock',
     'README.md',
-    'template.iml'
+    'template.iml',
   ];
 
   @override
@@ -42,8 +42,9 @@ class _ProjectStructureViewState extends State<ProjectStructureView> {
       final workbench = Workbench.of(context);
       _files.addAll(workbench.project.location.listSync());
 
-      _filesSubscription =
-          workbench.project.location.watch().listen((FileSystemEvent event) {
+      _filesSubscription = workbench.project.location.watch().listen((
+        FileSystemEvent event,
+      ) {
         if (mounted) {
           _files
             ..clear()
@@ -87,28 +88,28 @@ class _ProjectStructureViewState extends State<ProjectStructureView> {
     final theme = Theme.of(context);
     _sortFiles();
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-        padding: const EdgeInsetsDirectional.symmetric(horizontal: 12.0),
-        child: Text(
-          'Project Structure',
-          style: theme.textTheme.labelMedium,
-        ),
-      ),
-      Expanded(
-        child: SingleChildScrollView(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
           padding: const EdgeInsetsDirectional.symmetric(horizontal: 12.0),
-          child: TreeView(
-            nodes: _files.map((entity) {
-              if (entity is Directory) {
-                return nodeForDirectory(entity);
-              } else {
-                return nodeForFile(entity as File);
-              }
-            }).toList(),
+          child: Text('Project Structure', style: theme.textTheme.labelMedium),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsetsDirectional.symmetric(horizontal: 12.0),
+            child: TreeView(
+              nodes: _files.map((entity) {
+                if (entity is Directory) {
+                  return nodeForDirectory(entity);
+                } else {
+                  return nodeForFile(entity as File);
+                }
+              }).toList(),
+            ),
           ),
         ),
-      ),
-    ]);
+      ],
+    );
   }
 }

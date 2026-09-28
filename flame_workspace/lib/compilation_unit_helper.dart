@@ -11,20 +11,20 @@ class CompilationUnitHelper {
 
   ClassDeclaration? findClass(String? className) {
     return unit.declarations.whereType<ClassDeclaration>().firstWhereOrNull(
-          (c) => c.name.lexeme == className,
-        );
+      (c) => c.name.lexeme == className,
+    );
   }
 
   MethodDeclaration? findMethod(ClassDeclaration? cls, String methodName) {
     return cls?.members.whereType<MethodDeclaration>().firstWhereOrNull(
-          (m) => m.name.lexeme == methodName,
-        );
+      (m) => m.name.lexeme == methodName,
+    );
   }
 
   FieldDeclaration? findField(ClassDeclaration? cls, String fieldName) {
     return cls?.members.whereType<FieldDeclaration>().firstWhereOrNull(
-          (m) => m.fields.variables.any((v) => v.name.lexeme == fieldName),
-        );
+      (m) => m.fields.variables.any((v) => v.name.lexeme == fieldName),
+    );
   }
 
   VariableDeclaration? findProperty(
@@ -32,8 +32,8 @@ class CompilationUnitHelper {
     String propertyName,
   ) {
     final field = cls?.members.whereType<FieldDeclaration>().firstWhereOrNull(
-          (m) => m.fields.variables.any((v) => v.name.lexeme == propertyName),
-        );
+      (m) => m.fields.variables.any((v) => v.name.lexeme == propertyName),
+    );
 
     if (field == null) return null;
     return field.fields.variables.firstWhere(
@@ -42,21 +42,21 @@ class CompilationUnitHelper {
   }
 
   VariableDeclaration? findTopLevelVariable(String name) {
-    return unit.declarations
-        .whereType<VariableDeclaration>()
-        .firstWhereOrNull((v) => v.name.lexeme == name);
+    return unit.declarations.whereType<VariableDeclaration>().firstWhereOrNull(
+      (v) => v.name.lexeme == name,
+    );
   }
 
   FunctionDeclaration? findSetter(ClassDeclaration? cls, String name) {
-    return cls?.members
-        .whereType<FunctionDeclaration>()
-        .firstWhereOrNull((v) => v.isSetter && v.name.lexeme == name);
+    return cls?.members.whereType<FunctionDeclaration>().firstWhereOrNull(
+      (v) => v.isSetter && v.name.lexeme == name,
+    );
   }
 
   FunctionDeclaration? findGetter(ClassDeclaration? cls, String name) {
-    return cls?.members
-        .whereType<FunctionDeclaration>()
-        .firstWhereOrNull((v) => v.isGetter && v.name.lexeme == name);
+    return cls?.members.whereType<FunctionDeclaration>().firstWhereOrNull(
+      (v) => v.isGetter && v.name.lexeme == name,
+    );
   }
 
   /// Tries to parse a value from an expression.
@@ -67,7 +67,8 @@ class CompilationUnitHelper {
   (
     String constructorName,
     Iterable<(String name, String expression, NamedExpression argument)> named,
-  )? parseExpression(Expression expression) {
+  )?
+  parseExpression(Expression expression) {
     expression = expression.unParenthesized;
 
     final children = expression.childEntities;
@@ -93,7 +94,7 @@ class CompilationUnitHelper {
             argument.expression.toSource(),
             argument,
           );
-        })
+        }),
       );
     } else {
       return null;

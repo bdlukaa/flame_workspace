@@ -10,10 +10,7 @@ final scriptEditorKey = GlobalKey<ScriptEditorState>();
 class ScriptEditor extends StatefulWidget {
   final String scriptPath;
 
-  const ScriptEditor({
-    super.key,
-    required this.scriptPath,
-  });
+  const ScriptEditor({super.key, required this.scriptPath});
 
   @override
   State<ScriptEditor> createState() => ScriptEditorState();

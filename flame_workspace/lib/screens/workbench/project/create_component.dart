@@ -11,9 +11,7 @@ Future<void> showCreateComponentDialog(
   return showDialog<void>(
     context: context,
     barrierColor: Colors.black87,
-    builder: (context) => CreateComponentDialog(
-      workbench: workbench,
-    ),
+    builder: (context) => CreateComponentDialog(workbench: workbench),
   );
 }
 
@@ -49,45 +47,48 @@ class _CreateComponentDialogState extends State<CreateComponentDialog> {
           constraints: const BoxConstraints(minWidth: 400.0),
           child: Form(
             key: _formKey,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Component name',
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Component name',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a name';
+                    } else if (_alreadyExist) {
+                      return 'This component already exists';
+                    }
+                    return null;
+                  },
+                  onChanged: (text) {
+                    final name = text.trim().replaceAll('  ', ' ');
+                    if (name.isEmpty) {
+                      return;
+                    }
+                    final alreadyExist = widget.workbench.state.components.any(
+                      (component) => component.$1.name == name.pascalCase,
+                    );
+                    if (alreadyExist) {
+                      setState(() => _alreadyExist = true);
+                    } else {
+                      setState(() => _alreadyExist = false);
+                    }
+                    _formKey.currentState?.validate();
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a name';
-                  } else if (_alreadyExist) {
-                    return 'This component already exists';
-                  }
-                  return null;
-                },
-                onChanged: (text) {
-                  final name = text.trim().replaceAll('  ', ' ');
-                  if (name.isEmpty) {
-                    return;
-                  }
-                  final alreadyExist = widget.workbench.state.components.any(
-                    (component) => component.$1.name == name.pascalCase,
-                  );
-                  if (alreadyExist) {
-                    setState(() => _alreadyExist = true);
-                  } else {
-                    setState(() => _alreadyExist = false);
-                  }
-                  _formKey.currentState?.validate();
-                },
-              ),
-              const SizedBox(height: 16.0),
-              CheckboxListTile(
-                title: const Text('Open in editor'),
-                value: openInEditor,
-                dense: true,
-                onChanged: (value) =>
-                    setState(() => openInEditor = value ?? false),
-              ),
-            ]),
+                const SizedBox(height: 16.0),
+                CheckboxListTile(
+                  title: const Text('Open in editor'),
+                  value: openInEditor,
+                  dense: true,
+                  onChanged: (value) =>
+                      setState(() => openInEditor = value ?? false),
+                ),
+              ],
+            ),
           ),
         ),
         actions: [

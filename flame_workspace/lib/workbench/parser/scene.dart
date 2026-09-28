@@ -100,7 +100,8 @@ class SceneHelper {
     int componentEndOffset;
 
     final onLoadMethod = declaration.members.firstWhereOrNull(
-        (e) => e is MethodDeclaration && e.name.lexeme == 'onLoad');
+      (e) => e is MethodDeclaration && e.name.lexeme == 'onLoad',
+    );
 
     if (onLoadMethod != null) {
       // Insert the add clause to the onLoad method
@@ -112,8 +113,9 @@ class SceneHelper {
       final addClause = 'add(${result.$2});';
       content = '$before\n$addClause\n\n$after';
     } else {
-      final lastFieldDeclaration =
-          declaration.members.lastWhereOrNull((member) {
+      final lastFieldDeclaration = declaration.members.lastWhereOrNull((
+        member,
+      ) {
         if (member is FieldDeclaration) return !member.isStatic;
 
         return false;
@@ -121,8 +123,9 @@ class SceneHelper {
       if (lastFieldDeclaration != null) {
         componentEndOffset = lastFieldDeclaration.end;
       } else {
-        final constructorDeclaration = declaration.members
-            .firstWhereOrNull((e) => e is ConstructorDeclaration);
+        final constructorDeclaration = declaration.members.firstWhereOrNull(
+          (e) => e is ConstructorDeclaration,
+        );
         if (constructorDeclaration != null) {
           componentEndOffset = constructorDeclaration.end;
         } else {
@@ -140,8 +143,9 @@ class SceneHelper {
     try {
       final componentFilePath = Uri.file(
         projectState.components
-            .firstWhere((component) => component.$1.name == result.$1.name)
-            .$2['source'] as String,
+                .firstWhere((component) => component.$1.name == result.$1.name)
+                .$2['source']
+            as String,
         windows: Platform.isWindows,
       );
       final componentPath = componentFilePath
@@ -150,7 +154,9 @@ class SceneHelper {
           .last;
 
       finalContent = Writer.addImport(
-          finalContent, 'package:${projectState.project.name}/$componentPath');
+        finalContent,
+        'package:${projectState.project.name}/$componentPath',
+      );
     } catch (e) {
       // Ignore because the component is not a project component, and is probably
       // imported from another library.
@@ -189,8 +195,10 @@ class SceneHelper {
     final file = File(source);
     final content = await file.readAsString();
 
-    final fieldDeclaration =
-        helper.findField(classDeclaration, declarationName);
+    final fieldDeclaration = helper.findField(
+      classDeclaration,
+      declarationName,
+    );
     if (fieldDeclaration == null) return Future.value();
 
     String newContent = content;

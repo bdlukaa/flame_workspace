@@ -10,12 +10,9 @@ class MyCircleComponent extends PositionComponent with FlameComponent {
     super.scale,
     Color color = const Color(0xFFFF0000),
     double radius = 20.0,
-  })  : _paint = Paint()..color = color,
-        _radius = radius,
-        super(
-          size: Vector2.all(2 * radius),
-          anchor: Anchor.center,
-        );
+  }) : _paint = Paint()..color = color,
+       _radius = radius,
+       super(size: Vector2.all(2 * radius), anchor: Anchor.center);
 
   double get radius => _radius;
   set radius(double value) {
