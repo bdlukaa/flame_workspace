@@ -195,6 +195,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
                     child: Builder(builder: _buildToolbar),
                   ),
                 ),
+                if (_hasProjectIssue) _buildProjectIssueBanner(context),
                 Expanded(
                   child: switch (mode) {
                     WorkbenchViewMode.design => DesignView(
@@ -211,6 +212,74 @@ class _WorkbenchViewState extends State<WorkbenchView> {
           ),
         ),
       ),
+    );
+  }
+
+  bool get _hasProjectIssue {
+    return state.indexError != null ||
+        state.analysisDiagnostics.isNotEmpty ||
+        state.operationError != null ||
+        state.assetError != null ||
+        runner.targetError != null ||
+        runner.executionError != null;
+  }
+
+  Widget _buildProjectIssueBanner(BuildContext context) {
+    final theme = Theme.of(context);
+    final messages = <String>[
+      ...?(state.indexError == null ? null : <String>[state.indexError!]),
+      ...?(state.operationError == null
+          ? null
+          : <String>[state.operationError!]),
+      ...?(state.assetError == null ? null : <String>[state.assetError!]),
+      ...?(runner.targetError == null
+          ? null
+          : <String>[
+              'Flutter target error: ${runner.targetError}. Refresh targets '
+                  'and choose an available device.',
+            ]),
+      ...?(runner.executionError == null
+          ? null
+          : <String>[runner.executionError!]),
+      if (state.analysisDiagnostics.isNotEmpty)
+        'Analyzer diagnostics:\n${state.analysisDiagnostics.take(5).join('\n')}'
+            '${state.analysisDiagnostics.length > 5 ? '\n…and ${state.analysisDiagnostics.length - 5} more.' : ''}',
+    ];
+
+    return MaterialBanner(
+      leading: Icon(Icons.warning_amber, color: theme.colorScheme.error),
+      content: SelectableText(messages.join('\n\n')),
+      actions: [
+        if (state.indexError != null || state.analysisDiagnostics.isNotEmpty)
+          TextButton(
+            onPressed: state.isIndexing
+                ? null
+                : () => unawaited(state.indexProject()),
+            child: const Text('Retry analysis'),
+          ),
+        if (runner.targetError != null)
+          TextButton(
+            onPressed: () => unawaited(runner.refreshTargets()),
+            child: const Text('Refresh targets'),
+          ),
+        if (runner.executionError != null)
+          TextButton(
+            onPressed: () => unawaited(
+              runner.previewState == PreviewState.stopped
+                  ? runner.runSafely()
+                  : runner.retryPreview(),
+            ),
+            child: const Text('Retry'),
+          ),
+        TextButton(
+          onPressed: () {
+            state.clearProjectIssues();
+            runner.clearExecutionError();
+            runner.clearTargetError();
+          },
+          child: const Text('Dismiss'),
+        ),
+      ],
     );
   }
 

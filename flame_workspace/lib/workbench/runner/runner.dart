@@ -64,6 +64,8 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
 
   bool _isRunning = false;
   String? _runtimeError;
+  String? _executionError;
+  String? _runtimeServiceUri;
 
   /// Whether the project is running.
   bool get isRunning => _isRunning;
@@ -71,9 +73,24 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   /// The most recent runtime synchronization failure, if any.
   String? get runtimeError => _runtimeError;
 
+  /// The most recent project execution failure, if any.
+  String? get executionError => _executionError;
+
   void clearRuntimeError() {
     if (_runtimeError == null) return;
     _runtimeError = null;
+    notifyListeners();
+  }
+
+  void clearExecutionError() {
+    if (_executionError == null) return;
+    _executionError = null;
+    notifyListeners();
+  }
+
+  void clearTargetError() {
+    if (targetError == null) return;
+    targetError = null;
     notifyListeners();
   }
 
@@ -107,7 +124,12 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
       targets = const [];
       selectedTarget = null;
       targetError = error;
-      emitLog('Flutter target discovery failed: $error', kWorkspaceLogPrefix);
+      emitLog(
+        'Flutter target discovery failed: $error. Check Flutter installation '
+        'and project dependencies, then retry.',
+        kWorkspaceLogPrefix,
+      );
+      notifyListeners();
       return const [];
     }
   }
@@ -233,6 +255,43 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     emitLog(message, kWorkspaceLogPrefix);
   }
 
+  /// Connects to the VM Service URL reported by Flutter.
+  ///
+  /// Connection failures are returned as `false` and retained in
+  /// [runtimeError] so a broken preview cannot crash the editor.
+  Future<bool> connectRuntime(String serviceUri) async {
+    _runtimeServiceUri = serviceUri;
+    try {
+      await registerWorkspace(serviceUri);
+      await onRuntimeConnected?.call();
+      clearRuntimeError();
+      return true;
+    } catch (error) {
+      _reportRuntimeError(
+        'Could not connect to the running game. Verify that the preview is '
+        'still active, then retry: $error',
+      );
+      return false;
+    }
+  }
+
+  Future<void> reconnectRuntime() async {
+    final serviceUri = _runtimeServiceUri;
+    if (serviceUri == null) {
+      _reportRuntimeError(
+        'There is no VM Service endpoint to reconnect to. Restart the preview.',
+      );
+      return;
+    }
+    await connectRuntime(serviceUri);
+  }
+
+  void reportRuntimeConnectionError(Object error) {
+    _reportRuntimeError(
+      'VM Service disconnected. Restart or reconnect the preview: $error',
+    );
+  }
+
   Future<void> _setPaused(bool paused) async {
     final client = runtimeClientOverride ?? runtimeClient;
     if (client == null) {
@@ -266,7 +325,10 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
       targetError = StateError(
         'Flutter target "${runTarget.name}" is unavailable.',
       );
-      notifyListeners();
+      _reportExecutionError(
+        'Cannot run on ${runTarget.name}: the target is unavailable. '
+        'Refresh targets and choose an available device.',
+      );
       throw targetError!;
     }
     if (target != null) {
@@ -275,6 +337,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     }
 
     _isRunning = true;
+    _executionError = null;
     emitLog(
       'Running ${runTarget?.name ?? 'Flutter default target'}',
       kWorkspaceLogPrefix,
@@ -290,14 +353,32 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
             '${project.name} exited with exit code $exitCode',
             kPreviewLogPrefix,
           );
-          stop();
+          if (exitCode != 0) {
+            _reportExecutionError(
+              '${project.name} stopped unexpectedly (exit code $exitCode). '
+              'Check the runner logs for the compiler or runtime error.',
+            );
+          }
+          unawaited(stop());
         },
       );
       notifyListeners();
-    } catch (_) {
+    } catch (error) {
       _isRunning = false;
+      _reportExecutionError(
+        'Could not start ${runTarget?.name ?? 'the Flutter project'}: $error '
+        'Check the runner logs for compiler and pub errors, then retry.',
+      );
       notifyListeners();
       rethrow;
+    }
+  }
+
+  Future<void> runSafely({FlutterTarget? target}) async {
+    try {
+      await run(target: target);
+    } catch (_) {
+      // The failure is retained in executionError and the runner logs.
     }
   }
 
@@ -307,6 +388,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     }
 
     _isRunning = true;
+    _executionError = null;
     emitLog('Starting web preview', kWorkspaceLogPrefix);
     notifyListeners();
     try {
@@ -319,20 +401,40 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
         },
       );
       notifyListeners();
-    } catch (_) {
+    } catch (error) {
       _isRunning = false;
+      _reportExecutionError(
+        'Could not start the web preview: $error Check the preview logs, '
+        'fix the reported project errors, and retry.',
+      );
       notifyListeners();
       rethrow;
     }
   }
 
+  Future<void> runPreviewSafely() async {
+    try {
+      await runPreview();
+    } catch (_) {
+      // The failure is retained in previewRunner.error and executionError.
+    }
+  }
+
+  Future<void> retryPreview() => runPreviewSafely();
+
   Completer? _hotReloadCompleter;
   Future<void> hotReload() async {
     _hotReloadCompleter = Completer();
-    if (isPreviewRunning) {
-      await previewRunner.hotReload();
-    } else {
-      await processRunner.hotReload();
+    try {
+      if (isPreviewRunning) {
+        await previewRunner.hotReload();
+      } else {
+        await processRunner.hotReload();
+      }
+    } catch (error) {
+      completeHotReload();
+      _reportExecutionError('Hot reload failed: $error');
+      return;
     }
     return _hotReloadCompleter!.future;
   }
@@ -348,10 +450,16 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   Completer? _hotRestartCompleter;
   Future<void> hotRestart() async {
     _hotRestartCompleter = Completer();
-    if (isPreviewRunning) {
-      await previewRunner.hotRestart();
-    } else {
-      await processRunner.hotRestart();
+    try {
+      if (isPreviewRunning) {
+        await previewRunner.hotRestart();
+      } else {
+        await processRunner.hotRestart();
+      }
+    } catch (error) {
+      completeHotRestart();
+      _reportExecutionError('Hot restart failed: $error');
+      return;
     }
     return _hotRestartCompleter!.future;
   }
@@ -373,13 +481,37 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   }
 
   Future<void> stop() async {
-    if (_isRunning) emitLog('Stopping preview', kWorkspaceLogPrefix);
-    await processRunner.stop();
-    await previewRunner.stop();
+    if (_isRunning) emitLog('Stopping project', kWorkspaceLogPrefix);
+    completeHotReload();
+    completeHotRestart();
+    Object? stopError;
+    try {
+      await processRunner.stop();
+    } catch (error) {
+      stopError = error;
+      emitLog(
+        'Could not stop the Flutter process: $error',
+        kWorkspaceLogPrefix,
+      );
+    }
+    try {
+      await previewRunner.stop();
+    } catch (error) {
+      stopError ??= error;
+      emitLog('Could not stop the web preview: $error', kWorkspaceLogPrefix);
+    }
     _isRunning = false;
+    _runtimeServiceUri = null;
     disposeView();
-
+    if (stopError != null) {
+      _reportExecutionError('Project cleanup failed: $stopError');
+    }
     notifyListeners();
+  }
+
+  void _reportExecutionError(String message) {
+    _executionError = message;
+    emitLog(message, kWorkspaceLogPrefix);
   }
 
   @override

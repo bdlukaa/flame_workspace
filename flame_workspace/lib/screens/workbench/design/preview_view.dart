@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../workbench_view.dart';
@@ -32,14 +34,23 @@ class _GamePreviewViewState extends State<GamePreviewView> {
             if (workbench.runner.runtimeError case final error?)
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Text(
-                    error,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        error,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
                     ),
-                  ),
+                    TextButton.icon(
+                      onPressed: () =>
+                          unawaited(workbench.runner.reconnectRuntime()),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Reconnect'),
+                    ),
+                  ],
                 ),
               ),
             const SizedBox(height: 8.0),

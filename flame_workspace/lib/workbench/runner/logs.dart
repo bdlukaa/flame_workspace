@@ -3,8 +3,7 @@
 import 'dart:async';
 
 import 'package:flame_workspace/workbench/runner/runner.dart';
-import 'package:flame_workspace_communication_bridge/workspace.dart';
-import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
+import 'package:flutter/foundation.dart';
 
 extension RunnerLogs on FlameProjectRunner {
   void emitLog(String log, String prefix) {
@@ -58,8 +57,8 @@ extension RunnerLogs on FlameProjectRunner {
       final wsUri = '${parsedServiceUrl.replace(scheme: 'ws')}ws';
       debugPrint('VM service at $wsUri');
 
-      await registerWorkspace(wsUri);
-      await onRuntimeConnected?.call();
+      final connected = await connectRuntime(wsUri);
+      if (!connected) return;
 
       notifyListeners();
     } else if (line.trim().contains('Reloaded ')) {

@@ -53,9 +53,22 @@ mixin RunnerView {
                   ? 'Game Preview crashed.'
                   : 'Game Preview failed to start.',
               runner.previewRunner.error,
+              onRetry: runner.retryPreview,
             );
           case PreviewState.stopped:
             break;
+        }
+
+        final executionError = runner.executionError;
+        if (executionError != null && !runner.isRunning) {
+          return _failure(
+            theme,
+            'Game execution failed.',
+            executionError,
+            onRetry: runner.previewState != PreviewState.stopped
+                ? runner.retryPreview
+                : runner.runSafely,
+          );
         }
 
         if (_viewController == null) {
@@ -101,7 +114,12 @@ mixin RunnerView {
     );
   }
 
-  Widget _failure(ThemeData theme, String message, Object? error) {
+  Widget _failure(
+    ThemeData theme,
+    String message,
+    Object? error, {
+    VoidCallback? onRetry,
+  }) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -117,6 +135,14 @@ mixin RunnerView {
                 error.toString(),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: theme.colorScheme.error),
+              ),
+            ],
+            if (onRetry != null) ...[
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
               ),
             ],
           ],
