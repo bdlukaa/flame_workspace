@@ -6,7 +6,7 @@ import 'level_one.dart';
 class SceneLevelOne extends $SceneLevelOne with HasGameReference<FlameGame> {
   @override
   Future<void> onLoad() async {
-    super.onLoad();
+    await super.onLoad();
     // TODO: Implement onLoad
   }
 

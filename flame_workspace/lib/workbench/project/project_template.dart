@@ -66,12 +66,12 @@ class $gameName extends FlameGame with SingleGameInstance, WindowListener {
   Future<void> onLoad() async {
     windowManager.addListener(this);
 
+    await super.onLoad();
+
     world = FlameWorkspaceCore.instance.currentScene;
     camera = CameraComponent(world: world);
     camera.viewfinder.anchor = Anchor.topLeft;
-    addAll([camera]);
-
-    return super.onLoad();
+    add(camera);
   }
 
   @override
@@ -111,7 +111,7 @@ String sceneScript$dart(String sceneName) =>
 class Scene${sceneName.camelCase} extends \$Scene${sceneName.camelCase}} {
   @override
   Future<void> onLoad() async {
-    super.onLoad();
+    await super.onLoad();
 
     add(circle);
   }
@@ -149,7 +149,7 @@ class ${componentName.pascalCase}Component extends PositionComponent with FlameC
 
   @override
   Future<void> onLoad() async {
-    super.onLoad();
+    await super.onLoad();
 
     // TODO: implement onLoad()
   }

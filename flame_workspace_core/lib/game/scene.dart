@@ -16,8 +16,9 @@ class FlameScene extends World {
 
   @override
   @mustCallSuper
-  void onLoad() {
+  Future<void> onLoad() async {
     FlameWorkspaceCore.instance.currentScene = this;
+    await super.onLoad();
   }
 
   @override

@@ -13,8 +13,11 @@ class MyGame extends FlameGame with SingleGameInstance, WindowListener {
   Future<void> onLoad() async {
     windowManager.addListener(this);
 
+    await super.onLoad();
+
     camera = CameraComponent();
     camera.viewfinder.anchor = Anchor.topLeft;
+    add(camera);
   }
 
   @override

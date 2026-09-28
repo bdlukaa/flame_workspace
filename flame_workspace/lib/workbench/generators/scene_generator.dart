@@ -307,7 +307,7 @@ class SceneGenerator {
       'class Scene${name.pascalCase} extends \$Scene${name.pascalCase} with HasGameReference<FlameGame> {',
       '  @override',
       '  Future<void> onLoad() async {',
-      '    super.onLoad();',
+      '    await super.onLoad();',
       '    // TODO: Implement onLoad',
       '  }',
       '',
