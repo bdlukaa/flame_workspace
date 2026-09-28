@@ -178,7 +178,7 @@ Selected direct dependency constraints:
 
 Analyzer 10.2.0 is selected because it supports the resolved Flame 1.38.2 source while retaining the AST APIs used by the existing parser. `dartdoc_json` 0.6.0 was removed because it constrains Analyzer to the incompatible 7.x line; the parser now serializes the small AST subset it owns directly. `dart_style` 3.1.7 follows Analyzer 10 and requires passing an explicit `languageVersion` to `DartFormatter`; the writer supplies `DartFormatter.latestLanguageVersion`.
 
-The editor's unused `code_builder` and `source_gen` constraints were removed. `flame_workspace_core` and the checked-in template no longer declare unused `flame_audio`, `flame_forge2d`, or `flame_isolate` dependencies. The generated project defaults retain only Flame, `flame_workspace_runtime`, and `window_manager`; `window_manager` remains because the current generated game imports and uses it. The editor-specific value parser has since moved into `flame_workspace`, so the former core-to-editor path dependency is no longer required.
+The editor's unused `code_builder` and `source_gen` constraints were removed. `flame_workspace_core` and the checked-in template no longer declare unused `flame_audio`, `flame_forge2d`, or `flame_isolate` dependencies. The generated project defaults retain only Flutter, Flame, `flame_workspace_runtime`, and the minimal Flutter test/lint tooling. `window_manager` and optional Flame ecosystem packages are not included by the project creator. The editor-specific value parser has since moved into `flame_workspace`, so the former core-to-editor path dependency is no longer required.
 
 Direct compatibility updates included the Flutter 3.47 theme data types, the ambiguous `Matrix4` export, current synchronous generated `update`/`render` signatures, and replacement of runtime/template `HasGameRef` usage with `HasGameReference<FlameGame>`. `flutter pub get` succeeds in all four packages without dependency overrides.
 
@@ -200,7 +200,7 @@ flame_workspace ───────┐
 - `flame_workspace` now depends on protocol/runtime directly. Editor-specific `ValuesParser.parseValue` lives in the editor package instead of the runtime package.
 - `flame_workspace_core` remains as a compatibility facade that depends only on protocol/runtime; it no longer points back to `flame_workspace`. New templates use `flame_workspace_runtime` directly.
 
-The generated template keeps the existing minimal runtime dependency set (`flame`, `flame_workspace_runtime`, and `window_manager`). No dependency override or runtime/editor cycle is present. Preview surface embedding remains a separate follow-up; it does not require a second game communication transport.
+The project creator emits the minimal runtime dependency set (`flame` and `flame_workspace_runtime`) plus Flutter's test/lint tooling. Local integration tests use a path dependency for the checked-out runtime; normal generated projects use the repository Git dependency. No dependency override or runtime/editor cycle is present. Preview surface embedding remains a separate follow-up; it does not require a second game communication transport.
 
 ## Initial semantic scene model
 
@@ -290,3 +290,9 @@ The old `built_in_components.dart`, `built_in_mixins.dart`, and hardcoded/networ
 The initial Scene View is model-driven and intentionally separate from Game Preview. `SceneCanvas` renders semantic component bounds in hierarchy/priority order, uses deterministic fallback boxes when no resolvable asset is available, and can load image paths represented by supported semantic properties. It supports pointer selection, selection outlines, pan, and zoom without running user game code, rewriting source, or triggering hot reload. The existing hierarchy tree and canvas both read and update the shared semantic selection ID. Advanced editing gizmos and richer asset discovery remain planned.
 
 Basic transform editing is now available for selected `PositionComponent` descendants. Move, bottom-right resize, and rotate-handle gestures update `WorkspaceEditorModel` immediately; nested components are converted between parent-local and scene coordinates, and anchor values remain respected. The Inspector observes the same model, while persistence and generated adapters remain save-boundary operations. Multi-selection, snapping, and richer gizmos are not implemented.
+
+## Modern project creation
+
+`ProjectCreator` now lets Flutter scaffold the project first with `flutter create --no-pub`. Workspace then writes the custom entry point, `FlameGame`/`World` setup, scene and component sources, `.generated/` adapters, Workspace configuration, and a small generated-game smoke test before running `flutter pub get`. It refuses to write into a non-empty project directory and uses normalized Dart package names with `package:path` for cross-platform paths.
+
+The generated project is intentionally minimal: Flutter, Flame, `flame_workspace_runtime`, `flutter_lints`, and `flutter_test`. Optional Flame packages and `window_manager` are not added. The creator's integration test creates a real temporary project, resolves the local runtime package, runs `flutter analyze` and `flutter test`, imports the project, and indexes its generated component and scene source. The current indexer reports the generated `$Scene...` base declaration as the scene; this is an existing naming convention limitation, while import, analysis, component discovery, and reopen/index flow are verified.

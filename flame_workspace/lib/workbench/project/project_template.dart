@@ -1,175 +1,212 @@
-/// The entire project template.
-///
-/// The default folder structure is:
-///
-/// ```yaml
-/// assets/                         # Contains the assets of the game
-/// lib/                            # Contains the source code of the game
-///   generated/                      # Contains the generated code
-///     components/                       # Contains the generated code of the components
-///     scenes/                           # Contains the generated code of the scenes
-///     properties.dart                   # Contains the generated code to manipulate components
-///   components/
-///     component_name.dart               # A custom component
-///   scenes/
-///     scene_name.dart                    # A scene
-///     scene_name_script.dart             # The script of the scene_name
-///   main.dart                       # The entry point of the game
-///   game.dart                       # The game itself
-/// pubspec.yaml                    # The dependencies of the game
-/// flame_configuration.yaml        # Configuration options used by the workspace
-/// ```
-library template;
-
-import 'package:flame_workspace/workbench/parser/writer.dart';
-import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 import 'package:recase/recase.dart';
 
-/// The main.dart file.
-///
-/// This file is the entry point of the application.
 String main$dart(String gameName) =>
     '''import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
-import 'package:flutter/material.dart';
-import 'package:flame/game.dart';
 
+import '.generated/properties.dart';
+import '.generated/scenes.dart';
 import 'game.dart';
-import '$generatedFilesDirectory/properties.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final game = $gameName();
-  await FlameWorkspaceCore.ensureInitialized(game);
   FlameWorkspaceCore.instance.setPropertyValue = setPropertyValue;
+  FlameWorkspaceCore.instance.setScene = setScene;
+  await FlameWorkspaceCore.ensureInitialized(game);
 
-  runApp(GameWidget<$gameName>(
-    game: FlameWorkspaceCore.instance.game as $gameName,
-  ));
+  runApp(GameWidget<$gameName>(game: game));
 }''';
 
-/// The game.dart file.
-String game$dart(String gameName) =>
-    '''import 'package:flame/components.dart';
-import 'package:flame/game.dart';
-import 'package:flame/palette.dart';
-import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
-import 'package:window_manager/window_manager.dart';
+String game$dart(String gameName, String sceneName) {
+  final sceneClass = sceneName.pascalCase;
+  final scenePath = sceneName.snakeCase;
+  return '''import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
-class $gameName extends FlameGame with SingleGameInstance, WindowListener {
-  $gameName() : super();
+import 'scenes/$scenePath/$scenePath.dart';
 
-  @override
-  Color backgroundColor() => const Color(0xFF000000);
-
+class $gameName extends FlameGame {
   @override
   Future<void> onLoad() async {
-    windowManager.addListener(this);
-
+    world = $sceneClass();
     await super.onLoad();
 
-    world = FlameWorkspaceCore.instance.currentScene;
     camera = CameraComponent(world: world);
     camera.viewfinder.anchor = Anchor.topLeft;
     add(camera);
   }
-
-  @override
-  void update(double dt) {
-    // TODO: implement app loop
-
-    super.update(dt);
-  }
-
-  @override
-  void onDispose() {
-    windowManager.removeListener(this);
-  }
+}''';
 }
-''';
 
-String scene$dart(String sceneName) =>
-    '''part 'scene_${sceneName.snakeCase}_script.dart';
+String scene$dart(String sceneName) {
+  final className = sceneName.pascalCase;
+  final fileName = sceneName.snakeCase;
+  return '''import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
+
+import '../../components/my_component.dart';
+
+part '${fileName}_script.dart';
+part '../../.generated/scenes/$fileName.dart';
 
 @protected
-class \$Scene${sceneName.camelCase} extends FlameScene with \$Scene${sceneName.camelCase}Mixin {
-  \$Scene${sceneName.camelCase}({
-    super.sceneName = 'Level One',
-    super.backgroundColor = const Color(0xFF000000),
-  });
+class \$Scene$className extends FlameScene with \$Scene${className}Mixin {
+  \$Scene$className()
+      : myComponent = MyComponent(
+          key: FlameKey('myComponent'),
+          position: Vector2(64, 64),
+          size: Vector2(128, 128),
+        ),
+        super(
+          sceneName: '$sceneName',
+          backgroundColor: const Color(0xFF000000),
+        );
 
-  MyCircleComponent circle = MyCircleComponent(
-      key: FlameKey('circle'),
-      color: const Color(0xffffffff),
-      radius: 50.0,
-      position: Vector2(50.0, 50.0));
+  final MyComponent myComponent;
 }''';
+}
 
-String sceneScript$dart(String sceneName) =>
-    '''part of 'scene_${sceneName.snakeCase}.dart';
+String sceneScript$dart(String sceneName) {
+  final className = sceneName.pascalCase;
+  final fileName = sceneName.snakeCase;
+  return '''part of '$fileName.dart';
 
-class Scene${sceneName.camelCase} extends \$Scene${sceneName.camelCase} {
+class $className extends \$Scene$className {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
-    add(circle);
+    add(myComponent);
   }
 
-  bool _upping = false;
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    if (circle.radius == 100.0) {
-      _upping = false;
-    } else if (circle.radius == 20.0) {
-      _upping = true;
-    }
-
-    if (_upping) {
-      circle.radius += 0.001;
-    } else {
-      circle.radius -= 0.001;
-    }
-  }
 }''';
+}
 
-String component$dart(String componentName) =>
-    '''import 'dart:ui';
+String component$dart(String componentName) {
+  final className = componentName.pascalCase;
+  return '''import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
-import 'package:flame/components.dart';
-
-import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
-
-class ${componentName.pascalCase}Component extends PositionComponent with FlameComponent {
-  ${componentName.pascalCase}Component({
-    required $FlameKey super.key,
-  });
-
-  @override
-  Future<void> onLoad() async {
-    await super.onLoad();
-
-    // TODO: implement onLoad()
-  }
+class $className extends PositionComponent with FlameComponent {
+  $className({super.key, super.position, super.size});
 
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-
-    // TODO: implement render()
+    canvas.drawRect(
+      size.toRect(),
+      Paint()..color = const Color(0xFFFFB431),
+    );
   }
 }''';
+}
 
-String pubspec$yaml(String gameName, String description) =>
-    '''name: ${gameName.snakeCase}
+String properties$dart(String projectName, String componentName) {
+  final className = componentName.pascalCase;
+  return '''/// This file is generated by Flame Workspace.
+/// Do not edit it manually.
+
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
+
+import 'package:$projectName/components/${componentName.snakeCase}.dart';
+
+void setPropertyValue(
+  String className,
+  dynamic cls,
+  String propertyName,
+  dynamic value,
+) {
+  if (className != '$className') {
+    throw ArgumentError.value(className, 'Class not found');
+  }
+
+  final component = cls as $className;
+  switch (propertyName) {
+    case 'position':
+      component.position = value as Vector2;
+      break;
+    case 'size':
+      component.size = value as Vector2;
+      break;
+    case 'angle':
+      component.angle = value as double;
+      break;
+    case 'priority':
+      component.priority = value as int;
+      break;
+    default:
+      throw ArgumentError.value(propertyName, 'Property not found');
+  }
+}''';
+}
+
+String scenes$dart(String projectName, String sceneName) {
+  final className = sceneName.pascalCase;
+  final fileName = sceneName.snakeCase;
+  return '''/// This file is generated by Flame Workspace.
+/// Do not edit it manually.
+
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
+import 'package:$projectName/scenes/$fileName/$fileName.dart';
+
+void setScene(String sceneName) {
+  switch (sceneName) {
+    case '$sceneName':
+      FlameWorkspaceCore.instance.currentScene = $className();
+      break;
+    default:
+      throw ArgumentError.value(sceneName, 'Scene not found');
+  }
+}''';
+}
+
+String sceneGenerated$dart(String projectName, String sceneName) {
+  final className = sceneName.pascalCase;
+  return '''/// This file is generated by Flame Workspace.
+/// Do not edit it manually.
+
+part of '../../scenes/${sceneName.snakeCase}/${sceneName.snakeCase}.dart';
+
+mixin \$Scene${className}Mixin on FlameScene {
+  @override
+  void addComponent(String declarationName) {
+    final scene = this as \$Scene$className;
+    switch (declarationName) {
+      case 'myComponent':
+        scene.add(scene.myComponent);
+        break;
+      default:
+        throw ArgumentError(declarationName, 'Component not found');
+    }
+  }
+
+  @override
+  void removeComponent(String declarationName) {
+    final scene = this as \$Scene$className;
+    switch (declarationName) {
+      case 'myComponent':
+        scene.remove(scene.myComponent);
+        break;
+      default:
+        throw ArgumentError(declarationName, 'Component not found');
+    }
+  }
+}
+''';
+}
+
+String pubspec$yaml(
+  String projectName,
+  String description, {
+  String? runtimeDependencyPath,
+}) {
+  final runtimeDependency = runtimeDependencyPath == null
+      ? '''git:
+      url: https://github.com/bdlukaa/flame_workspace
+      path: flame_workspace_runtime/'''
+      : "path: '${runtimeDependencyPath.replaceAll("'", "''")}'";
+
+  return '''name: ${projectName.snakeCase}
 description: "$description"
 publish_to: 'none'
 
-# The following defines the version and build number for your application.
-# A version number is three numbers separated by dots, like 1.2.43
-# followed by an optional build number separated by a +.
 version: 0.0.1+1
 
 environment:
@@ -179,55 +216,41 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-  # Required dependencies
   flame: ^1.38.2
   flame_workspace_runtime:
-    git:
-      url: https://github.com/bdlukaa/flame_workspace
-      path: flame_workspace_runtime/
-  window_manager: ^0.5.2 # Used internally by the Flame Workspace to manage the window on preview mode
-
-  # Dependencies used by the app
+    $runtimeDependency
 
 dev_dependencies:
   flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
 
 flutter:
   uses-material-design: true
+''';
+}
 
+String smokeTest$dart(String projectName, String gameName) =>
+    '''import 'package:flame/game.dart';
+import 'package:flutter_test/flutter_test.dart';
 
-  # To add custom fonts to your application, add a fonts section here,
-  # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
-  #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/custom-fonts/#from-packages''';
+import 'package:$projectName/game.dart';
+
+void main() {
+  test('the generated game can be constructed', () {
+    expect($gameName(), isA<FlameGame>());
+  });
+}''';
 
 String flameConfiguration$yaml({
   required String projectName,
   required String organization,
   required String initialScene,
 }) =>
-    '''# This file is used to configure the Flame Workspace.
+    '''# This file is used to configure Flame Workspace.
 # This file is generated automatically and should not be modified manually.
 
 project_name: ${projectName.snakeCase}
 organization: $organization
-
-# The name of the initial scene class.
 initial_scene: $initialScene
 ''';
