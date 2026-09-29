@@ -406,6 +406,16 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
   late String declaredName = ReCase(widget.selectedComponent.name).camelCase;
   final parameters = <String, String>{};
 
+  List<String> get _missingRequiredParameters => [
+    for (final parameter
+        in widget.selectedComponent.constructorParameters ??
+            widget.selectedComponent.parameters)
+      if (parameter.isRequired &&
+          (parameters[parameter.name] == null ||
+              parameters[parameter.name]!.trim().isEmpty))
+        parameter.name,
+  ];
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -440,13 +450,15 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: FilledButton(
-                    onPressed: () {
-                      Navigator.of(context).pop<AddIndexedComponent>((
-                        widget.selectedComponent,
-                        declaredName,
-                        parameters,
-                      ));
-                    },
+                    onPressed: _missingRequiredParameters.isEmpty
+                        ? () {
+                            Navigator.of(context).pop<AddIndexedComponent>((
+                              widget.selectedComponent,
+                              declaredName,
+                              parameters,
+                            ));
+                          }
+                        : null,
                     child: const Text('Add'),
                   ),
                 ),
@@ -465,8 +477,18 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
                 setState(() => declaredName = text.removeQuoteMarks()),
           ),
         ),
+        if (_missingRequiredParameters.isNotEmpty)
+          Padding(
+            padding: const EdgeInsetsDirectional.symmetric(horizontal: 24.0),
+            child: Text(
+              'Required: ${_missingRequiredParameters.join(', ')}',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          ),
         const Divider(),
-        for (final parameter in widget.selectedComponent.parameters)
+        for (final parameter
+            in widget.selectedComponent.constructorParameters ??
+                widget.selectedComponent.parameters)
           Padding(
             padding: const EdgeInsetsDirectional.symmetric(horizontal: 24.0),
             child: Builder(

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flame_workspace/workbench/generators/properties_generator.dart';
 import 'package:flame_workspace/workbench/generators/scene_persistence_generator.dart';
@@ -12,12 +13,24 @@ import 'package:flame_workspace/workbench/parser/type_resolver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 
+import 'indexing_scheduler.dart';
 import '../parser/parser.dart';
 import '../parser/writer.dart';
 import '../project/objects/component.dart';
 import '../project/objects/mixin.dart';
 import '../project/objects/scene.dart';
 import '../project/project.dart';
+
+FlameTypeResolver? _workerResolver;
+String? _workerProjectPath;
+IndexedProject? _workerIndexed;
+
+bool _isDependencyFile(String filePath) {
+  final normalized = path.normalize(filePath);
+  return path.basename(normalized) == 'pubspec.yaml' ||
+      path.basename(normalized) == 'pubspec.lock' ||
+      normalized.endsWith(path.join('.dart_tool', 'package_config.json'));
+}
 
 class FlameProjectState with ChangeNotifier {
   final FlameProject project;
@@ -67,31 +80,31 @@ class FlameProjectState with ChangeNotifier {
                 unawaited(refreshAssets());
               }
 
-              // Only index developer-owned Dart files.
-              if (path.extension(event.path) != '.dart' ||
-                  isWorkspaceGeneratedDartFile(
-                    event.path,
-                    projectPath: project.location.path,
-                  )) {
+              final dependencyChanged = _isDependencyFile(event.path);
+              if (!dependencyChanged &&
+                  (path.extension(event.path) != '.dart' ||
+                      isWorkspaceGeneratedDartFile(
+                        event.path,
+                        projectPath: project.location.path,
+                      ))) {
                 return;
               }
 
               unawaited(_refreshFiles());
 
-              // print(event);
               switch (event.type) {
                 case FileSystemEvent.modify:
                   final modifyEvent = event as FileSystemModifyEvent;
                   if (modifyEvent.contentChanged) {
-                    indexProject(includeOnly: [event.path]);
+                    _indexingScheduler.schedule(event.path);
                   }
                   break;
                 case FileSystemEvent.create:
                 case FileSystemEvent.move:
-                  indexProject(includeOnly: [event.path]);
+                  _indexingScheduler.schedule(event.path);
                   break;
                 case FileSystemEvent.delete:
-                  indexProject();
+                  _indexingScheduler.schedule(event.path);
                   break;
               }
             },
@@ -137,6 +150,15 @@ class FlameProjectState with ChangeNotifier {
   }
 
   StreamSubscription<FileSystemEvent>? _filesSubscription;
+  late final IndexingScheduler _indexingScheduler = IndexingScheduler(
+    onBatch: (paths) {
+      final dependenciesChanged = paths.any(_isDependencyFile);
+      return indexProject(
+        includeOnly: dependenciesChanged ? null : paths,
+        dependencyChanged: dependenciesChanged,
+      );
+    },
+  );
   Future<void> _refreshFiles() async {
     try {
       files = await project.location.list().toList();
@@ -283,6 +305,8 @@ class FlameProjectState with ChangeNotifier {
   }
 
   bool isIndexing = false;
+  late final _ProjectIndexWorker _indexWorker = _ProjectIndexWorker();
+  int _analysisRevision = 0;
 
   IndexedProject? indexed;
 
@@ -295,7 +319,9 @@ class FlameProjectState with ChangeNotifier {
   Future<void> indexProject({
     Iterable<String>? includeOnly,
     bool onlyParse = false,
+    bool dependencyChanged = false,
   }) async {
+    final revision = ++_analysisRevision;
     isIndexing = true;
     notifyListeners();
 
@@ -308,34 +334,39 @@ class FlameProjectState with ChangeNotifier {
         flameMixinsResult,
         workspaceProjectResult,
         diagnosticsResult,
-      ) = await compute(_indexProject, {
+      ) = await _indexWorker.run({
         'project': project,
         'indexed': indexed,
         'includeOnly': includeOnly,
         'onlyParse': onlyParse,
+        'dependencyChanged': dependencyChanged,
       });
 
+      if (revision != _analysisRevision) return;
       indexed = indexedResult;
-      components
-        ..clear()
-        ..addAll(componentsResult);
-      if (scenesResult.isNotEmpty) {
-        scenes
+      if (diagnosticsResult.isEmpty) {
+        components
           ..clear()
-          ..addAll(scenesResult);
-      }
-      flameComponents
-        ..clear()
-        ..addAll(flameComponentsResult);
-      flameMixins
-        ..clear()
-        ..addAll(flameMixinsResult);
-      if (workspaceProjectResult != null) {
-        workspaceModel.replaceProject(workspaceProjectResult);
+          ..addAll(componentsResult);
+        if (scenesResult.isNotEmpty) {
+          scenes
+            ..clear()
+            ..addAll(scenesResult);
+        }
+        flameComponents
+          ..clear()
+          ..addAll(flameComponentsResult);
+        flameMixins
+          ..clear()
+          ..addAll(flameMixinsResult);
+        if (workspaceProjectResult != null) {
+          workspaceModel.replaceProject(workspaceProjectResult);
+        }
       }
       analysisDiagnostics = diagnosticsResult;
       indexError = null;
     } catch (error, stackTrace) {
+      if (revision != _analysisRevision) return;
       indexError = _failureMessage(
         'Project analysis',
         error,
@@ -344,8 +375,10 @@ class FlameProjectState with ChangeNotifier {
       );
       debugPrint('Project analysis failed: $error\n$stackTrace');
     } finally {
-      isIndexing = false;
-      notifyListeners();
+      if (revision == _analysisRevision) {
+        isIndexing = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -361,10 +394,19 @@ class FlameProjectState with ChangeNotifier {
     )
   >
   _indexProject(Map data) async {
+    final totalTimer = Stopwatch()..start();
+    var syntaxMs = 0;
+    var analyzerMs = 0;
+    var flameApiMs = 0;
+    var componentMappingMs = 0;
+    var sceneMappingMs = 0;
+    var semanticMappingMs = 0;
     final project = data['project'] as FlameProject;
     final includeOnly = data['includeOnly'] as Iterable<String>?;
     final onlyParse = data['onlyParse'] as bool;
-    var indexed = data['indexed'] as IndexedProject?;
+    final dependencyChanged = data['dependencyChanged'] as bool? ?? false;
+    var indexed = _workerIndexed ?? data['indexed'] as IndexedProject?;
+    Set<String>? resolverChanges = includeOnly?.toSet();
     var components = <IndexedComponent>[];
     var scenes = <IndexedScene>[];
     var flameComponents = <FlameComponentObject>[];
@@ -373,10 +415,12 @@ class FlameProjectState with ChangeNotifier {
     var diagnostics = <String>[];
 
     if (!onlyParse) {
+      final syntaxTimer = Stopwatch()..start();
       final result = await ProjectIndexer.indexProject(
         project.location,
         includeOnly,
       );
+      syntaxMs = syntaxTimer.elapsedMilliseconds;
       indexed ??= [];
       if (includeOnly != null && includeOnly.isNotEmpty) {
         indexed
@@ -386,32 +430,52 @@ class FlameProjectState with ChangeNotifier {
           })
           ..addAll(result);
       } else {
-        indexed.clear();
-        indexed.addAll(result);
+        resolverChanges = {
+          ...indexed.map((entry) => entry.$1['source'] as String),
+          ...result.map((entry) => entry.$1['source'] as String),
+        };
+        indexed = result;
       }
     }
     if (indexed != null) {
-      final resolver = await FlameTypeResolver.forProject(project.location);
-      try {
-        components
-          ..clear()
-          ..addAll(ProjectIndexer.componentsFrom(indexed, resolver: resolver));
-        scenes
-          ..clear()
-          ..addAll(ProjectIndexer.scenesFrom(indexed, resolver: resolver));
-        flameComponents = resolver.flameComponents;
-        flameMixins = resolver.flameMixins;
-        diagnostics = resolver.diagnostics
-            .map((diagnostic) => diagnostic.toString())
-            .toList();
-        workspaceProject = WorkspaceModelMapper.fromIndexed(
-          indexed,
-          resolver: resolver,
-          projectName: project.name,
+      final analyzerTimer = Stopwatch()..start();
+      if (_workerResolver == null ||
+          _workerProjectPath != project.location.path ||
+          dependencyChanged) {
+        await _workerResolver?.dispose();
+        _workerResolver = await FlameTypeResolver.forProject(project.location);
+        _workerProjectPath = project.location.path;
+      } else {
+        await _workerResolver!.refresh(
+          resolverChanges ??
+              indexed.map((entry) => entry.$1['source'] as String),
         );
-      } finally {
-        await resolver.dispose();
       }
+      analyzerMs = analyzerTimer.elapsedMilliseconds;
+      final resolver = _workerResolver!;
+      flameApiMs = resolver.lastFlameApiDiscoveryMs;
+      var mappingTimer = Stopwatch()..start();
+      components
+        ..clear()
+        ..addAll(ProjectIndexer.componentsFrom(indexed, resolver: resolver));
+      componentMappingMs = mappingTimer.elapsedMilliseconds;
+      mappingTimer = Stopwatch()..start();
+      scenes
+        ..clear()
+        ..addAll(ProjectIndexer.scenesFrom(indexed, resolver: resolver));
+      sceneMappingMs = mappingTimer.elapsedMilliseconds;
+      flameComponents = resolver.flameComponents;
+      flameMixins = resolver.flameMixins;
+      diagnostics = resolver.diagnostics
+          .map((diagnostic) => diagnostic.toString())
+          .toList();
+      final semanticTimer = Stopwatch()..start();
+      workspaceProject = WorkspaceModelMapper.fromIndexed(
+        indexed,
+        resolver: resolver,
+        projectName: project.name,
+      );
+      semanticMappingMs = semanticTimer.elapsedMilliseconds;
     }
 
     if (!onlyParse && workspaceProject != null) {
@@ -445,6 +509,17 @@ class FlameProjectState with ChangeNotifier {
       ], project);
     }
 
+    _workerIndexed = indexed;
+    totalTimer.stop();
+    if (kDebugMode) {
+      debugPrint(
+        'Project indexing (${includeOnly?.length ?? 'full'} paths): '
+        'syntax=${syntaxMs}ms analyzer=${analyzerMs}ms '
+        'flameApi=${flameApiMs}ms components=${componentMappingMs}ms '
+        'scenes=${sceneMappingMs}ms semantic=${semanticMappingMs}ms '
+        'total=${totalTimer.elapsedMilliseconds}ms',
+      );
+    }
     return (
       indexed,
       components,
@@ -472,8 +547,89 @@ class FlameProjectState with ChangeNotifier {
   @override
   void dispose() {
     unawaited(_filesSubscription?.cancel());
+    unawaited(_indexingScheduler.dispose());
+    _analysisRevision++;
+    unawaited(_indexWorker.dispose());
     workspaceModel.removeListener(_onWorkspaceModelChanged);
     workspaceModel.dispose();
     super.dispose();
   }
+}
+
+class _ProjectIndexWorker {
+  Isolate? _isolate;
+  SendPort? _sendPort;
+  Future<void>? _starting;
+
+  Future<void> _ensureStarted() async {
+    if (_sendPort != null) return;
+    if (_starting != null) return _starting;
+    final ready = ReceivePort();
+    _starting = () async {
+      _isolate = await Isolate.spawn(_projectIndexWorkerMain, ready.sendPort);
+      _sendPort = await ready.first as SendPort;
+      ready.close();
+    }();
+    try {
+      await _starting;
+    } finally {
+      _starting = null;
+    }
+  }
+
+  Future<dynamic> run(Map<String, Object?> request) async {
+    await _ensureStarted();
+    final response = ReceivePort();
+    _sendPort!.send([request, response.sendPort]);
+    final result = await response.first as List;
+    response.close();
+    if (result.first == false) {
+      throw StateError('${result[1]}\n${result[2]}');
+    }
+    return result[1];
+  }
+
+  Future<void> dispose() async {
+    final sendPort = _sendPort;
+    if (sendPort == null) return;
+    final response = ReceivePort();
+    sendPort.send(['dispose', response.sendPort]);
+    await response.first;
+    response.close();
+    _isolate?.kill(priority: Isolate.immediate);
+    _isolate = null;
+    _sendPort = null;
+  }
+}
+
+void _projectIndexWorkerMain(SendPort mainPort) {
+  final requests = ReceivePort();
+  mainPort.send(requests.sendPort);
+  Future<void> queue = Future.value();
+  requests.listen((message) {
+    final request = message as List;
+    final command = request.first;
+    final reply = request.last as SendPort;
+    if (command == 'dispose') {
+      queue = queue.then((_) async {
+        await _workerResolver?.dispose();
+        _workerResolver = null;
+        _workerProjectPath = null;
+        _workerIndexed = null;
+        reply.send(true);
+        requests.close();
+      });
+      return;
+    }
+    queue = queue.then((_) async {
+      try {
+        reply.send([
+          true,
+          await FlameProjectState._indexProject(command as Map),
+        ]);
+      } catch (error, stackTrace) {
+        reply.send([false, error.toString(), stackTrace.toString()]);
+      }
+    });
+  });
 }

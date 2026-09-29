@@ -1,7 +1,10 @@
 import 'dart:io';
 
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
+import 'package:analyzer/dart/analysis/features.dart';
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/analysis/results.dart';
+import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:path/path.dart' as path;
@@ -9,6 +12,7 @@ import 'package:path/path.dart' as path;
 import '../project/objects/component.dart';
 import '../project/objects/mixin.dart';
 import 'flame_api.dart';
+import 'writer.dart';
 
 /// A diagnostic produced while resolving a project's Dart types.
 class const TypeResolutionDiagnostic({
@@ -26,11 +30,19 @@ class const TypeResolutionDiagnostic({
 class FlameTypeResolver {
   final AnalysisContextCollection _contexts;
   final Map<String, ClassElement> _classes;
+  final String _projectRoot;
 
   final List<TypeResolutionDiagnostic> diagnostics;
-  late final FlameApiCatalog flameApi;
+  late FlameApiCatalog flameApi;
+  int lastFlameApiDiscoveryMs = 0;
+  final Set<String> _sourcePaths = {};
 
-  FlameTypeResolver._(this._contexts, this._classes, this.diagnostics);
+  FlameTypeResolver._(
+    this._contexts,
+    this._classes,
+    this.diagnostics,
+    this._projectRoot,
+  );
 
   /// Resolves all Dart libraries under [projectRoot]/lib.
   static Future<FlameTypeResolver> forProject(Directory projectRoot) async {
@@ -43,14 +55,46 @@ class FlameTypeResolver {
       includedPaths: [root],
       sdkPath: sdkPath,
     );
-    final resolver = FlameTypeResolver._(contexts, {}, []);
-    await resolver._resolveDirectory(Directory(path.join(root, 'lib')));
+    final resolver = FlameTypeResolver._(contexts, {}, [], root);
+    await resolver._collectSourcePaths(Directory(path.join(root, 'lib')));
+    await resolver._resolvePaths(resolver._sourcePaths);
+    final flameApiTimer = Stopwatch()..start();
     resolver.flameApi = await FlameApiDiscovery.resolve(
       contexts: contexts,
       projectRoot: root,
       diagnostics: resolver.diagnostics,
     );
+    resolver.lastFlameApiDiscoveryMs = flameApiTimer.elapsedMilliseconds;
     return resolver;
+  }
+
+  /// Reuses Analyzer state for source changes and preserves Flame API metadata.
+  Future<void> refresh(Iterable<String> changedPaths) async {
+    lastFlameApiDiscoveryMs = 0;
+    final changed = changedPaths
+        .map((file) => path.normalize(path.absolute(file)))
+        .toSet();
+    diagnostics.clear();
+    for (final file in changed) {
+      _contexts.contextFor(file).changeFile(file);
+      _sourcePaths.remove(file);
+      _classes.removeWhere((key, _) => key.startsWith('$file::'));
+      if (File(file).existsSync() &&
+          path.extension(file) == '.dart' &&
+          !isWorkspaceGeneratedDartFile(file, projectPath: _projectRoot)) {
+        final parsed = parseFile(
+          path: file,
+          featureSet: FeatureSet.latestLanguageVersion(),
+          throwIfDiagnostics: false,
+        );
+        if (!parsed.unit.directives.any(
+          (directive) => directive is PartOfDirective,
+        )) {
+          _sourcePaths.add(file);
+        }
+      }
+    }
+    await _resolvePaths(_sourcePaths);
   }
 
   /// Flame component metadata discovered from the project's resolved package.
@@ -146,7 +190,7 @@ class FlameTypeResolver {
     return element.allSupertypes.any(_isFlamePositionComponentType);
   }
 
-  Future<void> _resolveDirectory(Directory directory) async {
+  Future<void> _collectSourcePaths(Directory directory) async {
     if (!directory.existsSync()) {
       diagnostics.add(
         TypeResolutionDiagnostic(
@@ -158,9 +202,29 @@ class FlameTypeResolver {
     }
 
     await for (final entity in directory.list(recursive: true)) {
-      if (entity is File && path.extension(entity.path) == '.dart') {
-        await _resolveFile(entity.path);
+      if (entity is File &&
+          path.extension(entity.path) == '.dart' &&
+          !isWorkspaceGeneratedDartFile(
+            entity.path,
+            projectPath: path.dirname(directory.path),
+          )) {
+        final parsed = parseFile(
+          path: entity.path,
+          featureSet: FeatureSet.latestLanguageVersion(),
+          throwIfDiagnostics: false,
+        );
+        if (!parsed.unit.directives.any(
+          (directive) => directive is PartOfDirective,
+        )) {
+          _sourcePaths.add(path.normalize(path.absolute(entity.path)));
+        }
       }
+    }
+  }
+
+  Future<void> _resolvePaths(Iterable<String> filePaths) async {
+    for (final filePath in filePaths) {
+      await _resolveFile(filePath);
     }
   }
 
@@ -168,6 +232,15 @@ class FlameTypeResolver {
     final normalizedPath = path.normalize(path.absolute(filePath));
 
     try {
+      final parsed = parseFile(
+        path: normalizedPath,
+        featureSet: FeatureSet.latestLanguageVersion(),
+      );
+      if (parsed.unit.directives.any(
+        (directive) => directive is PartOfDirective,
+      )) {
+        return;
+      }
       final context = _contexts.contextFor(normalizedPath);
       final result = await context.currentSession.getResolvedLibrary(
         normalizedPath,

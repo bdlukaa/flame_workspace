@@ -2,6 +2,7 @@ class FlameComponentObject({
   required final String name,
   required final String type,
   required final List<FlameComponentField> parameters,
+  final List<FlameComponentField>? constructorParameters,
   required final Map<String, dynamic> data,
   final List<FlameComponentProperty> writableProperties = const [],
   final String? filePath,
@@ -37,19 +38,13 @@ class FlameComponentObject({
     buffer.write('$name $declarationName = $name(');
     buffer.write('key: FlameKey(\'$declarationName\'),');
 
-    for (final parameter in parameters) {
-      final isRequired =
-          !parameter.isNullable &&
-          (parameter.defaultValue == null || parameter.defaultValue == 'null');
-
-      if (isRequired) {
-        buffer.write(
-          '${parameter.name}: ${params[parameter.name] ?? 'Object()'}, ',
-        );
-        continue;
-      }
-
+    for (final parameter in constructorParameters ?? parameters) {
       final value = params[parameter.name] ?? parameter.defaultValue;
+      if (parameter.isRequired && (value == null || value == 'null')) {
+        throw ArgumentError(
+          'Missing required constructor parameter: ${parameter.name}',
+        );
+      }
       if (value == null || value == 'null') continue;
       buffer.write('${parameter.name}: $value, ');
     }
@@ -75,6 +70,7 @@ class FlameComponentField(
   final bool isFinalField = false,
   final bool hasSetter = false,
   final List<String> enumValues = const [],
+  final bool isRequired = false,
 ]) {
   /// The type of the field.
   ///

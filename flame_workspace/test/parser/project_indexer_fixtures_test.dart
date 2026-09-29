@@ -7,6 +7,76 @@ import 'package:path/path.dart' as path;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test(
+    'resolver skips part units and Workspace-generated Dart files',
+    () async {
+      final project = await _copyFixture('empty_game');
+      addTearDown(() => project.delete(recursive: true));
+      final mainFile = File(path.join(project.path, 'lib', 'main.dart'));
+      await mainFile.writeAsString('''
+import 'package:flame/game.dart';
+part 'scene1_script.dart';
+class EmptyGame extends FlameGame {}
+void main() {}
+''');
+      await File(path.join(project.path, 'lib', 'scene1_script.dart'))
+          .writeAsString("part of 'main.dart';\nclass SceneScript {}\n");
+      final generated = Directory(path.join(project.path, 'lib', '.generated'));
+      await generated.create();
+      await File(path.join(generated.path, 'output.dart'))
+          .writeAsString('not valid Dart');
+      await File(path.join(project.path, 'lib', 'broken.dart'))
+          .writeAsString('class Broken {');
+
+      final resolver = await FlameTypeResolver.forProject(project);
+      addTearDown(resolver.dispose);
+      expect(
+        resolver.diagnostics.map((diagnostic) => diagnostic.path),
+        isNot(contains(contains('scene1_script.dart'))),
+      );
+      expect(
+        resolver.diagnostics.map((diagnostic) => diagnostic.path),
+        isNot(contains(contains('.generated'))),
+      );
+      expect(
+        resolver.diagnostics.any(
+          (diagnostic) => diagnostic.path.endsWith('broken.dart'),
+        ),
+        isTrue,
+      );
+    },
+  );
+
+  test('source refresh reuses Flame API metadata', () async {
+    final (project, resolver, _) = await _resolvedFixture('empty_game');
+    addTearDown(resolver.dispose);
+    addTearDown(() => project.delete(recursive: true));
+    final catalog = resolver.flameApi;
+    final source = File(path.join(project.path, 'lib', 'main.dart'));
+    await source.writeAsString(await source.readAsString());
+
+    await resolver.refresh([source.path]);
+
+    expect(identical(resolver.flameApi, catalog), isTrue);
+  });
+
+  test('CircleComponent generation uses constructor parameters only', () async {
+    final (project, resolver, _) = await _resolvedFixture('empty_game');
+    addTearDown(resolver.dispose);
+    addTearDown(() => project.delete(recursive: true));
+
+    final component = resolver.flameApi.componentObjects.firstWhere(
+      (component) => component.name == 'CircleComponent',
+    );
+    expect(
+      component.constructorParameters!.map((parameter) => parameter.name),
+      isNot(contains('nativeAngle')),
+    );
+    final generated = component.toCode('circleComponent', const {});
+    expect(generated, isNot(contains('nativeAngle:')));
+    expect(generated, isNot(contains('Object()')));
+  });
+
   test('indexes an empty Flame game without inventing components', () async {
     final (project, resolver, indexed) = await _resolvedFixture('empty_game');
     addTearDown(resolver.dispose);

@@ -167,45 +167,41 @@ class _WorkbenchViewState extends State<WorkbenchView> {
         SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true):
             state.redoWorkspace,
       },
-      child: AbsorbPointer(
-        absorbing: state.isIndexing,
-        child: Workbench(
-          project: widget.project,
-          runner: runner,
-          state: state,
-          onComponentSelected: (component) {
-            state.selectComponent(component?.id);
-          },
-          onEditScript: () {
-            setState(() => _editingScript = !_editingScript);
-          },
-          child: Scaffold(
-            body: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Card(
-                  margin: EdgeInsets.zero,
-                  shape: const RoundedRectangleBorder(),
-                  child: Container(
-                    height: 38.0,
-                    padding: const EdgeInsetsDirectional.all(4.0),
-                    child: Builder(builder: _buildToolbar),
+      child: Workbench(
+        project: widget.project,
+        runner: runner,
+        state: state,
+        onComponentSelected: (component) {
+          state.selectComponent(component?.id);
+        },
+        onEditScript: () {
+          setState(() => _editingScript = !_editingScript);
+        },
+        child: Scaffold(
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Card(
+                margin: EdgeInsets.zero,
+                shape: const RoundedRectangleBorder(),
+                child: Container(
+                  height: 38.0,
+                  padding: const EdgeInsetsDirectional.all(4.0),
+                  child: Builder(builder: _buildToolbar),
+                ),
+              ),
+              if (_hasProjectIssue) _buildProjectIssueBanner(context),
+              Expanded(
+                child: switch (mode) {
+                  WorkbenchViewMode.design => DesignView(
+                    isEditingScript: _editingScript,
                   ),
-                ),
-                if (_hasProjectIssue) _buildProjectIssueBanner(context),
-                Expanded(
-                  child: switch (mode) {
-                    WorkbenchViewMode.design => DesignView(
-                      isEditingScript: _editingScript,
-                    ),
-                    WorkbenchViewMode.project => const ProjectView(),
-                    WorkbenchViewMode.assets => const AssetsView(),
-                    WorkbenchViewMode.configuration =>
-                      const ConfigurationView(),
-                  },
-                ),
-              ],
-            ),
+                  WorkbenchViewMode.project => const ProjectView(),
+                  WorkbenchViewMode.assets => const AssetsView(),
+                  WorkbenchViewMode.configuration => const ConfigurationView(),
+                },
+              ),
+            ],
           ),
         ),
       ),

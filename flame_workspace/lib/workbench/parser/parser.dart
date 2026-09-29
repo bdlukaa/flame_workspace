@@ -122,14 +122,24 @@ class ProjectIndexer {
   ]) async {
     // avoiding print because we can not import flutter to use it on the /bin folder
     // ignore: avoid_print
-    final IndexedProject files = <(IndexedUnit, CompilationUnit)>[];
+    final IndexedProject indexedFiles = <(IndexedUnit, CompilationUnit)>[];
 
     libDir = Directory(path.join(libDir.path, 'lib'));
 
-    await for (final file
-        in libDir
+    final changedFiles = includeOnly?.map(File.new);
+    final filesToParse =
+        changedFiles ??
+        await libDir
             .list(recursive: true)
-            .where((f) => f is File && path.extension(f.path) == '.dart')) {
+            .where((entity) => entity is File)
+            .cast<File>()
+            .toList();
+    for (final file in filesToParse) {
+      if (!path.isWithin(libDir.path, file.path) ||
+          !file.existsSync() ||
+          path.extension(file.path) != '.dart') {
+        continue;
+      }
       if (isWorkspaceGeneratedDartFile(
         file.path,
         projectPath: libDir.parent.path,
@@ -145,15 +155,15 @@ class ProjectIndexer {
       );
       final unit = serializeCompilationUnit(parsed.unit);
       unit['source'] = file.path;
-      files.add((unit, parsed.unit));
+      indexedFiles.add((unit, parsed.unit));
     }
 
-    if (files.isNotEmpty) {
+    if (indexedFiles.isNotEmpty) {
       // ignore: avoid_print
-      print('Indexed ${files.length} files');
+      print('Indexed ${indexedFiles.length} files');
     }
 
-    return files;
+    return indexedFiles;
   }
 
   /// Returns all the scenes in the project
@@ -262,6 +272,7 @@ class ProjectIndexer {
             type: component.type,
             data: component.data,
             parameters: component.parameters,
+            constructorParameters: component.constructorParameters,
             writableProperties: component.writableProperties,
             declarationName: field['name'],
           )..components.addAll(component.components);

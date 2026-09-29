@@ -31,6 +31,14 @@ void main() {
     await state.ready;
     await state.saveWorkspace();
     await state.indexProject();
+    final indexedPaths = state.indexed!
+        .map((entry) => entry.$1['source'])
+        .toSet();
+    await state.indexProject(includeOnly: [sceneSource.path]);
+    expect(
+      state.indexed!.map((entry) => entry.$1['source']).toSet(),
+      indexedPaths,
+    );
     expect(await sceneSource.readAsString(), originalSceneSource);
 
     final resolver = await FlameTypeResolver.forProject(project);

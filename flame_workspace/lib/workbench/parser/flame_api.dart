@@ -71,9 +71,10 @@ class const FlameApiClass({
           : constructors.first,
     );
 
+    final constructorFields = <FlameComponentField>[];
     final fields = <String, FlameComponentField>{};
     for (final parameter in constructor.parameters) {
-      fields[parameter.name] = FlameComponentField(
+      final field = FlameComponentField(
         parameter.name,
         parameter.type,
         parameter.defaultValue,
@@ -84,7 +85,10 @@ class const FlameApiClass({
         parameter.isFinalField,
         parameter.isFieldFormal && !parameter.isRequired,
         parameter.namedValues,
+        parameter.isRequired,
       );
+      constructorFields.add(field);
+      fields[parameter.name] = field;
     }
     for (final property in transformProperties) {
       fields.putIfAbsent(
@@ -106,6 +110,7 @@ class const FlameApiClass({
       name: name,
       type: superType ?? 'Component',
       parameters: fields.values.toList(),
+      constructorParameters: constructorFields,
       writableProperties: [
         for (final property in properties)
           if (property.hasSetter &&
