@@ -72,10 +72,6 @@ class PreviewProjectRunner {
 
   bool get isRunning => state == PreviewState.running;
 
-  /// Web-server preview is for execution and visual/input iteration only.
-  /// Runtime inspection and mutation are supported on Run targets instead.
-  bool get supportsRuntimeDebugging => false;
-
   Future<Uri> start({
     void Function(String line)? onOutput,
     void Function(String line)? onError,
@@ -94,10 +90,6 @@ class PreviewProjectRunner {
 
     try {
       await runner.start(
-        target: const FlutterTarget(
-          id: 'web-server',
-          name: 'Flutter Web Server',
-        ),
         onStdout: (line) {
           onOutput?.call(line);
           final detected = PreviewUrlDetector.find(line);
@@ -124,6 +116,7 @@ class PreviewProjectRunner {
                 'Preview exited unexpectedly (exit $exitCode).',
               );
             }
+            unawaited(_disposeSurfaceAfterExit());
           }
           onExit?.call(exitCode);
         },
@@ -197,6 +190,14 @@ class PreviewProjectRunner {
   }
 
   Future<void> dispose() => stop();
+
+  Future<void> _disposeSurfaceAfterExit() async {
+    try {
+      await surface.dispose();
+    } catch (exception) {
+      error = StateError('Could not dispose the preview surface: $exception');
+    }
+  }
 
   void _completeError(Completer<Uri> completer, Object exception) {
     if (!completer.isCompleted) completer.completeError(exception);

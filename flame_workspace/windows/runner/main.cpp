@@ -2,7 +2,7 @@
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
 
-#include "flutter_native_view/flutter_native_view_plugin.h"
+
 #include "webview_cef/webview_cef_plugin_c_api.h"
 #include "flutter_window.h"
 #include "utils.h"
@@ -40,7 +40,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   }
   window.SetQuitOnClose(true);
 
-  flutternativeview::NativeViewContainer::GetInstance()->Create();
 
   ::MSG msg;
   while (::GetMessage(&msg, nullptr, 0, 0)) {

@@ -11,7 +11,9 @@ requirements.
 Flame Workspace is a visual development environment for normal Flutter + Flame
 projects. Flame remains the runtime engine and Dart remains the source of game
 behavior; Workspace owns project analysis, scene composition, editing, and
-preview orchestration.
+preview orchestration. Flame Workspace currently executes projects only through
+an embedded Flutter Web Preview; native game execution and embedding are
+intentionally unsupported for now.
 
 > This is an independent personal project and is not affiliated with the Flame
 > team. For official Flame tooling, see [Flame Studio](https://github.com/flame-engine/flame/issues/2319).
@@ -27,13 +29,12 @@ implemented and covered by package and fixture tests:
 - persist scene composition under `.flame_workspace/scenes/`;
 - generate deterministic additive adapters under `lib/.generated/`;
 - inspect and edit basic transforms and supported properties;
-- discover Flutter targets and run through the cross-platform project runner;
-- launch the actual game in a web-server preview through the platform-neutral
+- launch the actual game through one execution workflow: embedded Flutter Web
+  Preview using `flutter run -d web-server` and the platform-neutral
   `PreviewSurface` abstraction;
-- inspect and control runtime state through `ext.flameWorkspace.*` on compatible
-  Run targets with a VM Service;
-- hot reload the web preview, and hot reload/restart, log, and clean up Run
-  processes.
+- hot reload/restart, inspect logs, and clean up the Preview process;
+- use `ext.flameWorkspace.*` only when Flutter actually exposes a VM Service;
+  web-server Preview does not promise runtime debugging.
 
 Scene composition has one source of truth: Analyzer-discovered developer code is
 read-only to the indexer, Workspace edits are persisted under
@@ -48,15 +49,11 @@ does not inject mixins into existing classes.
   [`docs/macos_host.md`](docs/macos_host.md); verify its rendering and input
   behavior with the manual checklist on a macOS machine. Linux host integration
   still requires validation.
-- Embedded Web Preview is visual/input iteration, not a VM Service debugging
-  target. Flutter's web-server debug attachment depends on its browser debugging
-  tooling and may require the Dart Debug Chrome extension; Workspace does not
-  assume that extension is installed inside an arbitrary embedded surface.
-  Pause/resume, scene switching, and live runtime mutation are therefore Run-only.
-  Preview hot reload remains available through Flutter's process controls.
-- Native child-window embedding is retained only for the existing Windows
-  Native Run path. Other discovered targets run in their normal Flutter host or
-  device window.
+- Embedded Web Preview is for visual/input iteration. Flutter's web-server
+  debug attachment depends on browser tooling and may require the Dart Debug
+  Chrome extension; Workspace does not assume it is available in an embedded
+  surface. Runtime inspection and mutation are unavailable unless an actual VM
+  Service connection is established.
 - Generic runtime component mutation depends on generated scene hooks, and
   generic property mutation depends on a generated property callback.
 

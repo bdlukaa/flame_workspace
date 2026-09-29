@@ -17,14 +17,8 @@ class const DartDependency({
 }) {
   static const flame = DartDependency(name: 'flame', version: '1.38.2');
 
-  static const windowManager = DartDependency(
-    name: 'window_manager',
-    version: '0.5.2',
-    comment: 'Used internally by the Flame Workspace to manage the window on preview mode',
-  );
-
   /// The default dependencies of a Flame project.
-  static const defaultDependencies = <DartDependency>[flame, windowManager];
+  static const defaultDependencies = <DartDependency>[flame];
 
   @override
   String toString() {

@@ -28,11 +28,6 @@ dependencies:
   path: ^1.9.1
 
   # Windowing
-  window_manager: ^0.5.2
-  flutter_native_view: ^0.0.2
-  win32: ^5.0.9
-  ffi: ^2.2.0
-
   # UI
   flutter_colorpicker: ^1.1.0
   auto_size_text: ^3.0.0

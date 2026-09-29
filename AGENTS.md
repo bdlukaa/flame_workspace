@@ -20,7 +20,7 @@ The purpose of Flame Workspace is to provide an IDE/editor experience around nor
 - game preview;
 - hot reload and hot restart;
 - runtime inspection and debugging;
-- launching games on supported Flutter targets.
+- launching the user's game through embedded Flutter Web Preview.
 
 A project created or edited with Flame Workspace should remain a normal Flutter + Flame project.
 
@@ -58,8 +58,6 @@ Persist Changes
 Preview Game
         ↓
 Hot Reload / Hot Restart
-        ↓
-Run on Native Target
 ```
 
 A feature that does not materially improve this workflow should generally be deferred until after Developer Preview.
@@ -577,52 +575,17 @@ The preview must execute the user's real Flutter + Flame application rather than
 
 ---
 
-# 14. Preview vs Run
+# 14. Preview Execution
 
-Maintain separate concepts.
+Flame Workspace currently has exactly one game execution workflow: embedded
+Flutter Web Preview using `flutter run -d web-server`. Native game execution and
+native game-window embedding are intentionally unsupported. Keep Scene View
+(editor-owned editing) distinct from Game Preview (the user's actual game).
 
-## Preview
-
-Optimized for rapid iteration inside Workspace.
-
-Expected target:
-
-```text
-Flutter Web
-    ↓
-embedded web surface
-```
-
-Used for:
-
-- gameplay iteration;
-- visual verification;
-- input testing;
-- scene transitions;
-- runtime inspection.
-
-## Run
-
-Executes the application on an actual Flutter target.
-
-Examples:
-
-```text
-Windows
-macOS
-Linux
-Chrome
-Android
-iOS
-```
-
-The editor should eventually discover targets using Flutter tooling rather than hardcoding:
-
-```bash
-flutter run -d windows
-```
-
-Never assume Windows is the host operating system.
+Web Preview supports visual/input iteration, logs, stop, hot reload, and hot
+restart through Flutter's process controls. Runtime inspection is available only
+when a real VM Service connection is present; never simulate it or add another
+transport to compensate for web tooling limitations.
 
 ---
 
@@ -1359,8 +1322,6 @@ Run an embedded game preview
 Hot reload / restart
         ↓
 See runtime errors/logs
-        ↓
-Run the project on a native Flutter target
 ```
 
 This workflow must be covered by meaningful automated tests and at least one end-to-end fixture.

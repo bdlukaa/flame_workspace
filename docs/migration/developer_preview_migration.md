@@ -214,9 +214,21 @@ The project creator emits the minimal runtime dependency set (`flame` and `flame
 
 `preview.dart` adds a separate web-server preview path using `flutter run -d web-server`, robust URL extraction, preview lifecycle state, and the platform-neutral `PreviewSurface` contract. The editor now uses `webview_cef` as its desktop embedded surface: CEF renders into a Flutter texture, so clipping, resizing, pointer input, keyboard focus, and IME handling remain inside the Flutter layout rather than requiring native child-window parenting. `flutter_native_view` remains limited to native Run. `PreviewState.crashed` distinguishes an unexpected nonzero process exit from a normal stop, and surface failures remain visible after cleanup.
 
-## Native Run and target discovery
+## Current execution architecture
 
-Native Run is separate from web Preview. The Workbench refreshes `flutter devices --machine`, exposes discovered Windows, macOS, Linux, Chrome, Android, and iOS targets through the target selector, and passes the selected device ID to the shared `FlutterProjectRunner`. The last selected device ID is stored per project at `.flame_workspace/native_target.json`; if no selection exists, Flutter's normal default-target behavior remains available. Native Run uses the same process lifecycle, logs, hot reload, hot restart, and stop commands as Preview, while only the existing Windows target is embedded in the Workspace window. Other targets run in their normal Flutter host window/device and are represented by status/log output. Target discovery failures and unavailable devices are recoverable through refresh rather than causing a Workspace crash.
+The historical target-selection and Native Run implementation described in the
+baseline below has been removed. Flame Workspace currently has one game
+execution workflow: `PreviewProjectRunner` starts the actual user project with
+`flutter run -d web-server`, detects its localhost URL, and loads it through
+`PreviewSurface`. The editor offers Preview start/stop, logs, Flutter hot reload
+and hot restart. It does not discover/select game devices or embed native game
+windows. Native game execution/embedding is intentionally unsupported for this
+product phase; normal Flutter desktop hosts remain for running the editor itself.
+
+Web Preview does not guarantee a VM Service connection. Runtime inspection is
+available only when Flutter actually supplies a usable VM Service, and no custom
+runtime transport is used as a fallback. See
+[`../decisions/embedded-preview-runtime-debugging.md`](../decisions/embedded-preview-runtime-debugging.md).
 
 ## Embedded Game Preview
 

@@ -3,10 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  flutter_native_view
-  screen_retriever_windows
   webview_cef
-  window_manager
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

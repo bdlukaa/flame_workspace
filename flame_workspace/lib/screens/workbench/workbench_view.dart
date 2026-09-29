@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flame_workspace/screens/workbench/design/script_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:window_manager/window_manager.dart';
 
 import '../../workbench/model/semantic_model.dart';
 import '../../workbench/project/project.dart';
@@ -115,8 +114,6 @@ class _WorkbenchViewState extends State<WorkbenchView> {
       onRuntimeConnected: () => runner.setScene(state.currentScene.name),
     );
 
-    windowManager.addListener(runner);
-    unawaited(runner.refreshTargets());
     state.addListener(_updateListener);
     runner.addListener(_updateListener);
   }
@@ -128,7 +125,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   @override
   void dispose() {
     runner.dispose();
-    windowManager.removeListener(runner);
+
     super.dispose();
   }
 
@@ -220,7 +217,6 @@ class _WorkbenchViewState extends State<WorkbenchView> {
         state.analysisDiagnostics.isNotEmpty ||
         state.operationError != null ||
         state.assetError != null ||
-        runner.targetError != null ||
         runner.executionError != null;
   }
 
@@ -232,12 +228,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
           ? null
           : <String>[state.operationError!]),
       ...?(state.assetError == null ? null : <String>[state.assetError!]),
-      ...?(runner.targetError == null
-          ? null
-          : <String>[
-              'Flutter target error: ${runner.targetError}. Refresh targets '
-                  'and choose an available device.',
-            ]),
+
       ...?(runner.executionError == null
           ? null
           : <String>[runner.executionError!]),
@@ -257,25 +248,16 @@ class _WorkbenchViewState extends State<WorkbenchView> {
                 : () => unawaited(state.indexProject()),
             child: const Text('Retry analysis'),
           ),
-        if (runner.targetError != null)
-          TextButton(
-            onPressed: () => unawaited(runner.refreshTargets()),
-            child: const Text('Refresh targets'),
-          ),
+
         if (runner.executionError != null)
           TextButton(
-            onPressed: () => unawaited(
-              runner.previewState == PreviewState.stopped
-                  ? runner.runSafely()
-                  : runner.retryPreview(),
-            ),
+            onPressed: runner.retryPreview,
             child: const Text('Retry'),
           ),
         TextButton(
           onPressed: () {
             state.clearProjectIssues();
             runner.clearExecutionError();
-            runner.clearTargetError();
           },
           child: const Text('Dismiss'),
         ),
@@ -412,14 +394,6 @@ class _WorkbenchViewState extends State<WorkbenchView> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              _buildTargetSelector(context),
-              const SizedBox(width: 8.0),
-              InkedIconButton(
-                onTap: runner.isRunning ? null : runner.run,
-                tooltip: 'Run on selected target',
-                icon: const Icon(Icons.play_circle_outline),
-              ),
-              const SizedBox(width: 8.0),
               InkedIconButton(
                 onTap: !runner.isPreviewRunning ? null : runner.reloadPreview,
                 tooltip: 'Reload preview',
@@ -433,10 +407,8 @@ class _WorkbenchViewState extends State<WorkbenchView> {
               ),
               const SizedBox(width: 8.0),
               InkedIconButton(
-                onTap: !runner.canControlRuntime ? null : runner.hotRestart,
-                tooltip: runner.isPreviewRunning
-                    ? 'Hot restart is available on Run targets only'
-                    : 'Hot restart',
+                onTap: !runner.canHotRestart ? null : runner.hotRestart,
+                tooltip: 'Hot restart',
                 icon: Icon(
                   Icons.local_fire_department,
                   color: theme.colorScheme.tertiary,
@@ -444,23 +416,9 @@ class _WorkbenchViewState extends State<WorkbenchView> {
               ),
               const VerticalDivider(),
               InkedIconButton(
-                onTap: !runner.isRunning
-                    ? runner.runPreview
-                    : runner.gameState.paused
-                    ? runner.resume
-                    : null,
-                tooltip: 'Run Preview',
+                onTap: !runner.isRunning ? runner.runPreview : null,
+                tooltip: 'Start Preview',
                 icon: const Icon(Icons.play_arrow, color: Colors.lightBlue),
-              ),
-              const SizedBox(width: 8.0),
-              InkedIconButton(
-                onTap: !runner.canControlRuntime || runner.gameState.paused
-                    ? null
-                    : runner.pause,
-                tooltip: runner.isPreviewRunning
-                    ? 'Pause is available on Run targets only'
-                    : 'Pause',
-                icon: const Icon(Icons.pause),
               ),
               const SizedBox(width: 8.0),
               InkedIconButton(
@@ -473,63 +431,6 @@ class _WorkbenchViewState extends State<WorkbenchView> {
         ),
         const SizedBox(width: 24.0),
       ],
-    );
-  }
-
-  Widget _buildTargetSelector(BuildContext context) {
-    final runner = this.runner;
-    final theme = Theme.of(context);
-    final selectedId = runner.selectedTarget?.id;
-
-    return SizedBox(
-      width: 190.0,
-      child: Row(
-        children: [
-          Expanded(
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: runner.targets.any((target) => target.id == selectedId)
-                    ? selectedId
-                    : null,
-                hint: Text(
-                  'Flutter target',
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelMedium,
-                ),
-                items: [
-                  for (final target in runner.targets)
-                    DropdownMenuItem<String>(
-                      value: target.id,
-                      enabled: target.isAvailable,
-                      child: Text(
-                        target.isAvailable
-                            ? target.name
-                            : '${target.name} (unavailable)',
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                ],
-                onChanged: runner.isRunning
-                    ? null
-                    : (id) {
-                        if (id == null) return;
-                        runner.selectTarget(
-                          runner.targets.firstWhere(
-                            (target) => target.id == id,
-                          ),
-                        );
-                      },
-              ),
-            ),
-          ),
-          InkedIconButton(
-            onTap: runner.refreshTargets,
-            tooltip: 'Refresh Flutter targets',
-            icon: const Icon(Icons.refresh, size: 16.0),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -548,9 +449,7 @@ class NotificationsField extends StatelessWidget {
         return (true, 'Indexing project');
       }
       final runner = workbench.runner;
-      if (runner.targetError != null) {
-        return (false, 'Flutter target discovery failed');
-      }
+
       switch (runner.previewState) {
         case PreviewState.starting:
           return (true, 'Starting web preview');
@@ -570,20 +469,6 @@ class NotificationsField extends StatelessWidget {
           return (true, 'Running preview');
         case PreviewState.stopped:
           break;
-      }
-
-      if (runner.isRunning) {
-        if (!runner.isViewReady) {
-          return (true, 'Loading game');
-        }
-        if (runner.isHotRestarting) {
-          return (true, 'Hot restarting');
-        }
-        if (runner.isHotReloading) {
-          return (true, 'Hot reloading');
-        }
-
-        return (true, 'Running game');
       }
 
       return (false, 'No activity');

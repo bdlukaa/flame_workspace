@@ -3,14 +3,13 @@ import 'dart:ui' show AppExitResponse;
 import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
 
-import 'package:flame_workspace/workbench/runner/view.dart';
+import 'package:flame_workspace/workbench/runner/cef_preview_surface.dart';
 import 'package:flutter/material.dart';
 
 import 'screens/welcome/welcome.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeRunnerView();
 
   runApp(const FlameWorkspaceApp());
 }
@@ -26,7 +25,7 @@ class _FlameWorkspaceAppState extends State<FlameWorkspaceApp> {
   );
 
   Future<AppExitResponse> _shutdownPreviewSurface() async {
-    await shutdownRunnerView();
+    await shutdownCefPreviewSurface();
     return AppExitResponse.exit;
   }
 

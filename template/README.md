@@ -3,10 +3,10 @@
 This directory is a small, ordinary Flutter + Flame project used for manual
 preview checks and as a reference for projects created by Workspace.
 
-It depends on Flutter, Flame, `flame_workspace_runtime`, and
-`window_manager` for the checked-in desktop host's native window lifecycle.
-Optional Flame ecosystem packages are not required, and projects created by
-`ProjectCreator` omit `window_manager` unless their own game uses it.
+It depends on Flutter, Flame, and `flame_workspace_runtime`. Optional Flame
+ecosystem packages are not required. Flame Workspace currently executes games
+through its embedded Flutter Web Preview; native game execution/embedding is
+intentionally unsupported.
 
 ## Structure
 

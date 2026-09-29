@@ -6,12 +6,10 @@
 
 ## Status summary
 
-Developer Preview is a coherent development workflow on the validated macOS
-host, but it is not yet a cross-platform release. The semantic editor path,
-generated-project path, native VM Service path, and process cleanup are working.
-Embedded web preview reaches a usable URL. By product decision it provides the
-actual game for visual/input iteration, not runtime VM Service controls; CEF host
-integration is only present in the checked-in Windows editor host.
+Developer Preview provides project analysis/editing and one game execution
+workflow: the user's actual Flutter Web app embedded via CEF. Embedded Web
+Preview is visual/input-only unless Flutter exposes a usable VM Service. Native
+game execution and native child-window embedding are intentionally unsupported.
 
 ## Implemented and verified
 
@@ -24,8 +22,8 @@ integration is only present in the checked-in Windows editor host.
   adapters.
 - Scene View selection/navigation and basic PositionComponent transform editing.
 - Basic asset discovery and semantic asset references.
-- Cross-platform Flutter target discovery and shared process runner with start,
-  stop, hot reload, hot restart, logs, state transitions, and cleanup.
+- A fixed Web Preview process runner with start, stop, hot reload, hot restart,
+  logs, startup/exit state, and cleanup.
 - Stable VM Service runtime extensions under `ext.flameWorkspace.*` with
   structured requests and error responses.
 - Compatibility facade in `flame_workspace_core` without an editor/runtime
@@ -53,10 +51,9 @@ values.
 
 ### Runtime workflow
 
-On the available native desktop target, the end-to-end test connected to the
-real VM Service, fetched game state and the Flame component tree, changed a
-component property, hot reloaded, confirmed the process remained running, and
-stopped it. The runner ended in `stopped` with `isRunning == false`.
+The former native VM Service Run workflow has been removed. The Web Preview
+E2E verifies the supported process/URL/reload/stop workflow; runtime capability
+is treated as unavailable unless a real VM Service connection exists.
 
 ### Web preview workflow
 
@@ -65,9 +62,8 @@ reports a localhost URL, and is stopped through `PreviewProjectRunner`. The
 embedded preview contract is intentionally visual/input-only. The Flutter
 web-server can require the Dart Debug Chrome extension for browser debugging
 and does not consistently provide a VM Service endpoint usable by Workspace's
-embedded surface. The editor therefore does not claim or attempt runtime
-introspection in Web Preview. Native/compatible Run targets retain the VM
-Service workflow.
+embedded surface. The editor therefore does not claim runtime introspection when Web Preview
+lacks a VM Service. No native Run target is offered.
 
 ## Validation results
 
@@ -83,37 +79,26 @@ Service workflow.
   intentional syntax errors and remains usable for graceful-failure tests.
 - `flame_workspace_core`, `flame_workspace_runtime`,
   `flame_workspace_communication_bridge`, and protocol analysis are clean.
-- Editor analysis reports 22 existing Analyzer deprecation infos involving
-  deprecated AST accessors (`name`, `members`, and `leftBracket`). The command
-  exits nonzero because these infos are treated as issues; no new readiness
-  errors were introduced.
-- Template analysis reports three existing `unnecessary_overrides` infos in
-  the checked-in example.
-- `flutter pub get` succeeds for all maintained packages. The editor no longer
-  declares the unused `process_run` dependency. The checked-in template keeps
-  `window_manager` because its `MyGame` explicitly uses `WindowListener`;
-  generated projects do not add it by default.
+These package-analysis counts above are from the historical review date, not a
+claim about the current checkout. For the current execution contract, the
+editor and generated template no longer use `window_manager` for native game
+window management. Validate maintained packages using their current commands.
 
 ## Unsupported or limited areas
 
-- Embedded CEF preview is currently validated only by the checked-in Windows
-  desktop host. macOS and Linux native editor host projects and CEF toolchain
-  setup are not present.
-- Embedded Web Preview is execution/visual/input-only; runtime introspection and
-  mutation are Run-target capabilities. See
+- Embedded CEF preview host support and platform toolchain requirements are
+  documented separately; verify rendering and input on each host before release.
+- Embedded Web Preview is visual/input-only unless a real VM Service is
+  connected. Native game execution is intentionally unsupported. See
   [`../decisions/embedded-preview-runtime-debugging.md`](../decisions/embedded-preview-runtime-debugging.md).
-- Native child-window embedding remains Windows-only and is separate from the
-  platform-neutral web Preview abstraction. Other targets run in their normal
-  Flutter host/device window.
-- Android and iOS target execution was not validated on this macOS host because
-  no such devices were available.
+
 - Generic add/remove component operations require generated scene hooks, and
   generic property mutation requires generated property callbacks.
 - Multi-selection, snapping, animation/tilemap/physics editors, visual
   scripting, full asset import, and source-code IDE features are not part of
   Developer Preview.
 - The broken fixture is intentionally not expected to pass `flutter analyze`.
-- The editor still has Analyzer API deprecation work remaining.
+
 
 ## Cleanup findings
 
@@ -123,8 +108,8 @@ Service workflow.
 - No `HasGameRef` usage or asynchronous `update`/`render` lifecycle method was
   found in controlled source or generated output. Historical migration text
   still mentions the old forms as baseline findings.
-- Windows-specific `flutter_native_view`/Win32 code is isolated to the Native
-  Run embedding path and is documented as unsupported for other host targets.
+- Native game-window embedding, target discovery, and the `flutter_native_view`
+  dependency have been removed. Standard Windows/macOS/Linux editor hosts remain.
 - The compatibility-only `flame_workspace_core` facade remains intentionally
   because removing it would break existing imports; new projects use
   `flame_workspace_runtime`.
@@ -135,12 +120,10 @@ Service workflow.
 
 ## Recommended next three tasks
 
-1. Replace the 22 deprecated Analyzer AST accessor usages with the current
-   Analyzer APIs, then make editor analysis clean without suppressing real
-   diagnostics.
-2. Revisit web runtime debugging only if Flutter supports a reliable external
+1. Revisit web runtime debugging only if Flutter supports a reliable external
    attachment path for the embedded target; preserve VM Service as the single
    runtime protocol.
-3. Complete and validate non-Windows desktop host setup for the CEF Preview
-   surface, then exercise target discovery and native Run on at least one
-   additional desktop platform.
+2. Validate the CEF Preview surface's rendering, focus, and process cleanup on
+   each supported desktop host.
+3. Extend Preview E2E coverage for host-level input and process cleanup where
+   those behaviors can be automated reliably.

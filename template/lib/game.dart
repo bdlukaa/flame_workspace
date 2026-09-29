@@ -1,9 +1,8 @@
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/palette.dart';
-import 'package:window_manager/window_manager.dart';
 
-class MyGame extends FlameGame with SingleGameInstance, WindowListener {
+class MyGame extends FlameGame with SingleGameInstance {
   MyGame() : super();
 
   @override
@@ -11,17 +10,10 @@ class MyGame extends FlameGame with SingleGameInstance, WindowListener {
 
   @override
   Future<void> onLoad() async {
-    windowManager.addListener(this);
-
     await super.onLoad();
 
     camera = CameraComponent();
     camera.viewfinder.anchor = Anchor.topLeft;
     add(camera);
-  }
-
-  @override
-  void onDispose() {
-    windowManager.removeListener(this);
   }
 }

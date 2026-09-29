@@ -6,77 +6,6 @@ import 'package:path/path.dart' as path;
 
 enum ProjectRunnerState { stopped, starting, running, stopping, failed }
 
-class const FlutterTarget({
-  required final String id,
-  required final String name,
-  final String? platform,
-  final bool isAvailable = true,
-}) {
-  factory FlutterTarget.fromJson(Map<String, Object?> json) {
-    final connected = json['isConnected'] as bool? ?? true;
-    final supported = json['isSupported'] as bool? ?? true;
-    final available = json['isAvailable'] as bool? ?? connected && supported;
-
-    return FlutterTarget(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? json['id'] as String? ?? 'Unknown',
-      platform: json['targetPlatform'] as String?,
-      isAvailable: available,
-    );
-  }
-
-  static List<FlutterTarget> parseDevicesJson(String output) {
-    final decoded = jsonDecode(output);
-    if (decoded is! List) {
-      throw const FormatException('Flutter device output must be a list.');
-    }
-
-    return decoded
-        .whereType<Map>()
-        .map(
-          (device) => FlutterTarget.fromJson(Map<String, Object?>.from(device)),
-        )
-        .where((target) => target.id.isNotEmpty)
-        .toList();
-  }
-
-  Map<String, Object?> toJson() => {
-    'id': id,
-    'name': name,
-    if (platform != null) 'targetPlatform': platform,
-    'isAvailable': isAvailable,
-  };
-}
-
-class const FlutterTargetSelectionStore(final Directory projectDirectory) {
-  File get file => File(
-    path.join(projectDirectory.path, '.flame_workspace', 'native_target.json'),
-  );
-
-  Future<String?> read() async {
-    if (!await file.exists()) return null;
-
-    try {
-      final decoded = jsonDecode(await file.readAsString());
-      if (decoded is! Map) return null;
-      return decoded['id'] as String?;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<void> write(FlutterTarget target) async {
-    await file.parent.create(recursive: true);
-    await file.writeAsString(
-      const JsonEncoder.withIndent('  ').convert({'id': target.id}),
-    );
-  }
-
-  Future<void> clear() async {
-    if (await file.exists()) await file.delete();
-  }
-}
-
 abstract interface class ProjectProcess {
   Stream<List<int>> get stdout;
   Stream<List<int>> get stderr;
@@ -90,11 +19,6 @@ abstract interface class ProjectProcessLauncher {
   Future<ProjectProcess> start(
     String executable,
     List<String> arguments, {
-    required String workingDirectory,
-  });
-
-  Future<List<FlutterTarget>> discoverTargets({
-    required String executable,
     required String workingDirectory,
   });
 }
@@ -115,29 +39,6 @@ class IoProjectProcessLauncher implements ProjectProcessLauncher {
       runInShell: true,
     );
     return _IoProjectProcess(process);
-  }
-
-  @override
-  Future<List<FlutterTarget>> discoverTargets({
-    required String executable,
-    required String workingDirectory,
-  }) async {
-    final result = await Process.run(
-      executable,
-      const ['devices', '--machine'],
-      workingDirectory: workingDirectory,
-      runInShell: true,
-    );
-    if (result.exitCode != 0) {
-      throw ProcessException(
-        executable,
-        const ['devices', '--machine'],
-        result.stderr.toString(),
-        result.exitCode,
-      );
-    }
-
-    return FlutterTarget.parseDevicesJson(result.stdout as String);
   }
 }
 
@@ -188,22 +89,9 @@ class FlutterProjectRunner {
 
   bool get isRunning => state == ProjectRunnerState.running;
 
-  List<String> commandFor(FlutterTarget? target) {
-    return [
-      'run',
-      if (target != null && target.id.isNotEmpty) ...['-d', target.id],
-    ];
-  }
-
-  Future<List<FlutterTarget>> discoverTargets() {
-    return launcher.discoverTargets(
-      executable: executable,
-      workingDirectory: projectDirectory.path,
-    );
-  }
+  List<String> get command => const ['run', '-d', 'web-server'];
 
   Future<void> start({
-    FlutterTarget? target,
     void Function(String line)? onStdout,
     void Function(String line)? onStderr,
     void Function(int exitCode)? onExit,
@@ -215,9 +103,6 @@ class FlutterProjectRunner {
     if (!projectDirectory.existsSync()) {
       throw ArgumentError('Project directory does not exist.');
     }
-    if (target != null && !target.isAvailable) {
-      throw StateError('Flutter target "${target.name}" is unavailable.');
-    }
 
     final generation = ++_generation;
     state = ProjectRunnerState.starting;
@@ -225,7 +110,7 @@ class FlutterProjectRunner {
     try {
       final process = await launcher.start(
         executable,
-        commandFor(target),
+        command,
         workingDirectory: path.normalize(projectDirectory.path),
       );
       if (generation != _generation || state != ProjectRunnerState.starting) {

@@ -4,13 +4,10 @@ import 'package:flame_workspace/workbench/runner/logs.dart';
 import 'package:flame_workspace/workbench/runner/cef_preview_surface.dart';
 import 'package:flame_workspace/workbench/runner/preview.dart';
 import 'package:flame_workspace/workbench/runner/project_runner.dart';
-import 'package:flame_workspace/workbench/runner/view.dart';
-
-import 'package:window_manager/window_manager.dart';
 
 import 'package:flame_workspace_communication_bridge/workspace.dart';
 import 'package:flame_workspace_protocol/runtime.dart';
-import 'package:flame_workspace_protocol/state.dart';
+
 import 'package:flutter/foundation.dart';
 
 import '../model/semantic_model.dart';
@@ -23,7 +20,7 @@ const kInitialLog =
     'Project not running';
 
 /// Runs a Flame project and communicates with it through VM Service.
-class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
+class FlameProjectRunner with ChangeNotifier {
   /// The project to run.
   final FlameProject project;
 
@@ -39,30 +36,17 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   /// Optional runtime client override used by focused synchronization tests.
   final WorkspaceRuntimeClient? runtimeClientOverride;
 
-  late final FlutterProjectRunner processRunner = FlutterProjectRunner(
-    projectDirectory: project.location,
-  );
   final PreviewProjectRunner previewRunner;
-  final FlutterTargetSelectionStore targetStore;
-
-  List<FlutterTarget> targets = const [];
-  FlutterTarget? selectedTarget;
-  Object? targetError;
 
   FlameProjectRunner(
     this.project, {
     this.onRuntimeConnected,
     this.runtimeClientOverride,
     PreviewSurface? previewSurface,
-    FlutterTargetSelectionStore? targetStore,
-  }) : targetStore =
-           targetStore ?? FlutterTargetSelectionStore(project.location),
-       previewRunner = PreviewProjectRunner(
+  }) : previewRunner = PreviewProjectRunner(
          runner: FlutterProjectRunner(projectDirectory: project.location),
          surface: previewSurface ?? CefPreviewSurface(),
-       ) {
-    windowManager.setPreventClose(true);
-  }
+       );
 
   bool _isRunning = false;
   String? _runtimeError;
@@ -90,86 +74,15 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     notifyListeners();
   }
 
-  void clearTargetError() {
-    if (targetError == null) return;
-    targetError = null;
-    notifyListeners();
-  }
-
-  ProjectRunnerState get runnerState => processRunner.state;
+  ProjectRunnerState get runnerState => previewRunner.runner.state;
   PreviewState get previewState => previewRunner.state;
   Uri? get previewUrl => previewRunner.url;
   bool get isPreviewRunning => previewRunner.isRunning;
-  bool get isNativeRunning => _isRunning && !isPreviewRunning;
-  bool get canControlRuntime => processRunner.isRunning;
-  bool get canHotReload => canControlRuntime || isPreviewRunning;
-  bool get canEmbedNativeView {
-    final target = selectedTarget;
-    return target?.id == 'windows' ||
-        target?.platform?.toLowerCase().startsWith('windows') == true;
-  }
 
-  String get nativeTargetLabel =>
-      selectedTarget?.name ?? 'Flutter default target';
-
-  Future<List<FlutterTarget>> refreshTargets() async {
-    try {
-      final previousId = selectedTarget?.id ?? await targetStore.read();
-      final discovered = await processRunner.discoverTargets();
-      targets = discovered;
-      selectedTarget = previousId == null
-          ? null
-          : discovered.where((target) => target.id == previousId).firstOrNull;
-      targetError = null;
-      notifyListeners();
-      return discovered;
-    } catch (error) {
-      targets = const [];
-      selectedTarget = null;
-      targetError = error;
-      emitLog(
-        'Flutter target discovery failed: $error. Check Flutter installation '
-        'and project dependencies, then retry.',
-        kWorkspaceLogPrefix,
-      );
-      notifyListeners();
-      return const [];
-    }
-  }
-
-  void selectTarget(FlutterTarget? target) {
-    if (target != null &&
-        !targets.any((candidate) => candidate.id == target.id)) {
-      return;
-    }
-    selectedTarget = target;
-    targetError = null;
-    unawaited(_persistTarget(target));
-    notifyListeners();
-  }
-
-  Future<void> _persistTarget(FlutterTarget? target) async {
-    try {
-      if (target == null) {
-        await targetStore.clear();
-      } else {
-        await targetStore.write(target);
-      }
-    } catch (error) {
-      emitLog('Could not persist Flutter target: $error', kWorkspaceLogPrefix);
-    }
-  }
-
-  GameState _gameState = const GameState.initial();
-  GameState get gameState => _gameState;
-
-  void pause() {
-    unawaited(_setPaused(true));
-  }
-
-  void resume() {
-    unawaited(_setPaused(false));
-  }
+  bool get canControlRuntime =>
+      runtimeClientOverride != null || runtimeClient != null;
+  bool get canHotReload => isPreviewRunning;
+  bool get canHotRestart => isPreviewRunning;
 
   Future<bool> setScene(String sceneName) {
     return _invokeRuntime(
@@ -295,96 +208,6 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     );
   }
 
-  Future<void> _setPaused(bool paused) async {
-    final client = runtimeClientOverride ?? runtimeClient;
-    if (client == null) {
-      _reportRuntimeError(
-        'Runtime is not connected; cannot ${paused ? 'pause' : 'resume'}.',
-      );
-      return;
-    }
-
-    try {
-      await client.invoke(
-        paused ? WorkspaceExtensionNames.pause : WorkspaceExtensionNames.resume,
-      );
-      _gameState = _gameState.copyWith(paused: paused);
-      notifyListeners();
-    } on WorkspaceRuntimeException catch (error) {
-      _reportRuntimeError('Runtime command failed: $error');
-    } catch (error) {
-      _reportRuntimeError('Runtime command failed: $error');
-    }
-  }
-
-  /// Runs the project on [target], or the selected/default Flutter target.
-  Future<void> run({FlutterTarget? target}) async {
-    if (_isRunning) {
-      throw Exception('Project is already running');
-    }
-
-    final runTarget = target ?? selectedTarget;
-    if (runTarget != null && !runTarget.isAvailable) {
-      targetError = StateError(
-        'Flutter target "${runTarget.name}" is unavailable.',
-      );
-      _reportExecutionError(
-        'Cannot run on ${runTarget.name}: the target is unavailable. '
-        'Refresh targets and choose an available device.',
-      );
-      throw targetError!;
-    }
-    if (target != null) {
-      selectedTarget = target;
-      unawaited(_persistTarget(target));
-    }
-
-    _isRunning = true;
-    _executionError = null;
-    emitLog(
-      'Running ${runTarget?.name ?? 'Flutter default target'}',
-      kWorkspaceLogPrefix,
-    );
-
-    try {
-      await processRunner.start(
-        target: runTarget,
-        onStdout: (line) => unawaited(onReceiveLog(line)),
-        onStderr: (line) => emitLog(line, kPreviewLogPrefix),
-        onExit: (exitCode) {
-          emitLog(
-            '${project.name} exited with exit code $exitCode',
-            kPreviewLogPrefix,
-          );
-          if (exitCode != 0) {
-            _reportExecutionError(
-              '${project.name} stopped unexpectedly (exit code $exitCode). '
-              'Check the runner logs for the compiler or runtime error.',
-            );
-          }
-          unawaited(stop());
-        },
-      );
-      notifyListeners();
-    } catch (error) {
-      _isRunning = false;
-      _reportExecutionError(
-        'Could not start ${runTarget?.name ?? 'the Flutter project'}: $error '
-        'Check the runner logs for compiler and pub errors, then retry.',
-      );
-      notifyListeners();
-      rethrow;
-    }
-  }
-
-  Future<void> runSafely({FlutterTarget? target}) async {
-    try {
-      await run(target: target);
-    } catch (_) {
-      // The failure is retained in executionError and the runner logs.
-    }
-  }
-
   Future<void> runPreview() async {
     if (_isRunning) {
       throw Exception('Project is already running');
@@ -396,7 +219,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     notifyListeners();
     try {
       await previewRunner.start(
-        onOutput: (line) => emitLog(line, kPreviewLogPrefix),
+        onOutput: (line) => unawaited(onReceiveLog(line)),
         onError: (line) => emitLog(line, kPreviewLogPrefix),
         onExit: (_) {
           _isRunning = false;
@@ -429,11 +252,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   Future<void> hotReload() async {
     _hotReloadCompleter = Completer();
     try {
-      if (isPreviewRunning) {
-        await previewRunner.hotReload();
-      } else {
-        await processRunner.hotReload();
-      }
+      await previewRunner.hotReload();
     } catch (error) {
       completeHotReload();
       _reportExecutionError('Hot reload failed: $error');
@@ -454,11 +273,7 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   Future<void> hotRestart() async {
     _hotRestartCompleter = Completer();
     try {
-      if (isPreviewRunning) {
-        await previewRunner.hotRestart();
-      } else {
-        await processRunner.hotRestart();
-      }
+      await previewRunner.hotRestart();
     } catch (error) {
       completeHotRestart();
       _reportExecutionError('Hot restart failed: $error');
@@ -489,23 +304,14 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
     completeHotRestart();
     Object? stopError;
     try {
-      await processRunner.stop();
-    } catch (error) {
-      stopError = error;
-      emitLog(
-        'Could not stop the Flutter process: $error',
-        kWorkspaceLogPrefix,
-      );
-    }
-    try {
       await previewRunner.stop();
     } catch (error) {
-      stopError ??= error;
+      stopError = error;
       emitLog('Could not stop the web preview: $error', kWorkspaceLogPrefix);
     }
     _isRunning = false;
     _runtimeServiceUri = null;
-    disposeView();
+
     if (stopError != null) {
       _reportExecutionError('Project cleanup failed: $stopError');
     }
@@ -520,19 +326,6 @@ class FlameProjectRunner with ChangeNotifier, WindowListener, RunnerView {
   @override
   void dispose() {
     unawaited(stop());
-    windowManager.setPreventClose(false);
     super.dispose();
-  }
-
-  @override
-  void onWindowClose() async {
-    final check = await windowManager.isPreventClose();
-
-    if (check) {
-      windowManager.hide();
-      stop();
-      await Future.delayed(const Duration(milliseconds: 250));
-      windowManager.close();
-    }
   }
 }

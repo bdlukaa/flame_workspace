@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../workbench_view.dart';
+import '../../../workbench/runner/view.dart';
 
 class GamePreviewView extends StatefulWidget {
   const GamePreviewView({super.key});
@@ -28,7 +29,7 @@ class _GamePreviewViewState extends State<GamePreviewView> {
               ),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: workbench.runner.buildPreview(),
+                child: buildGamePreview(workbench.runner),
               ),
             ),
             if (workbench.runner.runtimeError case final error?)

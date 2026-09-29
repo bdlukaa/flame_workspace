@@ -16,19 +16,11 @@ extension RunnerLogs on FlameProjectRunner {
     notifyListeners();
   }
 
-  void emitInput(String input) {
-    unawaited(processRunner.sendCommand(input));
-  }
-
   Future<void> onReceiveLog(String line) async {
     if (line.trim().isEmpty) return;
     emitLog(line, kPreviewLogPrefix);
 
-    if (line.trim().contains('Flutter run key commands.')) {
-      if (canEmbedNativeView) setupView(project);
-    } else if (line.trim().contains(
-      'The Flutter DevTools debugger and profiler on',
-    )) {
+    if (line.trim().contains('The Flutter DevTools debugger and profiler on')) {
       final marker = 'available at:';
       final markerIndex = line.indexOf(marker);
       if (markerIndex == -1) return;
@@ -61,7 +53,8 @@ extension RunnerLogs on FlameProjectRunner {
       if (!connected) return;
 
       notifyListeners();
-    } else if (line.trim().contains('Reloaded ')) {
+    } else if (line.trim().contains('Reloaded ') ||
+        line.trim().contains('Recompile complete.')) {
       completeHotReload();
     } else if (line.trim().contains('Restarted application in ')) {
       completeHotRestart();

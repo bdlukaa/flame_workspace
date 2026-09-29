@@ -25,7 +25,7 @@ remains enabled in release builds because the editor's embedded
 preview is a product feature. The host intentionally disables App Sandbox so it
 can launch Flutter from an external SDK and operate on developer project files.
 This is a developer-tool security tradeoff: user code is run only through
-explicit actions such as Preview, Run, or Test; opening/indexing remains static.
+explicit actions such as Preview or Test; opening/indexing remains static.
 See [`platform_requirements.md`](platform_requirements.md) for the security
 implications and requirements for any future sandboxed distribution.
 
@@ -55,14 +55,12 @@ and compiles both architecture slices and needs substantially more disk space.
 - `PreviewSurface` owns loading, reload, widget rendering, and per-preview
   controller disposal. Its texture follows Flutter's layout constraints and
   receives pointer/keyboard focus through the CEF plugin.
-- `FlameProjectRunner` owns the Flutter web-server process. Stopping Preview
+- `PreviewProjectRunner` owns the Flutter web-server process. Stopping Preview
   stops that process and disposes the surface controller. The CEF manager is
-  quit through the runner-view platform boundary when the editor receives an
-  exit request, so CEF helper processes are not left behind.
+  shut down when the editor exits, so CEF helper processes are not left behind.
 - Runtime inspection and mutation are not provided by embedded web Preview;
   see [`decisions/embedded-preview-runtime-debugging.md`](decisions/embedded-preview-runtime-debugging.md).
-- Native Run is separate: supported targets launch in their normal Flutter
-  window/device. The legacy native child-window embedding remains Windows-only.
+
 
 The editor code does not call macOS APIs directly. macOS-specific CEF setup is
 limited to the package's documented CocoaPods/Xcode configuration and the
@@ -74,7 +72,7 @@ Automated package analysis/tests cannot establish OS-level focus, rendering, or
 helper process behavior. On macOS, verify:
 
 1. Build and launch the editor with `flutter run -d macos` on macOS 12+.
-2. Open a valid Flame project, start **Run Preview**, and confirm the live game
+2. Open a valid Flame project, start **Preview**, and confirm the live game
    appears inside the Preview panel rather than a separate browser window.
 3. Resize the editor and Preview panel repeatedly; verify the game surface
    tracks the available bounds without stale-size areas or clipping.
@@ -83,7 +81,5 @@ helper process behavior. On macOS, verify:
 5. Trigger **Reload preview** and confirm the embedded page reloads.
 6. Stop Preview, start it again, then close the editor while Preview is active.
    Confirm the web-server process and CEF helper processes exit.
-7. Use **Run on selected target** separately and verify it remains a normal
-   native/browser target launch, not embedded through CEF.
-8. Repeat on Apple Silicon and Intel if both architectures are supported by the
+7. Repeat on Apple Silicon and Intel if both architectures are supported by the
    release being validated; test universal builds separately if enabled.
