@@ -3,6 +3,7 @@ class FlameComponentObject({
   required final String type,
   required final List<FlameComponentField> parameters,
   required final Map<String, dynamic> data,
+  final List<FlameComponentProperty> writableProperties = const [],
   final String? filePath,
   final String? declarationName,
   final List<String> modifiers = const [],
@@ -58,6 +59,12 @@ class FlameComponentObject({
     return buffer.toString();
   }
 }
+
+class const FlameComponentProperty({
+  required final String name,
+  required final String type,
+  final bool typeAccessible = true,
+});
 
 class FlameComponentField(
   final String name,

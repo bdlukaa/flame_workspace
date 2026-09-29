@@ -92,6 +92,44 @@ class FlameTypeResolver {
     return fields.values.toList();
   }
 
+  /// Resolved writable properties are separate from constructor parameters.
+  List<FlameComponentProperty> writableComponentProperties({
+    required String sourcePath,
+    required String className,
+  }) {
+    final element = _classes[_key(sourcePath, className)];
+    if (element == null) return const [];
+    final properties = <String, FlameComponentProperty>{};
+    for (final member in element.interfaceMembers.values) {
+      if (member is! GetterElement || member.isStatic) continue;
+      final setter = member.correspondingSetter;
+      final name = member.displayName;
+      final type = setter?.formalParameters.firstOrNull?.type;
+      if (setter == null || name.startsWith('_') || type == null) continue;
+      properties[name] = FlameComponentProperty(
+        name: name,
+        type: type.getDisplayString(),
+        typeAccessible: _isTypeAccessible(type),
+      );
+    }
+    return properties.values.toList()..sort((a, b) => a.name.compareTo(b.name));
+  }
+
+  bool _isTypeAccessible(DartType type) {
+    if (type is FunctionType || type is TypeParameterType) return false;
+    final typeElement = type.element;
+    if (typeElement is InterfaceElement &&
+        !typeElement.library.isDartCore &&
+        !flameApi.exposesType(
+          typeElement.name ?? '',
+          typeElement.library.uri,
+        )) {
+      return false;
+    }
+    return type is! InterfaceType ||
+        type.typeArguments.every(_isTypeAccessible);
+  }
+
   /// Releases Analyzer resources owned by this resolver.
   Future<void> dispose() => _contexts.dispose();
 

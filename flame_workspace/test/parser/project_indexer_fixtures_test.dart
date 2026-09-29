@@ -131,10 +131,35 @@ void main() {
     expect(position, isNotNull);
     expect(sprite, isNotNull);
     expect(world, isNotNull);
+    final apiNames = resolver.flameApi.classes.map((api) => api.name).toSet();
+    expect(apiNames.every((name) => !name.startsWith('_')), isTrue);
+    for (final api in resolver.flameApi.classes.where(
+      (api) => api.libraryUri.startsWith('package:flame/src/'),
+    )) {
+      expect(
+        resolver.flameApi.exposesType(api.name, Uri.parse(api.libraryUri)),
+        isTrue,
+        reason: '${api.name} must be publicly exported to be discoverable.',
+      );
+    }
+    expect(apiNames, isNot(contains('ComponentTreeRoot')));
+    expect(apiNames, isNot(contains('_OpacityToEffect')));
     expect(position!.constructors, isNotEmpty);
     expect(
       position.properties.map((property) => property.name),
       containsAll(<String>['position', 'size', 'angle', 'anchor']),
+    );
+    final fixedViewport = resolver.flameApi.classFor('FixedResolutionViewport');
+    expect(fixedViewport, isNotNull);
+    expect(
+      fixedViewport!.toComponentObject().writableProperties.map((p) => p.name),
+      isNot(contains('scale')),
+    );
+    final flameGame = resolver.flameApi.classFor('FlameGame');
+    expect(flameGame, isNotNull);
+    expect(
+      flameGame!.toComponentObject().writableProperties.map((p) => p.name),
+      isNot(contains('size')),
     );
     expect(resolver.flameMixins, isNotEmpty);
     expect(resolver.flameComponents, same(resolver.flameComponents));

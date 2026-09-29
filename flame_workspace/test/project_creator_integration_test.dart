@@ -1,5 +1,8 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:flame_workspace/workbench/generators/properties_generator.dart';
 import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/parser/type_resolver.dart';
 import 'package:flame_workspace/workbench/project/import.dart';
@@ -66,34 +69,6 @@ void main() {
         isFalse,
       );
 
-      final analyze = await Process.run(
-        'flutter',
-        ['analyze'],
-        workingDirectory: creator.projectDirectory.path,
-        runInShell: true,
-      );
-      expect(
-        analyze.exitCode,
-        0,
-        reason:
-            'Generated project did not analyze:\n${analyze.stdout}\n'
-            '${analyze.stderr}',
-      );
-
-      final tests = await Process.run(
-        'flutter',
-        ['test'],
-        workingDirectory: creator.projectDirectory.path,
-        runInShell: true,
-      );
-      expect(
-        tests.exitCode,
-        0,
-        reason:
-            'Generated project tests failed:\n${tests.stdout}\n'
-            '${tests.stderr}',
-      );
-
       final imported = await ProjectImporter.import(creator.projectDirectory);
       expect(imported.name, 'generated_game');
       expect(imported.initialScene, 'LevelOne');
@@ -123,9 +98,116 @@ void main() {
         }),
         contains(r'$SceneLevelOne'),
       );
+
+      final generatedComponents = ProjectIndexer.componentsFrom(
+        indexed,
+        resolver: resolver,
+      ).map((entry) => entry.$1);
+      await PropertiesGenerator.writeForComponents([
+        ...generatedComponents,
+        ...resolver.flameComponents,
+      ], imported);
+      final propertiesFile = File(
+        path.join(
+          creator.projectDirectory.path,
+          'lib',
+          '.generated',
+          'properties.dart',
+        ),
+      );
+      final generatedProperties = await propertiesFile.readAsString();
+      expect(generatedProperties, isNot(contains('ComponentTreeRoot')));
+      expect(generatedProperties, isNot(contains('_OpacityToEffect')));
+      expect(generatedProperties, isNot(contains('cls.scale =')));
+      expect(
+        generatedProperties,
+        isNot(contains('cls.size = value as double')),
+      );
+      expect(generatedProperties, isNot(contains('package:flame/src/')));
+
+      final analyze = await Process.run(
+        'flutter',
+        ['analyze'],
+        workingDirectory: creator.projectDirectory.path,
+        runInShell: true,
+      );
+      expect(
+        analyze.exitCode,
+        0,
+        reason:
+            'Generated project did not analyze:\n${analyze.stdout}\n'
+            '${analyze.stderr}',
+      );
+
+      final webBuild = await Process.run(
+        'flutter',
+        ['build', 'web'],
+        workingDirectory: creator.projectDirectory.path,
+        runInShell: true,
+      );
+      expect(
+        webBuild.exitCode,
+        0,
+        reason:
+            'Generated project web build failed:\n${webBuild.stdout}\n'
+            '${webBuild.stderr}',
+      );
+      await _runWebServerUntilReady(creator.projectDirectory);
+
+      final tests = await Process.run(
+        'flutter',
+        ['test'],
+        workingDirectory: creator.projectDirectory.path,
+        runInShell: true,
+      );
+      expect(
+        tests.exitCode,
+        0,
+        reason:
+            'Generated project tests failed:\n${tests.stdout}\n'
+            '${tests.stderr}',
+      );
     },
     timeout: const Timeout(Duration(minutes: 5)),
   );
+}
+
+Future<void> _runWebServerUntilReady(Directory project) async {
+  final process = await Process.start(
+    'flutter',
+    ['run', '-d', 'web-server'],
+    workingDirectory: project.path,
+    runInShell: true,
+  );
+  final output = <String>[];
+  final ready = Completer<void>();
+  void observe(String line) {
+    output.add(line);
+    if (line.contains('lib/main.dart is being served at') &&
+        !ready.isCompleted) {
+      ready.complete();
+    }
+  }
+
+  process.stdout
+      .transform(const SystemEncoding().decoder)
+      .transform(const LineSplitter())
+      .listen(observe);
+  process.stderr
+      .transform(const SystemEncoding().decoder)
+      .transform(const LineSplitter())
+      .listen(observe);
+  try {
+    await ready.future.timeout(
+      const Duration(minutes: 3),
+      onTimeout: () => throw StateError(
+        'Generated project web-server preview did not start:\n${output.join('\n')}',
+      ),
+    );
+  } finally {
+    process.kill();
+    await process.exitCode.timeout(const Duration(seconds: 30));
+  }
 }
 
 Directory _runtimeDependencyPath() {

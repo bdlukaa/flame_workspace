@@ -262,6 +262,7 @@ class ProjectIndexer {
             type: component.type,
             data: component.data,
             parameters: component.parameters,
+            writableProperties: component.writableProperties,
             declarationName: field['name'],
           )..components.addAll(component.components);
         })
@@ -410,6 +411,12 @@ class ProjectIndexer {
                   name: d['name'],
                   type: d['extends'],
                   parameters: componentParameters,
+                  writableProperties:
+                      resolver?.writableComponentProperties(
+                        sourcePath: indexedUnit['source'] as String,
+                        className: d['name'] as String,
+                      ) ??
+                      const [],
                   data: d,
                   filePath: indexedUnit['source'],
                 ),

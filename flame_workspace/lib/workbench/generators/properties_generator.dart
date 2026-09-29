@@ -38,38 +38,32 @@ import 'package:path/path.dart' as path;
 /// ```
 /// ```
 class PropertiesGenerator {
+  static const _transformProperties = {
+    'position',
+    'size',
+    'scale',
+    'angle',
+    'nativeAngle',
+    'anchor',
+    'priority',
+  };
+
+  static bool _containsPrivateType(String type) =>
+      RegExp(r'(^|[^A-Za-z0-9])_[A-Za-z]').hasMatch(type);
   PropertiesGenerator._();
 
   static String generateForFlameComponent(FlameComponentObject component) {
-    if ([
-      'OverlayRoute',
-      'ValueRoute',
-      'ComponentEffect',
-      'PolygonHitbox',
-      'SpriteGroupComponent',
-      'SpriteAnimationGroupComponent',
-      'AnchorEffect',
-      'GlowEffect',
-      'MoveEffect',
-      'ViewportAwareBoundsBehavior',
-    ].contains(component.name)) {
-      return '';
-    }
-
     final className = component.name;
-    final properties = component.parameters.where(
-      (p) =>
-          !p.isPrivate &&
-          p.name != 'key' &&
-          p.name != 'children' &&
-          ((p.isLocalField && !p.isFinalField) ||
-              (!p.isLocalField && p.hasSetter) ||
-              (p.superComponents != null && p.superComponents!.isNotEmpty)),
-    );
+    final properties = component.writableProperties
+        .where(
+          (property) =>
+              property.typeAccessible &&
+              !_transformProperties.contains(property.name) &&
+              !_containsPrivateType(property.type) &&
+              !property.type.startsWith('void Function'),
+        )
+        .toList();
     if (properties.isEmpty) return '';
-
-    final propertiesNames = properties.map((p) => p.name).toList();
-    final propertiesTypes = properties.map((p) => p.nonNullableType).toList();
 
     final buffer = StringBuffer();
     buffer.writeln('void setPropertyValue$className(');
@@ -78,15 +72,11 @@ class PropertiesGenerator {
     buffer.writeln('  dynamic value,');
     buffer.writeln(') {');
     buffer.writeln('  switch (propertyName) {');
-    for (var i = 0; i < properties.length; i++) {
-      var type = propertiesTypes[i];
-      if (type.startsWith('void Function')) continue;
-
-      final name = propertiesNames[i];
-      // If type is a single letter, such as T, W, S, B, make it a dynamic type.
+    for (final property in properties) {
+      var type = property.type.replaceAll('?', '');
       if (type.length == 1) type = 'dynamic';
-      buffer.writeln('    case \'$name\':');
-      buffer.writeln('      cls.$name = value as $type;');
+      buffer.writeln('    case \'${property.name}\':');
+      buffer.writeln('      cls.${property.name} = value as $type;');
       buffer.writeln('      break;');
     }
     buffer.writeln('    default:');

@@ -1,12 +1,42 @@
 import 'dart:io';
 
 import 'package:flame_workspace/workbench/generators/component_generator.dart';
+import 'package:flame_workspace/workbench/generators/properties_generator.dart';
+import 'package:flame_workspace/workbench/project/objects/component.dart';
 import 'package:flame_workspace/workbench/generators/scene_scaffolder.dart';
 import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as path;
 
 void main() {
+  test('property setters use resolved writable property types only', () {
+    final component = FlameComponentObject(
+      name: 'ExampleComponent',
+      type: 'PositionComponent',
+      parameters: [FlameComponentField('health', 'String')],
+      writableProperties: const [
+        FlameComponentProperty(name: 'size', type: 'Vector2'),
+        FlameComponentProperty(name: 'health', type: 'double'),
+      ],
+      data: const {},
+    );
+    final output = PropertiesGenerator.generateForFlameComponent(component);
+
+    expect(output, contains('cls.health = value as double;'));
+    expect(output, isNot(contains('cls.size =')));
+    expect(output, isNot(contains('health = value as String')));
+    expect(output, isNot(contains('cls.position =')));
+    expect(output, isNot(contains('cls.scale =')));
+
+    final readOnly = FlameComponentObject(
+      name: 'ReadOnlyComponent',
+      type: 'Component',
+      parameters: [FlameComponentField('scale', 'double')],
+      data: const {},
+    );
+    expect(PropertiesGenerator.generateForFlameComponent(readOnly), isEmpty);
+  });
+
   test('component output omits the no-op render override', () {
     final output = ComponentGenerator.generateComponent('player');
 

@@ -36,6 +36,7 @@ class const FlameApiProperty({
   required final String type,
   required final bool hasSetter,
   required final String declaringType,
+  final bool typeAccessible = true,
   final List<String> namedValues = const [],
 }) {}
 
@@ -105,6 +106,13 @@ class const FlameApiClass({
       name: name,
       type: superType ?? 'Component',
       parameters: fields.values.toList(),
+      writableProperties: [
+        for (final property in properties)
+          if (property.hasSetter &&
+              property.typeAccessible &&
+              !_transformParameters.contains(property.name))
+            FlameComponentProperty(name: property.name, type: property.type),
+      ],
       data: {
         'source': libraryUri,
         'api': true,
@@ -138,6 +146,7 @@ const _transformParameters = {
 class FlameApiCatalog({
   required final List<FlameApiClass> classes,
   required final List<FlameMixin> mixins,
+  final Set<String> accessibleTypeKeys = const {},
 }) {
   final Map<String, FlameApiClass> _classesByName = {
     for (final item in classes) item.name: item,
@@ -153,6 +162,9 @@ class FlameApiCatalog({
   FlameApiClass? operator [](String name) => _classesByName[name];
 
   FlameApiClass? classFor(String name) => _classesByName[name];
+
+  bool exposesType(String name, Uri libraryUri) =>
+      accessibleTypeKeys.contains('$libraryUri#$name');
 }
 
 /// Discovers public Flame metadata from the package resolved for a project.
@@ -215,6 +227,14 @@ class FlameApiDiscovery {
           .contextFor(path.join(projectRoot, 'lib'))
           .currentSession;
       final libraries = <String, LibraryElement>{};
+      final runtimeLibraryResult = await session.getLibraryByUri(
+        'package:flame_workspace_runtime/flame_workspace_runtime.dart',
+      );
+      final publicNamespaces = <dynamic>[];
+
+      if (runtimeLibraryResult is LibraryElementResult) {
+        publicNamespaces.add(runtimeLibraryResult.element.exportNamespace);
+      }
       final files =
           libDirectory
               .listSync(recursive: true)
@@ -236,6 +256,10 @@ class FlameApiDiscovery {
           );
           if (resolved is ResolvedLibraryResult) {
             libraries[resolved.element.uri.toString()] = resolved.element;
+            if (runtimeLibraryResult is! LibraryElementResult &&
+                path.split(relative).length == 1) {
+              publicNamespaces.add(resolved.element.exportNamespace);
+            }
           }
         } on Object catch (error) {
           diagnostics.add(
@@ -247,7 +271,7 @@ class FlameApiDiscovery {
         }
       }
 
-      return _catalogFromLibraries(libraries.values);
+      return _catalogFromLibraries(libraries.values, publicNamespaces);
     } on Object catch (error) {
       diagnostics.add(
         TypeResolutionDiagnostic(
@@ -261,6 +285,7 @@ class FlameApiDiscovery {
 
   static FlameApiCatalog _catalogFromLibraries(
     Iterable<LibraryElement> libraries,
+    List<dynamic> publicNamespaces,
   ) {
     final classes = <ClassElement>[];
     final mixins = <MixinElement>[];
@@ -269,18 +294,28 @@ class FlameApiDiscovery {
 
     for (final library in libraries) {
       for (final element in library.classes) {
-        final key = '${library.uri}#${element.name}';
+        final name = element.name;
+        if (name == null || name.startsWith('_')) continue;
+        if (!_isPubliclyExported(name, element.library.uri, publicNamespaces)) {
+          continue;
+        }
+        final key = '${library.uri}#$name';
         if (seenClasses.add(key)) classes.add(element);
       }
       for (final element in library.mixins) {
-        final key = '${library.uri}#${element.name}';
+        final name = element.name;
+        if (name == null || name.startsWith('_')) continue;
+        if (!_isPubliclyExported(name, element.library.uri, publicNamespaces)) {
+          continue;
+        }
+        final key = '${library.uri}#$name';
         if (seenMixins.add(key)) mixins.add(element);
       }
     }
 
     final classMetadata =
         classes
-            .map(_classMetadata)
+            .map((element) => _classMetadata(element, publicNamespaces))
             .where((item) => item != null)
             .cast<FlameApiClass>()
             .toList()
@@ -289,10 +324,42 @@ class FlameApiDiscovery {
     final mixinMetadata = mixins.map(_mixinMetadata).toList()
       ..sort((a, b) => a.name.compareTo(b.name));
 
-    return FlameApiCatalog(classes: classMetadata, mixins: mixinMetadata);
+    final accessibleTypeKeys = <String>{};
+    for (final namespace in publicNamespaces) {
+      for (final element in namespace.definedNames2.values) {
+        if (element is Element &&
+            element.name != null &&
+            element.library != null) {
+          accessibleTypeKeys.add('${element.library!.uri}#${element.name}');
+        }
+      }
+    }
+    return FlameApiCatalog(
+      classes: classMetadata,
+      mixins: mixinMetadata,
+      accessibleTypeKeys: accessibleTypeKeys,
+    );
   }
 
-  static FlameApiClass? _classMetadata(ClassElement element) {
+  static bool _isPubliclyExported(
+    String name,
+    Uri libraryUri,
+    List<dynamic> namespaces,
+  ) {
+    return namespaces.any((namespace) {
+      final element = namespace.get2(name);
+
+      return element is Element &&
+          element.name == name &&
+          element.library?.uri == libraryUri &&
+          !element.isPrivate;
+    });
+  }
+
+  static FlameApiClass? _classMetadata(
+    ClassElement element,
+    List<dynamic> publicNamespaces,
+  ) {
     final name = element.name;
     if (name == null) return null;
 
@@ -312,15 +379,24 @@ class FlameApiDiscovery {
         final memberName = member.displayName;
         if (memberName.isEmpty || memberName.startsWith('_')) continue;
         final enclosing = member.enclosingElement;
+        final setter = member.correspondingSetter;
         propertiesByName.putIfAbsent(
           memberName,
           () => FlameApiProperty(
             name: memberName,
-            type: member.returnType.getDisplayString(),
-            hasSetter: member.correspondingSetter != null,
+            type:
+                setter?.formalParameters.firstOrNull?.type.getDisplayString() ??
+                member.returnType.getDisplayString(),
+            hasSetter: setter != null,
             declaringType: enclosing is InterfaceElement
                 ? enclosing.name ?? name
                 : name,
+            typeAccessible:
+                setter == null ||
+                _isTypeAccessible(
+                  setter.formalParameters.firstOrNull!.type,
+                  publicNamespaces,
+                ),
             namedValues: _namedValues(member.returnType),
           ),
         );
@@ -345,6 +421,25 @@ class FlameApiDiscovery {
       properties: properties,
       isComponent: isComponent,
     );
+  }
+
+  static bool _isTypeAccessible(DartType type, List<dynamic> namespaces) {
+    if (type is FunctionType || type is TypeParameterType) return false;
+    final typeElement = type.element;
+
+    if (typeElement is InterfaceElement &&
+        !typeElement.library.isDartCore &&
+        !_isPubliclyExported(
+          typeElement.name ?? '',
+          typeElement.library.uri,
+          namespaces,
+        )) {
+      return false;
+    }
+    return type is! InterfaceType ||
+        type.typeArguments.every(
+          (argument) => _isTypeAccessible(argument, namespaces),
+        );
   }
 
   static FlameApiConstructor _constructorMetadata(ConstructorElement element) {
