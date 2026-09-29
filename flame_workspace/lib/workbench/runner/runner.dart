@@ -218,7 +218,7 @@ class FlameProjectRunner with ChangeNotifier {
     emitLog('Starting web preview', kWorkspaceLogPrefix);
     notifyListeners();
     try {
-      await previewRunner.start(
+      final starting = previewRunner.start(
         onOutput: (line) => unawaited(onReceiveLog(line)),
         onError: (line) => emitLog(line, kPreviewLogPrefix),
         onExit: (_) {
@@ -226,6 +226,8 @@ class FlameProjectRunner with ChangeNotifier {
           notifyListeners();
         },
       );
+      notifyListeners();
+      await starting;
       notifyListeners();
     } catch (error) {
       _isRunning = false;
@@ -251,6 +253,7 @@ class FlameProjectRunner with ChangeNotifier {
   Completer? _hotReloadCompleter;
   Future<void> hotReload() async {
     _hotReloadCompleter = Completer();
+    notifyListeners();
     try {
       await previewRunner.hotReload();
     } catch (error) {
@@ -262,8 +265,11 @@ class FlameProjectRunner with ChangeNotifier {
   }
 
   void completeHotReload() {
-    _hotReloadCompleter?.complete();
+    final completer = _hotReloadCompleter;
+    if (completer == null) return;
+    if (!completer.isCompleted) completer.complete();
     _hotReloadCompleter = null;
+    notifyListeners();
   }
 
   bool get isHotReloading =>
@@ -272,6 +278,7 @@ class FlameProjectRunner with ChangeNotifier {
   Completer? _hotRestartCompleter;
   Future<void> hotRestart() async {
     _hotRestartCompleter = Completer();
+    notifyListeners();
     try {
       await previewRunner.hotRestart();
     } catch (error) {
@@ -283,8 +290,11 @@ class FlameProjectRunner with ChangeNotifier {
   }
 
   void completeHotRestart() {
-    _hotRestartCompleter?.complete();
+    final completer = _hotRestartCompleter;
+    if (completer == null) return;
+    if (!completer.isCompleted) completer.complete();
     _hotRestartCompleter = null;
+    notifyListeners();
   }
 
   bool get isHotRestarting =>
@@ -304,7 +314,9 @@ class FlameProjectRunner with ChangeNotifier {
     completeHotRestart();
     Object? stopError;
     try {
-      await previewRunner.stop();
+      final stopping = previewRunner.stop();
+      notifyListeners();
+      await stopping;
     } catch (error) {
       stopError = error;
       emitLog('Could not stop the web preview: $error', kWorkspaceLogPrefix);

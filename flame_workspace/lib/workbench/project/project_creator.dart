@@ -2,6 +2,10 @@ import 'dart:io';
 
 import 'package:flame_workspace/workbench/project/project_template.dart'
     as template;
+import 'package:flame_workspace/workbench/generators/scene_persistence_generator.dart';
+import 'package:flame_workspace/workbench/model/scene_persistence.dart';
+import 'package:flame_workspace/workbench/model/semantic_model.dart';
+import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:path/path.dart' as path;
 import 'package:recase/recase.dart';
 
@@ -80,7 +84,64 @@ class ProjectCreator {
       _writeSmokeTest(),
     ]);
 
+    await _writeInitialWorkspaceScene();
     await _runFlutter(['pub', 'get']);
+  }
+
+  Future<void> _writeInitialWorkspaceScene() async {
+    final scenePath = path.join(
+      projectDirectory.path,
+      'lib',
+      'scenes',
+      dartSceneName.snakeCase,
+      '${dartSceneName.snakeCase}.dart',
+    );
+    final sceneId = WorkspaceIds.scene(
+      sourcePath: scenePath,
+      name: dartSceneName,
+    );
+    final scene = SceneDefinition(
+      id: sceneId,
+      name: dartSceneName,
+      sourcePath: scenePath,
+      components: [
+        ComponentInstance(
+          id: WorkspaceIds.component(
+            sceneId: sceneId,
+            name: 'myComponent',
+            ordinal: 0,
+          ),
+          type: const ComponentType(
+            id: 'MyComponent',
+            name: 'MyComponent',
+            baseType: 'PositionComponent',
+            isPositionComponent: true,
+          ),
+          declarationName: 'myComponent',
+          sourcePath: path.join(
+            projectDirectory.path,
+            'lib',
+            'components',
+            'my_component.dart',
+          ),
+          transform: const WorkspaceTransform(
+            position: WorkspaceVector2(64, 64),
+            size: WorkspaceVector2(128, 128),
+          ),
+        ),
+      ],
+    );
+    final project = FlameProject(
+      name: dartProjectName,
+      organization: org,
+      location: projectDirectory,
+      initialScene: dartSceneName,
+    );
+    await WorkspaceScenePersistence.save(
+      file: WorkspaceScenePersistence.fileFor(project, scene),
+      scene: scene,
+    );
+    await ScenePersistenceGenerator.writeForScene(scene, project);
   }
 
   Future<void> _prepareProjectDirectory() async {

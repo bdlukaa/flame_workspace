@@ -32,12 +32,19 @@ class SceneScaffolder {
     final content =
         '''
 $defaultImports
+import '../../.generated/scenes/${name.snakeCase}.workspace.dart';
 
 class $className extends FlameScene {
   $className({
     super.sceneName = '$name',
     super.backgroundColor = const Color(0xFF000000),
   });
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    populate${name.pascalCase}WorkspaceScene(this);
+  }
 }
 ''';
 
@@ -69,7 +76,7 @@ class $className extends FlameScene {
 $defaultImports
 import '${name.snakeCase}.dart';
 
-class $className extends $sceneClassName with HasGameReference<FlameGame> {
+class $className extends $sceneClassName {
   @override
   Future<void> onLoad() async {
     await super.onLoad();

@@ -45,12 +45,12 @@ class WorkspaceModelMapper {
         final (scene, _, _) = sceneResult;
         final sceneId = WorkspaceIds.scene(
           sourcePath: scene.filePath,
-          name: scene.name,
+          name: scene.sceneName,
         );
         semanticScenes.add(
           SceneDefinition(
             id: sceneId,
-            name: scene.name,
+            name: scene.sceneName,
             sourcePath: scene.filePath,
             components: _mapComponents(
               components.where((component) {

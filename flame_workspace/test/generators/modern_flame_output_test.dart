@@ -91,7 +91,8 @@ void main() {
         ),
       ).readAsString();
 
-      expect(output, contains('HasGameReference<FlameGame>'));
+      expect(output, isNot(contains('HasGameReference<FlameGame>')));
+      expect(output, contains(r'class SceneLevelOne extends $SceneLevelOne'));
       expect(output, isNot(matches(RegExp(r'\bHasGameRef\b'))));
       expect(output, isNot(contains('void update(double dt)')));
     },

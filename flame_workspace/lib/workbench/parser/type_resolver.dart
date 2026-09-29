@@ -4,7 +4,9 @@ import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/analysis/results.dart';
+import 'package:analyzer/dart/analysis/session.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
+
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:path/path.dart' as path;
@@ -275,6 +277,49 @@ class FlameTypeResolver {
         }
       }
     } catch (error) {
+      if (error is InconsistentAnalysisException) {
+        // A project edit can invalidate Analyzer state mid-resolution. Apply
+        // queued file changes and retry this library once against fresh state.
+        final context = _contexts.contextFor(normalizedPath);
+        try {
+          await context.applyPendingFileChanges();
+          final result = await context.currentSession.getResolvedLibrary(
+            normalizedPath,
+          );
+          if (result is ResolvedLibraryResult) {
+            for (final unit in result.units) {
+              for (final error in unit.diagnostics) {
+                diagnostics.add(
+                  TypeResolutionDiagnostic(
+                    path: normalizedPath,
+                    message: error.message,
+                  ),
+                );
+              }
+            }
+            for (final element in result.element.classes) {
+              final name = element.name;
+              if (name != null) _classes[_key(normalizedPath, name)] = element;
+            }
+            return;
+          }
+          diagnostics.add(
+            TypeResolutionDiagnostic(
+              path: normalizedPath,
+              message:
+                  'Analyzer could not resolve this Dart library after retry.',
+            ),
+          );
+        } on Object {
+          diagnostics.add(
+            TypeResolutionDiagnostic(
+              path: normalizedPath,
+              message: 'Analyzer result was stale after a project change; this file was skipped for this indexing pass.',
+            ),
+          );
+        }
+        return;
+      }
       diagnostics.add(
         TypeResolutionDiagnostic(
           path: normalizedPath,

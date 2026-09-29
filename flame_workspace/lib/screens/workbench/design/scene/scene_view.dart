@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../workbench/model/semantic_model.dart';
-import '../../../../workbench/parser/scene.dart';
+import '../../../../workbench/parser/values.dart';
+
 import '../../../../widgets/tree_view.dart';
 import '../../workbench_view.dart';
 import 'add_component.dart';
@@ -92,10 +93,6 @@ class _SceneViewState extends State<SceneView> {
 
     final state = workbench.state;
     final scene = state.currentScene;
-    final sourceScene = state.currentSceneSource;
-    final sceneHelper = sourceScene == null
-        ? null
-        : SceneHelper.fromWorkbench(sourceScene, workbench);
 
     return Padding(
       padding: const EdgeInsetsDirectional.all(12.0),
@@ -139,14 +136,12 @@ class _SceneViewState extends State<SceneView> {
                       if (result != null && context.mounted) {
                         final (_, declarationName, _) = result;
                         if (!state.hasWorkspaceComponent(declarationName)) {
-                          if (sceneHelper != null) {
-                            await sceneHelper.declareComponent(result, state);
-                          }
                           state.addWorkspaceComponent(
                             _componentFromSelection(result, scene),
                           );
-                          if (sceneHelper != null) {
-                            await sceneHelper.addComponent(declarationName);
+                          await state.saveWorkspace();
+                          if (workbench.runner.isPreviewRunning) {
+                            await workbench.runner.hotReload();
                           }
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -268,15 +263,11 @@ class _SceneViewState extends State<SceneView> {
                                           state.removeWorkspaceComponent(
                                             component.id,
                                           );
-                                          if (sceneHelper != null &&
-                                              component.declarationName !=
-                                                  null) {
-                                            await sceneHelper.removeComponent(
-                                              component.declarationName!,
-                                            );
-                                            await sceneHelper.removeDeclaration(
-                                              component.declarationName!,
-                                            );
+                                          await state.saveWorkspace();
+                                          if (workbench
+                                              .runner
+                                              .isPreviewRunning) {
+                                            await workbench.runner.hotReload();
                                           }
                                         },
                                       ),
@@ -314,7 +305,10 @@ ComponentInstance _componentFromSelection(
   final (indexed, declarationName, parameters) = selection;
   final properties = <String, Object?>{
     for (final parameter in indexed.parameters)
-      parameter.name: parameters[parameter.name] ?? parameter.defaultValue,
+      parameter.name: ValuesParser.parse(
+        parameter.type,
+        parameters[parameter.name] ?? parameter.defaultValue ?? 'null',
+      ),
   };
   final definitions = indexed.parameters
       .map(

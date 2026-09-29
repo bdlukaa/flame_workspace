@@ -15,7 +15,10 @@ class ScenePersistenceGenerator {
 
   static String generate(SceneDefinition scene, FlameProject project) {
     final sceneToken = _sceneToken(scene.name);
-    final imports = <String>{"import 'package:flame/components.dart';"};
+    final imports = <String>{
+      "import 'package:flame/components.dart';",
+      "import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';",
+    };
     for (final component in _components(scene.components)) {
       final import = _componentImport(component, project);
       if (import != null) imports.add(import);
@@ -32,7 +35,21 @@ class ScenePersistenceGenerator {
       final variable = 'component$ordinal';
       ordinal++;
       final typeName = _identifier(component.type.name);
-      buffer.writeln('  final $variable = $typeName();');
+      final constructorProperties =
+          component.type.properties
+              .where((property) => !property.editable)
+              .map((property) => property.name)
+              .where((name) => component.properties[name] != null)
+              .toList()
+            ..sort();
+      final constructorArguments = [
+        "key: FlameKey('${component.id}')",
+        for (final name in constructorProperties)
+          '$name: ${_literal(component.properties[name])}',
+      ];
+      buffer.writeln(
+        '  final $variable = $typeName(${constructorArguments.join(', ')});',
+      );
       if (component.type.isPositionComponent) {
         buffer
           ..writeln('  ($variable as PositionComponent)')
@@ -49,7 +66,11 @@ class ScenePersistenceGenerator {
           ..writeln('    ..priority = ${component.priority};');
       }
       for (final entry in _sortedProperties(component.properties).entries) {
-        if (_transformProperties.contains(entry.key) || entry.value == null) {
+        if (_transformProperties.contains(entry.key) ||
+            entry.value == null ||
+            component.type.properties.any(
+              (property) => property.name == entry.key && !property.editable,
+            )) {
           continue;
         }
         if (!_isIdentifier(entry.key)) continue;
@@ -114,10 +135,8 @@ class ScenePersistenceGenerator {
     return {for (final key in keys) key: properties[key]};
   }
 
-  static String _sceneToken(String name) {
-    final sceneName = name.replaceFirst(r'$Scene', '');
-    return _identifier(ReCase(sceneName).pascalCase);
-  }
+  static String _sceneToken(String name) =>
+      _identifier(ReCase(name).pascalCase);
 
   static String _identifier(String value) {
     if (!_isIdentifier(value)) {

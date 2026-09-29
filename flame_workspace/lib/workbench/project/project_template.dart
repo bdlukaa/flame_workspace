@@ -42,42 +42,22 @@ String scene$dart(String sceneName) {
   final className = sceneName.pascalCase;
   final fileName = sceneName.snakeCase;
   return '''import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
-
-import '../../components/my_component.dart';
+import '../../.generated/scenes/$fileName.workspace.dart';
 
 part '${fileName}_script.dart';
 
 @protected
 class \$Scene$className extends FlameScene {
   \$Scene$className()
-      : myComponent = MyComponent(
-          key: FlameKey('myComponent'),
-          position: Vector2(64, 64),
-          size: Vector2(128, 128),
-        ),
-        super(
+      : super(
           sceneName: '$sceneName',
           backgroundColor: const Color(0xFF000000),
         );
 
-  final MyComponent myComponent;
-
   @override
-  void addComponent(String declarationName) {
-    if (declarationName == 'myComponent') {
-      add(myComponent);
-      return;
-    }
-    throw ArgumentError.value(declarationName, 'Component not found');
-  }
-
-  @override
-  void removeComponent(String declarationName) {
-    if (declarationName == 'myComponent') {
-      remove(myComponent);
-      return;
-    }
-    throw ArgumentError.value(declarationName, 'Component not found');
+  Future<void> onLoad() async {
+    await super.onLoad();
+    populate${className}WorkspaceScene(this);
   }
 }''';
 }
@@ -87,14 +67,7 @@ String sceneScript$dart(String sceneName) {
   final fileName = sceneName.snakeCase;
   return '''part of '$fileName.dart';
 
-class $className extends \$Scene$className {
-  @override
-  Future<void> onLoad() async {
-    await super.onLoad();
-    add(myComponent);
-  }
-
-}''';
+class $className extends \$Scene$className {}''';
 }
 
 String component$dart(String componentName) {

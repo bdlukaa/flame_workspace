@@ -3,6 +3,8 @@ import 'package:flame_workspace/screens/workbench/project/create_component.dart'
 import 'package:flame_workspace/screens/workbench/project/views/scenes_list.dart';
 import 'package:flutter/material.dart';
 
+import '../../../widgets/resizable_split_view.dart';
+
 import '../../../workbench/parser/parser.dart';
 import '../design/scene/scene_view.dart';
 import '../workbench_view.dart';
@@ -22,90 +24,92 @@ class ProjectView extends StatelessWidget {
         children: [
           Text('Project View', style: theme.textTheme.titleSmall),
           Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text(
-                        'Top Level constants and variables',
-                        style: theme.textTheme.labelLarge,
-                      ),
-                      const Expanded(child: TopLevel()),
-                    ],
+            child: ResizableSplitView(
+              id: 'project.declarationsComponents',
+              direction: SplitDirection.horizontal,
+              initialRatio: 0.32,
+              minFirstSize: 220,
+              minSecondSize: 440,
+              first: Column(
+                children: [
+                  Text(
+                    'Top Level constants and variables',
+                    style: theme.textTheme.labelLarge,
                   ),
-                ),
-                const VerticalDivider(width: 1.0),
-                Expanded(
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          const SizedBox(width: 16.0),
-                          Expanded(
-                            child: Text(
-                              'Components',
-                              style: theme.textTheme.labelLarge,
-                            ),
+                  const Expanded(child: TopLevel()),
+                ],
+              ),
+              second: ResizableSplitView(
+                id: 'project.componentsScenes',
+                direction: SplitDirection.horizontal,
+                initialRatio: 0.5,
+                minFirstSize: 220,
+                minSecondSize: 220,
+                first: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const SizedBox(width: 16.0),
+                        Expanded(
+                          child: Text(
+                            'Components',
+                            style: theme.textTheme.labelLarge,
                           ),
-                          Padding(
-                            padding: const EdgeInsetsDirectional.symmetric(
-                              vertical: 8.0,
-                              horizontal: 16.0,
-                            ),
-                            child: OutlinedButton(
-                              style: ButtonStyle(
-                                padding: WidgetStateProperty.all(
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                                ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsetsDirectional.symmetric(
+                            vertical: 8.0,
+                            horizontal: 16.0,
+                          ),
+                          child: OutlinedButton(
+                            style: ButtonStyle(
+                              padding: WidgetStateProperty.all(
+                                const EdgeInsets.symmetric(horizontal: 16.0),
                               ),
-                              onPressed: () =>
-                                  showCreateComponentDialog(context, workbench),
-                              child: const Text('Create component'),
                             ),
+                            onPressed: () =>
+                                showCreateComponentDialog(context, workbench),
+                            child: const Text('Create component'),
                           ),
-                        ],
-                      ),
-                      const Expanded(child: ComponentsView()),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                    const Expanded(child: ComponentsView()),
+                  ],
                 ),
-                const VerticalDivider(width: 1.0),
-                Expanded(
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          const SizedBox(width: 16.0),
-                          Expanded(
-                            child: Text(
-                              'Scenes',
-                              style: theme.textTheme.labelLarge,
-                            ),
+                second: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const SizedBox(width: 16.0),
+                        Expanded(
+                          child: Text(
+                            'Scenes',
+                            style: theme.textTheme.labelLarge,
                           ),
-                          Padding(
-                            padding: const EdgeInsetsDirectional.symmetric(
-                              vertical: 8.0,
-                              horizontal: 16.0,
-                            ),
-                            child: OutlinedButton(
-                              style: ButtonStyle(
-                                padding: WidgetStateProperty.all(
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                                ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsetsDirectional.symmetric(
+                            vertical: 8.0,
+                            horizontal: 16.0,
+                          ),
+                          child: OutlinedButton(
+                            style: ButtonStyle(
+                              padding: WidgetStateProperty.all(
+                                const EdgeInsets.symmetric(horizontal: 16.0),
                               ),
-                              onPressed: () =>
-                                  showCreateSceneDialog(context, workbench),
-                              child: const Text('Create scene'),
                             ),
+                            onPressed: () =>
+                                showCreateSceneDialog(context, workbench),
+                            child: const Text('Create scene'),
                           ),
-                        ],
-                      ),
-                      const Expanded(child: ScenesListView()),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                    const Expanded(child: ScenesListView()),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],

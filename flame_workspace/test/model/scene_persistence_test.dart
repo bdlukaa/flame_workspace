@@ -126,8 +126,14 @@ void main() {
 
       expect(secondOutput, firstOutput);
       expect(firstOutput, contains('populateMainWorkspaceScene'));
-      expect(firstOutput, contains('final component0 = Player();'));
-      expect(firstOutput, contains('final component1 = PlayerSprite();'));
+      expect(
+        firstOutput,
+        contains("final component0 = Player(key: FlameKey('player'))"),
+      );
+      expect(
+        firstOutput,
+        contains("final component1 = PlayerSprite(key: FlameKey('sprite'))"),
+      );
       expect(firstOutput, contains('component0.add(component1);'));
     },
   );

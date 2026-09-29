@@ -109,10 +109,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   @override
   void initState() {
     super.initState();
-    runner = FlameProjectRunner(
-      widget.project,
-      onRuntimeConnected: () => runner.setScene(state.currentScene.name),
-    );
+    runner = FlameProjectRunner(widget.project);
 
     state.addListener(_updateListener);
     runner.addListener(_updateListener);
@@ -386,45 +383,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
             },
           ),
         ),
-        Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              InkedIconButton(
-                onTap: !runner.isPreviewRunning ? null : runner.reloadPreview,
-                tooltip: 'Reload preview',
-                icon: const Icon(Icons.refresh),
-              ),
-              const SizedBox(width: 8.0),
-              InkedIconButton(
-                onTap: !runner.canHotReload ? null : runner.hotReload,
-                tooltip: 'Hot reload',
-                icon: Icon(Icons.bolt, color: theme.colorScheme.primary),
-              ),
-              const SizedBox(width: 8.0),
-              InkedIconButton(
-                onTap: !runner.canHotRestart ? null : runner.hotRestart,
-                tooltip: 'Hot restart',
-                icon: Icon(
-                  Icons.local_fire_department,
-                  color: theme.colorScheme.tertiary,
-                ),
-              ),
-              const VerticalDivider(),
-              InkedIconButton(
-                onTap: !runner.isRunning ? runner.runPreview : null,
-                tooltip: 'Start Preview',
-                icon: const Icon(Icons.play_arrow, color: Colors.lightBlue),
-              ),
-              const SizedBox(width: 8.0),
-              InkedIconButton(
-                onTap: !runner.isRunning ? null : runner.stop,
-                tooltip: 'Stop',
-                icon: const Icon(Icons.stop, color: Colors.red),
-              ),
-            ],
-          ),
-        ),
+
         const SizedBox(width: 24.0),
       ],
     );

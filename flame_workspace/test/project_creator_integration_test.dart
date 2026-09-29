@@ -47,13 +47,14 @@ void main() {
         ),
       );
       final sceneContents = await sceneSource.readAsString();
+      expect(sceneContents, contains('populateLevelOneWorkspaceScene(this)'));
       expect(
         sceneContents,
-        contains('void addComponent(String declarationName)'),
+        isNot(contains('addComponent(String declarationName)')),
       );
       expect(
         sceneContents,
-        contains('void removeComponent(String declarationName)'),
+        isNot(contains('removeComponent(String declarationName)')),
       );
       expect(sceneContents, isNot(contains('Mixin')));
       expect(
@@ -63,10 +64,10 @@ void main() {
             'lib',
             '.generated',
             'scenes',
-            'level_one.dart',
+            'level_one.workspace.dart',
           ),
         ).exists(),
-        isFalse,
+        isTrue,
       );
 
       final imported = await ProjectImporter.import(creator.projectDirectory);
