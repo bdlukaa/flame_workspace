@@ -13,7 +13,9 @@ import '../workbench/model/semantic_model.dart';
 import '../workbench/model/workspace_diagnostic.dart';
 import '../workbench/parser/component_capabilities.dart';
 
+import 'workbench_mount_handshake.dart';
 import '../workbench/project/import.dart';
+import '../workbench/project/workspace_navigation.dart';
 import '../workbench/runner/runner.dart';
 import '../workbench/runner/state.dart';
 
@@ -21,6 +23,10 @@ FlameProjectState? _state;
 FlameProjectRunner? _runner;
 var _registered = false;
 GlobalKey<NavigatorState>? _navigatorKey;
+final _mountHandshake = WorkbenchMountHandshake();
+String? _openingProjectPath;
+bool _openingFixture = false;
+const _mountTimeout = Duration(seconds: 15);
 
 /// Registers the small, read-oriented Marionette API used to inspect the
 /// Workspace during development and integration tests.
@@ -84,6 +90,9 @@ void attachWorkspaceMarionetteContext(
   if (!kDebugMode) return;
   _state = state;
   _runner = runner;
+  if (_mountHandshake.acknowledge(state.project.location.path)) {
+    _openingProjectPath = null;
+  }
 }
 
 void detachWorkspaceMarionetteContext(FlameProjectState state) {
@@ -111,6 +120,16 @@ Future<MarionetteExtensionResult> readWorkspaceMarionetteToolForTesting(
 ) => _read(name);
 
 Future<MarionetteExtensionResult> _read(String name) async {
+  final openingPath = _openingProjectPath;
+  if (openingPath != null && name == 'workspace.getState') {
+    return MarionetteExtensionResult.success({
+      'screen': 'openingProject',
+      'projectOpen': false,
+      'targetProjectPath': openingPath,
+      'navigatorAvailable': _navigatorKey?.currentState != null,
+      'workbenchAttached': _state != null,
+    });
+  }
   final state = _state;
   final runner = _runner;
   if (state == null || runner == null) {
@@ -136,7 +155,12 @@ Future<MarionetteExtensionResult> _read(String name) async {
   }
 
   final data = switch (name) {
-    'workspace.getState' => _stateSnapshot(state, runner),
+    'workspace.getState' => {
+      ..._stateSnapshot(state, runner),
+      'initialized': state.initialized,
+      'projectPath': path.normalize(path.absolute(state.project.location.path)),
+      'projectName': state.project.name,
+    },
     'workspace.getCurrentScene' => _sceneSnapshot(state.currentScene),
     'workspace.getBuildHierarchy' => {
       'sceneId': state.currentScene.id,
@@ -186,6 +210,18 @@ Future<MarionetteExtensionResult> _read(String name) async {
 }
 
 Future<MarionetteExtensionResult> _openFixture() async {
+  if (_openingFixture) {
+    throw StateError('A fixture project is already being opened.');
+  }
+  _openingFixture = true;
+  try {
+    return await _prepareAndOpenFixture();
+  } finally {
+    _openingFixture = false;
+  }
+}
+
+Future<MarionetteExtensionResult> _prepareAndOpenFixture() async {
   final navigator = _navigatorKey?.currentState;
   if (navigator == null) {
     return const MarionetteExtensionResult.error(
@@ -209,7 +245,7 @@ Future<MarionetteExtensionResult> _openFixture() async {
   final pubspecSource = await pubspec.readAsString();
   await pubspec.writeAsString(
     pubspecSource
-        .replaceFirst('resolution: workspace\\n', '')
+        .replaceFirst('resolution: workspace\n', '')
         .replaceFirst(
           "path: '../flame_workspace_runtime'",
           "path: '${runtimePackage.path}'",
@@ -222,11 +258,41 @@ Future<MarionetteExtensionResult> _openFixture() async {
   if (pubGet.exitCode != 0) {
     throw StateError('Fixture dependency resolution failed: ${pubGet.stderr}');
   }
+  if (_mountHandshake.isPending) {
+    throw StateError('A Workbench navigation is already pending.');
+  }
   final project = await ProjectImporter.import(temporary);
-  unawaited(navigator.pushReplacementNamed('/project', arguments: project));
+  final projectPath = path.normalize(path.absolute(project.location.path));
+  _openingProjectPath = projectPath;
+  try {
+    final mounted = _mountHandshake.waitFor(
+      projectPath,
+      timeout: _mountTimeout,
+    );
+    WorkspaceNavigation.openProject(project);
+    await mounted;
+  } on TimeoutException {
+    throw StateError(
+      'Workbench mount timed out for $projectPath '
+      '(navigatorAvailable: ${_navigatorKey?.currentState != null}, '
+      'workbenchAttached: ${_state != null}).',
+    );
+  } finally {
+    _openingProjectPath = null;
+  }
+  final state = _state;
+  if (state == null ||
+      path.normalize(path.absolute(state.project.location.path)) !=
+          projectPath) {
+    throw StateError(
+      'Workbench mounted for an unexpected project after opening $projectPath.',
+    );
+  }
   return MarionetteExtensionResult.success({
     'opened': true,
+    'initialized': state.initialized,
     'projectName': project.name,
+    'projectPath': projectPath,
   });
 }
 

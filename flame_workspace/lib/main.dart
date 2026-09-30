@@ -1,6 +1,7 @@
 import 'dart:ui' show AppExitResponse;
 
 import 'package:flame_workspace/workbench/project/project.dart';
+import 'package:flame_workspace/workbench/project/workspace_navigation.dart';
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
 import 'package:flame_workspace/marionette/workspace_tools.dart';
 
@@ -22,8 +23,6 @@ void initializeFlameWorkspaceBinding() {
     WidgetsFlutterBinding.ensureInitialized();
   }
 }
-
-final workspaceNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   initializeFlameWorkspaceBinding();

@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 
+import 'workspace_navigation.dart';
+
 class const DartDependency({
   /// The name of the dependency.
   required final String name,
@@ -74,7 +76,5 @@ class const FlameProject({
 }
 
 void openProject(BuildContext context, FlameProject project) {
-  if (context.mounted) {
-    Navigator.of(context).pushReplacementNamed('/project', arguments: project);
-  }
+  if (context.mounted) WorkspaceNavigation.openProject(project);
 }
