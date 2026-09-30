@@ -1,4 +1,10 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart'
+    show debugPrint, kDebugMode, visibleForTesting;
+import 'package:flutter/widgets.dart';
+import 'package:path/path.dart' as path;
 import 'package:marionette_flutter/marionette_flutter.dart';
 import 'package:flame_workspace_protocol/runtime.dart';
 
@@ -7,20 +13,26 @@ import '../workbench/model/semantic_model.dart';
 import '../workbench/model/workspace_diagnostic.dart';
 import '../workbench/parser/component_capabilities.dart';
 
+import '../workbench/project/import.dart';
 import '../workbench/runner/runner.dart';
 import '../workbench/runner/state.dart';
 
 FlameProjectState? _state;
 FlameProjectRunner? _runner;
 var _registered = false;
+GlobalKey<NavigatorState>? _navigatorKey;
 
 /// Registers the small, read-oriented Marionette API used to inspect the
 /// Workspace during development and integration tests.
 ///
 /// The extensions intentionally do not expose generic model or runtime
 /// mutation. Normal editor workflows must still be exercised through the UI.
-void initializeWorkspaceMarionetteTools() {
-  if (!kDebugMode || _registered) return;
+void initializeWorkspaceMarionetteTools({
+  GlobalKey<NavigatorState>? navigatorKey,
+}) {
+  if (!kDebugMode) return;
+  _navigatorKey = navigatorKey;
+  if (_registered) return;
   _registered = true;
 
   for (final name in const [
@@ -36,9 +48,16 @@ void initializeWorkspaceMarionetteTools() {
       name: name,
       description: 'Read a compact Flame Workspace development snapshot.',
       inputSchema: const ExtensionInputSchema(),
-      callback: (_) async => _read(name),
+      callback: (_) => _guard(name, () => _read(name)),
     );
   }
+
+  registerMarionetteExtension(
+    name: 'workspace.openFixture',
+    description: 'Open a temporary copy of the modern Workspace fixture.',
+    inputSchema: const ExtensionInputSchema(),
+    callback: (_) => _guard('workspace.openFixture', _openFixture),
+  );
 
   registerMarionetteExtension(
     name: 'workspace.selectScene',
@@ -52,7 +71,8 @@ void initializeWorkspaceMarionetteTools() {
       },
       required: ['sceneId'],
     ),
-    callback: _selectScene,
+    callback: (parameters) =>
+        _guard('workspace.selectScene', () => _selectScene(parameters)),
   );
 }
 
@@ -73,14 +93,46 @@ void detachWorkspaceMarionetteContext(FlameProjectState state) {
   }
 }
 
+Future<MarionetteExtensionResult> _guard(
+  String operation,
+  Future<MarionetteExtensionResult> Function() callback,
+) async {
+  try {
+    return await callback();
+  } catch (error, stackTrace) {
+    debugPrint('$operation failed: $error\\n$stackTrace');
+    return MarionetteExtensionResult.error(1, '$operation failed: $error');
+  }
+}
+
+@visibleForTesting
+Future<MarionetteExtensionResult> readWorkspaceMarionetteToolForTesting(
+  String name,
+) => _read(name);
+
 Future<MarionetteExtensionResult> _read(String name) async {
   final state = _state;
   final runner = _runner;
   if (state == null || runner == null) {
-    return const MarionetteExtensionResult.error(
-      1,
-      'No Flame Workspace project is currently open.',
-    );
+    final data = switch (name) {
+      'workspace.getState' => <String, Object?>{
+        'screen': 'welcome',
+        'projectOpen': false,
+      },
+      'workspace.getCurrentScene' ||
+      'workspace.getBuildHierarchy' ||
+      'workspace.getRuntimeHierarchy' ||
+      'workspace.getSyncStatus' => {'available': false, 'reason': 'no_project'},
+      'workspace.getDiagnostics' => {
+        'available': true,
+        'project': <Object?>[],
+        'runtime': <Object?>[],
+        'runner': <Object?>[],
+      },
+      'workspace.getPreviewLogs' => {'available': true, 'logs': <String>[]},
+      _ => <String, Object?>{},
+    };
+    return MarionetteExtensionResult.success(data);
   }
 
   final data = switch (name) {
@@ -133,15 +185,64 @@ Future<MarionetteExtensionResult> _read(String name) async {
   return MarionetteExtensionResult.success(data);
 }
 
+Future<MarionetteExtensionResult> _openFixture() async {
+  final navigator = _navigatorKey?.currentState;
+  if (navigator == null) {
+    return const MarionetteExtensionResult.error(
+      1,
+      'Workspace navigator is not ready.',
+    );
+  }
+  final source = Directory('../fixtures/modern_workspace').absolute;
+  final temporary = await Directory.systemTemp.createTemp(
+    'flame_workspace_fixture_',
+  );
+  await _copyDirectory(source, temporary);
+  final pubGet = await Process.run('flutter', const [
+    'pub',
+    'get',
+  ], workingDirectory: temporary.path);
+  if (pubGet.exitCode != 0) {
+    throw StateError('Fixture dependency resolution failed: ${pubGet.stderr}');
+  }
+  final project = await ProjectImporter.import(temporary);
+  unawaited(navigator.pushReplacementNamed('/project', arguments: project));
+  return MarionetteExtensionResult.success({
+    'opened': true,
+    'projectName': project.name,
+  });
+}
+
+Future<void> _copyDirectory(Directory source, Directory target) async {
+  await for (final entity in source.list(followLinks: false)) {
+    if (entity is Directory &&
+        const {
+          '.dart_tool',
+          '.git',
+          'build',
+        }.contains(path.basename(entity.path))) {
+      continue;
+    }
+    final destination = path.join(target.path, path.basename(entity.path));
+    if (entity is Directory) {
+      final child = Directory(destination);
+      await child.create(recursive: true);
+      await _copyDirectory(entity, child);
+    } else if (entity is File) {
+      await entity.copy(destination);
+    }
+  }
+}
+
 Future<MarionetteExtensionResult> _selectScene(
   Map<String, String> parameters,
 ) async {
   final state = _state;
   if (state == null) {
-    return const MarionetteExtensionResult.error(
-      1,
-      'No Flame Workspace project is currently open.',
-    );
+    return const MarionetteExtensionResult.success({
+      'available': false,
+      'reason': 'no_project',
+    });
   }
   final sceneId = parameters['sceneId'];
   if (sceneId == null ||
@@ -158,6 +259,8 @@ Map<String, Object?> _stateSnapshot(
   FlameProjectState state,
   FlameProjectRunner runner,
 ) => {
+  'screen': 'workbench',
+  'projectOpen': true,
   'executionMode': state.executionMode.name,
   'dirty': state.isDirty,
   'selectedScene': _sceneSnapshot(state.currentScene),

@@ -4,6 +4,29 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
 void main() {
+  test('Welcome diagnostics succeed without an open project', () async {
+    initializeFlameWorkspaceBinding();
+    initializeWorkspaceMarionetteTools();
+
+    final state = await readWorkspaceMarionetteToolForTesting(
+      'workspace.getState',
+    );
+    expect(state, isA<MarionetteExtensionSuccess>());
+    expect((state as MarionetteExtensionSuccess).data, {
+      'screen': 'welcome',
+      'projectOpen': false,
+    });
+
+    final runtime = await readWorkspaceMarionetteToolForTesting(
+      'workspace.getRuntimeHierarchy',
+    );
+    expect(runtime, isA<MarionetteExtensionSuccess>());
+    expect((runtime as MarionetteExtensionSuccess).data, {
+      'available': false,
+      'reason': 'no_project',
+    });
+  });
+
   test('registers schema-bearing diagnostic tools in debug mode', () {
     initializeFlameWorkspaceBinding();
     initializeWorkspaceMarionetteTools();

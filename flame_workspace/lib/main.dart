@@ -23,9 +23,11 @@ void initializeFlameWorkspaceBinding() {
   }
 }
 
+final workspaceNavigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   initializeFlameWorkspaceBinding();
-  initializeWorkspaceMarionetteTools();
+  initializeWorkspaceMarionetteTools(navigatorKey: workspaceNavigatorKey);
 
   runApp(const FlameWorkspaceApp());
 }
@@ -54,6 +56,7 @@ class _FlameWorkspaceAppState extends State<FlameWorkspaceApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: workspaceNavigatorKey,
       title: 'Flame Workspace',
       theme: ThemeData(
         useMaterial3: true,
