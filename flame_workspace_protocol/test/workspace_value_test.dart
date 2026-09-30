@@ -75,6 +75,23 @@ void main() {
             dart: 'TextPaint(\n  style: const TextStyle(color: Color(0xFF123456), fontSize: 18.0, fontFamily: "Roboto", fontWeight: FontWeight.w700, fontStyle: FontStyle.italic, letterSpacing: 1.25, wordSpacing: 2.0, height: 1.2),\n  textDirection: TextDirection.rtl,\n)',
           ),
           (
+            type: 'TextBoxConfig',
+            input: '{"maxWidth":320,"margins":{"top":1,"right":2,"bottom":3,"left":4},"timePerChar":0.05,"dismissDelay":2,"growingBox":true}',
+            expected: const WorkspaceTextBoxConfig(
+              maxWidth: 320,
+              margins: WorkspaceEdgeInsets(
+                top: 1,
+                right: 2,
+                bottom: 3,
+                left: 4,
+              ),
+              timePerChar: 0.05,
+              dismissDelay: 2,
+              growingBox: true,
+            ),
+            dart: 'TextBoxConfig(maxWidth: 320.0, margins: EdgeInsets.only(top: 1.0, right: 2.0, bottom: 3.0, left: 4.0), timePerChar: 0.05, dismissDelay: 2.0, growingBox: true)',
+          ),
+          (
             type: 'Direction',
             input: 'Direction.horizontal',
             expected: const WorkspaceEnumValue('Direction', 'horizontal'),
@@ -172,6 +189,14 @@ void main() {
       expect(
         PropertyTypeAdapterRegistry.metadata('TextPaint?').editorKind,
         WorkspacePropertyEditorKind.textPaint,
+      );
+      expect(
+        PropertyTypeAdapterRegistry.metadata('TextBoxConfig').editorKind,
+        WorkspacePropertyEditorKind.textBoxConfig,
+      );
+      expect(
+        PropertyTypeAdapterRegistry.metadata('EdgeInsets').editorKind,
+        WorkspacePropertyEditorKind.edgeInsets,
       );
       expect(
         PropertyTypeAdapterRegistry.metadata(

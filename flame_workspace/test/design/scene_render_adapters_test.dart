@@ -88,6 +88,27 @@ void main() {
     expect(SceneCanvasGeometry.sizeFor(text), measuredText.size);
     expect(text.transform.size, WorkspaceVector2.zero());
 
+    final textBox = ComponentInstance(
+      id: 'box',
+      type: const ComponentType(id: 'box', name: 'TextBoxComponent'),
+      properties: {
+        'text': 'left top text',
+        'align': const WorkspaceAnchor(0, 0),
+        'boxConfig': const WorkspaceTextBoxConfig(
+          maxWidth: 200,
+          margins: WorkspaceEdgeInsets(top: 1, right: 2, bottom: 3, left: 4),
+          timePerChar: 0.05,
+          dismissDelay: 2,
+          growingBox: true,
+        ),
+      },
+    );
+    final textBoxData = registry.resolve(textBox);
+    expect(textBoxData.isTextBox, isTrue);
+    expect(textBoxData.textBoxMaxWidth, 200);
+    expect(textBoxData.textBoxMargins.left, 4);
+    expect(textBoxData.contentAlign, const WorkspaceAnchor(0, 0));
+
     final textSizeBefore = SceneCanvasGeometry.sizeFor(text);
     text.setProperty('text', 'Hello Flame with a longer label');
     expect(

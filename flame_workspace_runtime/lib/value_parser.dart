@@ -17,6 +17,24 @@ class RuntimeValuesParser {
       WorkspaceAnchor(:final x, :final y) => Anchor(x, y),
       WorkspacePaint paint => _materializePaint(paint),
       WorkspaceTextPaint textPaint => _materializeTextPaint(textPaint),
+      WorkspaceEdgeInsets insets => EdgeInsets.only(
+        top: insets.top,
+        right: insets.right,
+        bottom: insets.bottom,
+        left: insets.left,
+      ),
+      WorkspaceTextBoxConfig config => TextBoxConfig(
+        maxWidth: config.maxWidth,
+        margins: EdgeInsets.only(
+          top: config.margins.top,
+          right: config.margins.right,
+          bottom: config.margins.bottom,
+          left: config.margins.left,
+        ),
+        timePerChar: config.timePerChar,
+        dismissDelay: config.dismissDelay,
+        growingBox: config.growingBox,
+      ),
       List<WorkspaceVectorValue> vectors => [
         for (final vector in vectors) Vector2(vector.x, vector.y),
       ],

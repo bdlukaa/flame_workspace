@@ -14,6 +14,7 @@ import 'package:flame_workspace_protocol/runtime.dart';
 import 'package:flame_workspace_protocol/workspace_value.dart';
 
 import 'paint_property_field.dart';
+import 'text_box_config_property_field.dart';
 import 'text_paint_property_field.dart';
 
 import 'scene/scene_properties.dart';
@@ -51,7 +52,8 @@ class const ComponentView({super.key}) extends StatelessWidget {
     );
 
     final definitions = component.type.properties;
-    final isTextComponent = component.type.name == 'TextComponent';
+    final isTextBox = component.type.name == 'TextBoxComponent';
+    final isTextComponent = component.type.name == 'TextComponent' || isTextBox;
     final textProperties = isTextComponent
         ? definitions.where((property) => property.name == 'text').toList()
         : const <WorkspacePropertyDefinition>[];
@@ -60,12 +62,19 @@ class const ComponentView({super.key}) extends StatelessWidget {
               .where((property) => property.name == 'textRenderer')
               .toList()
         : const <WorkspacePropertyDefinition>[];
+    final textBoxConfigProperties = isTextBox
+        ? definitions.where((property) => property.name == 'boxConfig').toList()
+        : const <WorkspacePropertyDefinition>[];
+    final textBoxAlignProperties = isTextBox
+        ? definitions.where((property) => property.name == 'align').toList()
+        : const <WorkspacePropertyDefinition>[];
     final scriptProperties = definitions
         .where(
           (property) =>
               !_transformNames.contains(property.name) &&
               !(isTextComponent &&
-                  {'text', 'textRenderer'}.contains(property.name)),
+                  {'text', 'textRenderer'}.contains(property.name)) &&
+              !(isTextBox && {'boxConfig', 'align'}.contains(property.name)),
         )
         .toList();
     final transformDefinitions = {
@@ -86,6 +95,8 @@ class const ComponentView({super.key}) extends StatelessWidget {
       final edit =
           value is WorkspacePaint ||
               value is WorkspaceTextPaint ||
+              value is WorkspaceTextBoxConfig ||
+              value is WorkspaceEdgeInsets ||
               value is List<WorkspaceVectorValue> ||
               value == null
           ? SemanticPropertyEdit(
@@ -174,6 +185,44 @@ class const ComponentView({super.key}) extends StatelessWidget {
                     ),
                     updateProperty,
                     allowStructuralEdits: state.isBuildMode,
+                    key: ValueKey('${component.id}:${property.name}'),
+                  ),
+              ],
+            ),
+          if (textBoxConfigProperties.isNotEmpty)
+            ComponentSectionCard(
+              title: 'Text box',
+              children: [
+                for (final property in textBoxConfigProperties)
+                  _buildPropertyField(
+                    property,
+                    state.runtimeOverrides.resolveProperty(
+                      component.id,
+                      property.name,
+                      component.properties[property.name] ??
+                          property.defaultValue ??
+                          const WorkspaceTextBoxConfig(),
+                    ),
+                    updateProperty,
+                    key: ValueKey('${component.id}:${property.name}'),
+                  ),
+              ],
+            ),
+          if (textBoxAlignProperties.isNotEmpty)
+            ComponentSectionCard(
+              title: 'Content alignment',
+              children: [
+                for (final property in textBoxAlignProperties)
+                  _buildPropertyField(
+                    property,
+                    state.runtimeOverrides.resolveProperty(
+                      component.id,
+                      property.name,
+                      component.properties[property.name] ??
+                          property.defaultValue ??
+                          const WorkspaceAnchor(0, 0),
+                    ),
+                    updateProperty,
                     key: ValueKey('${component.id}:${property.name}'),
                   ),
               ],
@@ -338,6 +387,16 @@ class const ComponentView({super.key}) extends StatelessWidget {
         editable:
             definition.editable &&
             (!definition.recreateOnEdit || allowStructuralEdits),
+        onChanged: (value) => onChanged(definition, value),
+      );
+    }
+    if (kind == WorkspacePropertyEditorKind.textBoxConfig) {
+      return TextBoxConfigPropertyField(
+        key: key,
+        value: rawValue is WorkspaceTextBoxConfig
+            ? rawValue
+            : const WorkspaceTextBoxConfig(),
+        editable: definition.editable,
         onChanged: (value) => onChanged(definition, value),
       );
     }

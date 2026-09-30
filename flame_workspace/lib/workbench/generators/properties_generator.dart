@@ -77,6 +77,9 @@ class PropertiesGenerator {
       if (type.length == 1) type = 'dynamic';
       buffer.writeln('    case \'${property.name}\':');
       buffer.writeln('      cls.${property.name} = value as $type;');
+      if (className == 'TextBoxComponent' && property.name == 'align') {
+        buffer.writeln('      unawaited(cls.redraw());');
+      }
       buffer.writeln('      break;');
     }
     buffer.writeln('    default:');
@@ -93,17 +96,23 @@ class PropertiesGenerator {
     Iterable<FlameComponentObject> components,
     FlameProject project,
   ) async {
+    final componentList = components.toList();
     final buffer = StringBuffer();
     buffer.writeln(generatedFileNotice);
     buffer.writeln(
       '// ignore_for_file: unused_import, unnecessary_import, unnecessary_this',
     );
     buffer.writeln(defaultImports);
+    if (componentList.any(
+      (component) => component.name == 'TextBoxComponent',
+    )) {
+      buffer.writeln("import 'dart:async';");
+    }
     buffer.writeln("import 'package:flame/text.dart';");
 
     Set<String> imports = {};
 
-    for (final component in components) {
+    for (final component in componentList) {
       // component import
       final componentFilePath = component.filePath;
       if (componentFilePath == null) continue;
@@ -138,7 +147,7 @@ class PropertiesGenerator {
     buffer.writeln('  dynamic value,');
     buffer.writeln(') {');
     buffer.writeln('  switch (className) {');
-    for (final component in components) {
+    for (final component in componentList) {
       if (generateForFlameComponent(component).isEmpty) continue;
       buffer.writeln('    case \'${component.name}\':');
       buffer.writeln(
@@ -154,7 +163,7 @@ class PropertiesGenerator {
     buffer.writeln('}');
     buffer.writeln();
 
-    for (final component in components) {
+    for (final component in componentList) {
       buffer.writeln(generateForFlameComponent(component));
     }
 

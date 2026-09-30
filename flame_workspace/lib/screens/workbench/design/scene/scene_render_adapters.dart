@@ -24,6 +24,10 @@ class EditorPreviewRenderData {
     this.fontSize = 16,
     this.textStyle,
     this.textDirection = TextDirection.ltr,
+    this.isTextBox = false,
+    this.textBoxMaxWidth = 200,
+    this.textBoxMargins = const WorkspaceEdgeInsets.all(8),
+    this.contentAlign = const WorkspaceAnchor(0, 0),
   });
 
   final EditorPreviewPrimitive primitive;
@@ -35,6 +39,10 @@ class EditorPreviewRenderData {
   final double fontSize;
   final TextStyle? textStyle;
   final TextDirection textDirection;
+  final bool isTextBox;
+  final double textBoxMaxWidth;
+  final WorkspaceEdgeInsets textBoxMargins;
+  final WorkspaceAnchor contentAlign;
 }
 
 abstract interface class EditorComponentRenderAdapter {
@@ -87,8 +95,16 @@ class _TextPreviewAdapter implements EditorComponentRenderAdapter {
 
   @override
   EditorPreviewRenderData? resolve(ComponentInstance component) {
-    if (!_matches(component, const {'TextComponent'})) return null;
+    if (!_matches(component, const {'TextComponent', 'TextBoxComponent'})) {
+      return null;
+    }
     final textPaint = _resolveTextPaint(component);
+    final isTextBox = component.type.name == 'TextBoxComponent';
+    final textBoxConfig = component.properties['boxConfig'];
+    final config = textBoxConfig is WorkspaceTextBoxConfig
+        ? textBoxConfig
+        : const WorkspaceTextBoxConfig();
+    final alignment = component.properties['align'];
     return EditorPreviewRenderData(
       primitive: EditorPreviewPrimitive.text,
       label: component.type.name,
@@ -100,6 +116,12 @@ class _TextPreviewAdapter implements EditorComponentRenderAdapter {
       fontSize: textPaint.fontSize ?? 24,
       textStyle: _textStyle(textPaint),
       textDirection: _textDirection(textPaint.textDirection),
+      isTextBox: isTextBox,
+      textBoxMaxWidth: config.maxWidth,
+      textBoxMargins: config.margins,
+      contentAlign: alignment is WorkspaceAnchor
+          ? alignment
+          : const WorkspaceAnchor(0, 0),
     );
   }
 

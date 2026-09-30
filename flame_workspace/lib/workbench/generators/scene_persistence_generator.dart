@@ -137,7 +137,7 @@ class ScenePersistenceGenerator {
           )
           ..writeln('    ..priority = ${component.priority};');
       }
-      for (final entry in _sortedProperties(component.properties).entries) {
+      for (final entry in _orderedProperties(component).entries) {
         if (_transformProperties.contains(entry.key) ||
             entry.value == null ||
             component.type.properties.any(
@@ -205,11 +205,20 @@ class ScenePersistenceGenerator {
     return "import 'package:${project.name}/${relative.replaceAll(path.separator, '/')}';";
   }
 
-  static Map<String, Object?> _sortedProperties(
-    Map<String, Object?> properties,
-  ) {
-    final keys = properties.keys.toList()..sort();
-    return {for (final key in keys) key: properties[key]};
+  static Map<String, Object?> _orderedProperties(ComponentInstance component) {
+    final keys = component.properties.keys.toList()..sort();
+    if (component.type.name == 'TextBoxComponent') {
+      const order = ['text', 'textRenderer', 'boxConfig', 'align'];
+      keys.sort((a, b) {
+        final first = order.indexOf(a);
+        final second = order.indexOf(b);
+        if (first >= 0 && second >= 0) return first.compareTo(second);
+        if (first >= 0) return -1;
+        if (second >= 0) return 1;
+        return a.compareTo(b);
+      });
+    }
+    return {for (final key in keys) key: component.properties[key]};
   }
 
   static bool _isSpriteLike(String name, String? baseType) =>

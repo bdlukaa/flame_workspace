@@ -11,6 +11,7 @@ import '../../../../widgets/tree_view.dart';
 import '../component_view.dart';
 import '../../workbench_view.dart';
 import '../paint_property_field.dart';
+import '../text_box_config_property_field.dart';
 import '../text_paint_property_field.dart';
 import '../vertices_property_field.dart';
 import 'scene_view.dart';
@@ -438,8 +439,13 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
     super.initState();
     for (final parameter in _constructorParameters) {
       if (parameter.name == 'textRenderer' &&
-          widget.selectedComponent.name == 'TextComponent') {
+          {
+            'TextComponent',
+            'TextBoxComponent',
+          }.contains(widget.selectedComponent.name)) {
         parameters[parameter.name] = const WorkspaceTextPaint();
+      } else if (parameter.nonNullableType == 'TextBoxConfig') {
+        parameters[parameter.name] = const WorkspaceTextBoxConfig();
       } else if (PropertyTypeAdapterRegistry.metadata(parameter.type)
               .editorKind ==
           WorkspacePropertyEditorKind.vectorList) {
@@ -504,6 +510,8 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
           parameters[parameter.name] ?? parameter.defaultValue ?? 'null';
       if (input is WorkspacePaint ||
           input is WorkspaceTextPaint ||
+          input is WorkspaceTextBoxConfig ||
+          input is WorkspaceEdgeInsets ||
           input is List<WorkspaceVectorValue> ||
           (parameter.nonNullableType == 'Paint' && input == 'null')) {
         return true;
@@ -624,6 +632,16 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
                           setState(() => parameters[parameter.name] = value),
                     );
                   }
+                  if (parameter.nonNullableType == 'TextBoxConfig') {
+                    final current = parameters[parameter.name];
+                    return TextBoxConfigPropertyField(
+                      value: current is WorkspaceTextBoxConfig
+                          ? current
+                          : const WorkspaceTextBoxConfig(),
+                      onChanged: (value) =>
+                          setState(() => parameters[parameter.name] = value),
+                    );
+                  }
                   if (parameter.nonNullableType == 'TextPaint') {
                     final current = parameters[parameter.name];
                     return TextPaintPropertyField(
@@ -644,6 +662,28 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
                       nullable: parameter.type.endsWith('?'),
                       onChanged: (value) =>
                           setState(() => parameters[parameter.name] = value),
+                    );
+                  }
+                  if (parameter.nonNullableType == 'Anchor') {
+                    final current =
+                        parameters[parameter.name] as String? ??
+                        parameter.defaultValue ??
+                        'Anchor.topLeft';
+                    final option = current.split('.').last;
+                    return EnumPropertyField(
+                      name:
+                          widget.selectedComponent.name == 'TextBoxComponent' &&
+                              parameter.name == 'align'
+                          ? 'Content alignment'
+                          : parameter.name,
+                      type: parameter.nonNullableType,
+                      value: option,
+                      options: PropertyTypeAdapterRegistry.metadata(
+                        parameter.type,
+                      ).options,
+                      onChanged: (value) => setState(
+                        () => parameters[parameter.name] = 'Anchor.$value',
+                      ),
                     );
                   }
                   if (parameter.nonNullableType == 'Vector2') {

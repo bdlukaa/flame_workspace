@@ -172,6 +172,80 @@ class WorkspaceTextPaint extends WorkspaceValue {
   );
 }
 
+class WorkspaceEdgeInsets extends WorkspaceValue {
+  const WorkspaceEdgeInsets({
+    this.top = 0,
+    this.right = 0,
+    this.bottom = 0,
+    this.left = 0,
+  });
+
+  final double top;
+  final double right;
+  final double bottom;
+  final double left;
+
+  const WorkspaceEdgeInsets.all(double value)
+    : top = value,
+      right = value,
+      bottom = value,
+      left = value;
+
+  @override
+  bool operator ==(Object other) =>
+      other is WorkspaceEdgeInsets &&
+      other.top == top &&
+      other.right == right &&
+      other.bottom == bottom &&
+      other.left == left;
+
+  @override
+  int get hashCode => Object.hash(top, right, bottom, left);
+}
+
+class WorkspaceTextBoxConfig extends WorkspaceValue {
+  const WorkspaceTextBoxConfig({
+    this.maxWidth = 200,
+    this.margins = const WorkspaceEdgeInsets.all(8),
+    this.timePerChar = 0,
+    this.dismissDelay,
+    this.growingBox = false,
+  });
+
+  final double maxWidth;
+  final WorkspaceEdgeInsets margins;
+  final double timePerChar;
+  final double? dismissDelay;
+  final bool growingBox;
+
+  WorkspaceTextBoxConfig copyWith({
+    double? maxWidth,
+    WorkspaceEdgeInsets? margins,
+    double? timePerChar,
+    double? dismissDelay,
+    bool? growingBox,
+  }) => WorkspaceTextBoxConfig(
+    maxWidth: maxWidth ?? this.maxWidth,
+    margins: margins ?? this.margins,
+    timePerChar: timePerChar ?? this.timePerChar,
+    dismissDelay: dismissDelay ?? this.dismissDelay,
+    growingBox: growingBox ?? this.growingBox,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is WorkspaceTextBoxConfig &&
+      other.maxWidth == maxWidth &&
+      other.margins == margins &&
+      other.timePerChar == timePerChar &&
+      other.dismissDelay == dismissDelay &&
+      other.growingBox == growingBox;
+
+  @override
+  int get hashCode =>
+      Object.hash(maxWidth, margins, timePerChar, dismissDelay, growingBox);
+}
+
 class WorkspacePaint extends WorkspaceValue {
   const WorkspacePaint({
     this.color = const WorkspaceColor(0xFF000000),
@@ -294,6 +368,8 @@ abstract final class WorkspaceValueCodec {
       'Color' => _parseColor(value),
       'Paint' => _parsePaint(value),
       'TextPaint' || 'TextRenderer' => _parseTextPaint(value),
+      'EdgeInsets' => _parseEdgeInsets(value),
+      'TextBoxConfig' => _parseTextBoxConfig(value),
       'Vector2' => _parseVector(value),
       'Anchor' => _parseAnchor(value),
       'Map' => _parseMap(value),
@@ -321,6 +397,10 @@ abstract final class WorkspaceValueCodec {
         return _paintFromMap(map);
       case 'textPaint':
         return _textPaintFromMap(map);
+      case 'edgeInsets':
+        return _edgeInsetsFromMap(map);
+      case 'textBoxConfig':
+        return _textBoxConfigFromMap(map);
       case 'anchor':
         return WorkspaceAnchor(
           (map['x'] as num).toDouble(),
@@ -360,6 +440,12 @@ abstract final class WorkspaceValueCodec {
     if (value is WorkspaceTextPaint) {
       return {_tag: 'textPaint', ..._textPaintToMap(value)};
     }
+    if (value is WorkspaceEdgeInsets) {
+      return {_tag: 'edgeInsets', ..._edgeInsetsToMap(value)};
+    }
+    if (value is WorkspaceTextBoxConfig) {
+      return {_tag: 'textBoxConfig', ..._textBoxConfigToMap(value)};
+    }
     if (value is WorkspaceEnumValue) {
       return {_tag: 'enum', 'type': value.type, 'member': value.member};
     }
@@ -385,6 +471,8 @@ abstract final class WorkspaceValueCodec {
       return 'Color(0x${value.argb.toRadixString(16).padLeft(8, '0').toUpperCase()})';
     }
     if (value is WorkspaceTextPaint) return _textPaintDart(value);
+    if (value is WorkspaceEdgeInsets) return _edgeInsetsDart(value);
+    if (value is WorkspaceTextBoxConfig) return _textBoxConfigDart(value);
     if (value is WorkspacePaint) {
       return 'Paint()'
           '\n  ..color = const Color(0x${value.color.argb.toRadixString(16).padLeft(8, '0').toUpperCase()})'
@@ -427,6 +515,8 @@ abstract final class WorkspaceValueCodec {
     if (value is WorkspaceEnumValue) return value.member;
     if (value is WorkspacePaint) return 'Paint';
     if (value is WorkspaceTextPaint) return 'TextPaint';
+    if (value is WorkspaceEdgeInsets) return 'EdgeInsets';
+    if (value is WorkspaceTextBoxConfig) return 'TextBoxConfig';
     if (value is WorkspaceAnchor) {
       final name = _anchorName(value);
       return name == null ? 'Anchor(${value.x}, ${value.y})' : name;
@@ -470,6 +560,10 @@ abstract final class WorkspaceValueCodec {
         case 'TextPaint':
         case 'TextRenderer':
           return _textPaintFromMap(Map<String, Object?>.from(payload));
+        case 'EdgeInsets':
+          return _edgeInsetsFromMap(Map<String, Object?>.from(payload));
+        case 'TextBoxConfig':
+          return _textBoxConfigFromMap(Map<String, Object?>.from(payload));
         case 'Anchor':
           final name = payload['name'];
           final named = name is String ? _anchors[name] : null;
@@ -515,6 +609,8 @@ abstract final class WorkspaceValueCodec {
     }
     if (value is WorkspacePaint) return _paintToMap(value);
     if (value is WorkspaceTextPaint) return _textPaintToMap(value);
+    if (value is WorkspaceEdgeInsets) return _edgeInsetsToMap(value);
+    if (value is WorkspaceTextBoxConfig) return _textBoxConfigToMap(value);
     if (value is WorkspaceEnumValue) {
       return {'enumType': value.type, 'member': value.member};
     }
@@ -724,6 +820,113 @@ abstract final class WorkspaceValueCodec {
     return 'TextPaint(\n  style: const TextStyle(${style.join(', ')}),\n  textDirection: TextDirection.${value.textDirection.name},\n)';
   }
 
+  static WorkspaceEdgeInsets _parseEdgeInsets(String input) {
+    final decoded = jsonDecode(input);
+    if (decoded is! Map) {
+      throw FormatException('Expected an EdgeInsets JSON object: $input');
+    }
+    return _edgeInsetsFromMap(Map<String, Object?>.from(decoded));
+  }
+
+  static WorkspaceEdgeInsets _edgeInsetsFromMap(Map<String, Object?> map) {
+    double side(String key) {
+      final value = map[key] ?? 0;
+      if (value is! num || !value.toDouble().isFinite || value < 0) {
+        throw FormatException(
+          'EdgeInsets $key must be a finite non-negative number.',
+        );
+      }
+      return value.toDouble();
+    }
+
+    return WorkspaceEdgeInsets(
+      top: side('top'),
+      right: side('right'),
+      bottom: side('bottom'),
+      left: side('left'),
+    );
+  }
+
+  static Map<String, Object?> _edgeInsetsToMap(WorkspaceEdgeInsets value) => {
+    'top': value.top,
+    'right': value.right,
+    'bottom': value.bottom,
+    'left': value.left,
+  };
+
+  static String _edgeInsetsDart(WorkspaceEdgeInsets value) =>
+      'EdgeInsets.only(top: ${_number(value.top)}, right: ${_number(value.right)}, '
+      'bottom: ${_number(value.bottom)}, left: ${_number(value.left)})';
+
+  static WorkspaceTextBoxConfig _parseTextBoxConfig(String input) {
+    final decoded = jsonDecode(input);
+    if (decoded is! Map) {
+      throw FormatException('Expected a TextBoxConfig JSON object: $input');
+    }
+    return _textBoxConfigFromMap(Map<String, Object?>.from(decoded));
+  }
+
+  static WorkspaceTextBoxConfig _textBoxConfigFromMap(
+    Map<String, Object?> map,
+  ) {
+    double number(String key, double fallback, {double minimum = 0}) {
+      final value = map[key] ?? fallback;
+      if (value is! num ||
+          !value.toDouble().isFinite ||
+          value.toDouble() < minimum) {
+        throw FormatException(
+          'TextBoxConfig $key must be a finite number of at least $minimum.',
+        );
+      }
+      return value.toDouble();
+    }
+
+    final rawMargins = map['margins'];
+    final margins = switch (rawMargins) {
+      WorkspaceEdgeInsets value => value,
+      Map value => _edgeInsetsFromMap(Map<String, Object?>.from(value)),
+      null => const WorkspaceEdgeInsets.all(8),
+      _ => throw const FormatException('TextBoxConfig margins are invalid.'),
+    };
+    final growingBox = map['growingBox'] ?? false;
+    if (growingBox is! bool) {
+      throw const FormatException('TextBoxConfig growingBox must be boolean.');
+    }
+    final dismissDelay = map['dismissDelay'];
+    if (dismissDelay != null &&
+        (dismissDelay is! num ||
+            !dismissDelay.toDouble().isFinite ||
+            dismissDelay < 0)) {
+      throw const FormatException(
+        'TextBoxConfig dismissDelay must be null or non-negative.',
+      );
+    }
+    return WorkspaceTextBoxConfig(
+      maxWidth: number('maxWidth', 200, minimum: 0.01),
+      margins: margins,
+      timePerChar: number('timePerChar', 0),
+      dismissDelay: dismissDelay is num ? dismissDelay.toDouble() : null,
+      growingBox: growingBox,
+    );
+  }
+
+  static Map<String, Object?> _textBoxConfigToMap(
+    WorkspaceTextBoxConfig value,
+  ) => {
+    'maxWidth': value.maxWidth,
+    'margins': _edgeInsetsToMap(value.margins),
+    'timePerChar': value.timePerChar,
+    'dismissDelay': value.dismissDelay,
+    'growingBox': value.growingBox,
+  };
+
+  static String _textBoxConfigDart(WorkspaceTextBoxConfig value) =>
+      'TextBoxConfig(maxWidth: ${_number(value.maxWidth)}, '
+      'margins: ${_edgeInsetsDart(value.margins)}, '
+      'timePerChar: ${_number(value.timePerChar)}, '
+      'dismissDelay: ${value.dismissDelay == null ? 'null' : _number(value.dismissDelay!)}, '
+      'growingBox: ${value.growingBox})';
+
   static WorkspacePaint _parsePaint(String input) {
     if (input == 'Paint()' || input == 'const Paint()') {
       return const WorkspacePaint();
@@ -893,6 +1096,8 @@ enum WorkspacePropertyEditorKind {
   color,
   paint,
   textPaint,
+  edgeInsets,
+  textBoxConfig,
   unsupported,
 }
 
@@ -954,6 +1159,14 @@ abstract final class PropertyTypeAdapterRegistry {
     _BuiltinPropertyTypeAdapter(
       'TextRenderer',
       WorkspacePropertyEditorKind.textPaint,
+    ),
+    _BuiltinPropertyTypeAdapter(
+      'EdgeInsets',
+      WorkspacePropertyEditorKind.edgeInsets,
+    ),
+    _BuiltinPropertyTypeAdapter(
+      'TextBoxConfig',
+      WorkspacePropertyEditorKind.textBoxConfig,
     ),
     _BuiltinPropertyTypeAdapter('Vector2', WorkspacePropertyEditorKind.vector2),
     _VectorListPropertyTypeAdapter(),
@@ -1110,6 +1323,8 @@ class _EnumPropertyTypeAdapter extends _BuiltinPropertyTypeAdapter {
         'Paint',
         'TextPaint',
         'TextRenderer',
+        'EdgeInsets',
+        'TextBoxConfig',
         'Vector2',
         'Anchor',
         'Map',

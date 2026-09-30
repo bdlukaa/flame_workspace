@@ -267,6 +267,49 @@ void main() {
           ),
           priority: 5,
         ),
+        ComponentInstance(
+          id: 'scene:level-one:component:text-box',
+          type: const ComponentType(
+            id: 'TextBoxComponent',
+            name: 'TextBoxComponent',
+            baseType: 'TextComponent',
+            isPositionComponent: true,
+            properties: [
+              WorkspacePropertyDefinition(name: 'text', type: 'String'),
+              WorkspacePropertyDefinition(
+                name: 'textRenderer',
+                type: 'TextPaint?',
+              ),
+              WorkspacePropertyDefinition(
+                name: 'boxConfig',
+                type: 'TextBoxConfig',
+              ),
+              WorkspacePropertyDefinition(name: 'align', type: 'Anchor'),
+            ],
+          ),
+          properties: {
+            'text': 'Box content',
+            'textRenderer': const WorkspaceTextPaint(fontSize: 16),
+            'boxConfig': const WorkspaceTextBoxConfig(
+              maxWidth: 320,
+              margins: WorkspaceEdgeInsets(
+                top: 1,
+                right: 2,
+                bottom: 3,
+                left: 4,
+              ),
+              timePerChar: 0.05,
+              dismissDelay: 2,
+              growingBox: true,
+            ),
+            'align': const WorkspaceAnchor(1, 1),
+          },
+          transform: const WorkspaceTransform(
+            position: WorkspaceVector2(40, 150),
+            anchor: WorkspaceVector2(0.5, 0.5),
+          ),
+          priority: 6,
+        ),
       ]);
       await WorkspaceScenePersistence.save(
         file: WorkspaceScenePersistence.fileFor(imported, persistedScene),
@@ -301,6 +344,20 @@ void main() {
       expect(
         generatedSpriteAdapter,
         contains('component5.textRenderer = TextPaint('),
+      );
+      expect(
+        generatedSpriteAdapter,
+        contains('component6.text = "Box content";'),
+      );
+      expect(
+        generatedSpriteAdapter,
+        contains('component6.boxConfig = TextBoxConfig('),
+      );
+      expect(generatedSpriteAdapter, contains('maxWidth: 320.0'));
+      expect(generatedSpriteAdapter, contains('EdgeInsets.only('));
+      expect(
+        generatedSpriteAdapter,
+        contains('component6.align = Anchor.bottomRight;'),
       );
       expect(generatedSpriteAdapter, contains('fontWeight: FontWeight.w700'));
       expect(
@@ -359,6 +416,7 @@ void main() {
     FlameWorkspaceCore.instance = FlameWorkspaceCore()..game = game;
     await tester.pumpWidget(GameWidget(game: game));
     await pumpUntilComplete(tester, game.ready());
+    await tester.pump(const Duration(milliseconds: 200));
 
     final circle = scene.children.whereType<CircleComponent>().single;
     expect(circle.radius, 40);
@@ -394,7 +452,9 @@ void main() {
     expect(polygon.paint.style, PaintingStyle.stroke);
     expect(polygon.paint.strokeWidth, 3);
 
-    final text = scene.children.whereType<TextComponent>().single;
+    final text = scene.children
+        .whereType<TextComponent>()
+        .singleWhere((component) => component.runtimeType == TextComponent);
     expect(text.text, 'Flame Workspace');
     expect(text.position, Vector2(15, 25));
     expect(text.scale, Vector2(1.5, 0.75));
@@ -431,6 +491,29 @@ void main() {
     expect(renderer.style.fontStyle, FontStyle.italic);
     expect(renderer.style.letterSpacing, 2);
     expect(text.size.y, greaterThan(originalHeight));
+
+    final textBox = scene.children.whereType<TextBoxComponent>().single;
+    expect(textBox.text, 'Box content');
+    expect(textBox.align, Anchor.bottomRight);
+    expect(textBox.boxConfig.maxWidth, 320);
+    expect(textBox.boxConfig.margins, const EdgeInsets.only(top: 1, right: 2, bottom: 3, left: 4));
+    expect(textBox.boxConfig.timePerChar, 0.05);
+    expect(textBox.boxConfig.dismissDelay, 2);
+    expect(textBox.boxConfig.growingBox, isTrue);
+    textBox.boxConfig = textBox.boxConfig.copyWith(timePerChar: 0);
+    await tester.pump(const Duration(milliseconds: 200));
+    final boxWidth = textBox.size.x;
+    setPropertyValue(
+      'TextBoxComponent',
+      textBox,
+      'boxConfig',
+      const TextBoxConfig(maxWidth: 180),
+    );
+    expect(textBox.boxConfig.maxWidth, 180);
+    expect(textBox.size.x, isNot(boxWidth));
+    setPropertyValue('TextBoxComponent', textBox, 'align', Anchor.center);
+    expect(textBox.align, Anchor.center);
+    await tester.pump(const Duration(milliseconds: 200));
   });
 }
 ''');

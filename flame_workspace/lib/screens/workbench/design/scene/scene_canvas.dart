@@ -152,6 +152,20 @@ class SceneCanvasGeometry {
   static const fallbackSize = Size.square(64);
 
   static Size sizeFor(ComponentInstance component) {
+    if (component.type.name == 'TextBoxComponent') {
+      final data = const EditorComponentRenderRegistry().resolve(component);
+      final painter = TextPainter(
+        text: TextSpan(text: data.text ?? '', style: data.textStyle),
+        textDirection: data.textDirection,
+      )..layout(maxWidth: data.textBoxMaxWidth);
+      final size = Size(
+        data.textBoxMaxWidth +
+            data.textBoxMargins.left +
+            data.textBoxMargins.right,
+        painter.height + data.textBoxMargins.top + data.textBoxMargins.bottom,
+      );
+      return size.width > 0 && size.height > 0 ? size : fallbackSize;
+    }
     if (component.type.name == 'TextComponent') {
       final data = const EditorComponentRenderRegistry().resolve(component);
       final painter = TextPainter(
@@ -1204,7 +1218,31 @@ class _SceneCanvasPainter({
           ),
           textDirection: data.textDirection,
         )..layout(maxWidth: frame.size.width);
-        painter.paint(canvas, Offset.zero);
+        if (data.isTextBox) {
+          final box = rect;
+          final maxWidth =
+              box.width - data.textBoxMargins.left - data.textBoxMargins.right;
+          final textPainter = TextPainter(
+            text: TextSpan(
+              text: data.text ?? data.label,
+              style: data.textStyle ?? TextStyle(color: color),
+            ),
+            textDirection: data.textDirection,
+          )..layout(maxWidth: maxWidth);
+          final offset = Offset(
+            data.textBoxMargins.left +
+                (maxWidth - textPainter.width) * data.contentAlign.x,
+            data.textBoxMargins.top +
+                (box.height -
+                        data.textBoxMargins.top -
+                        data.textBoxMargins.bottom -
+                        textPainter.height) *
+                    data.contentAlign.y,
+          );
+          textPainter.paint(canvas, offset);
+        } else {
+          painter.paint(canvas, Offset.zero);
+        }
         break;
       case EditorPreviewPrimitive.rectangle:
         canvas.drawRect(rect, paint);

@@ -81,7 +81,8 @@ class const FlameApiClass({
           : parameter.name;
       final field = FlameComponentField(
         parameterName,
-        name == 'TextComponent' && parameter.name == 'textRenderer'
+        (name == 'TextComponent' || name == 'TextBoxComponent') &&
+                parameter.name == 'textRenderer'
             ? 'TextPaint?'
             : parameter.type,
         parameter.defaultValue,
@@ -124,12 +125,14 @@ class const FlameApiClass({
         for (final property in properties)
           if (property.hasSetter &&
               (property.typeAccessible ||
-                  (name == 'TextComponent' &&
+                  ((name == 'TextComponent' || name == 'TextBoxComponent') &&
                       property.name == 'textRenderer')) &&
               !_transformParameters.contains(property.name))
             FlameComponentProperty(
               name: property.name,
-              type: name == 'TextComponent' && property.name == 'textRenderer'
+              type:
+                  (name == 'TextComponent' || name == 'TextBoxComponent') &&
+                      property.name == 'textRenderer'
                   ? 'TextPaint?'
                   : property.type,
             ),
