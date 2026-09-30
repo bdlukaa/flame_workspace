@@ -178,6 +178,8 @@ class FlameProjectState with ChangeNotifier {
   List<String> analysisDiagnostics = const [];
   List<RuntimeTreeDiagnostic> runtimeTreeDiagnostics = const [];
   List<WorkspaceDiagnostic> generationDiagnostics = const [];
+  Future<bool>? _saveWorkspaceInFlight;
+  bool _saveWorkspaceRequested = false;
   String? assetError;
   WorkspaceDiagnostic? _operationDiagnostic;
 
@@ -1407,8 +1409,34 @@ class FlameProjectState with ChangeNotifier {
     }
   }
 
-  Future<bool> saveWorkspace() async {
-    if (!canEditWorkspace) return false;
+  Future<bool> saveWorkspace() {
+    if (!canEditWorkspace) return Future.value(false);
+    final inFlight = _saveWorkspaceInFlight;
+    if (inFlight != null) {
+      _saveWorkspaceRequested = true;
+      return inFlight;
+    }
+
+    late final Future<bool> save;
+    save = _saveWorkspaceLoop().whenComplete(() {
+      if (identical(_saveWorkspaceInFlight, save)) {
+        _saveWorkspaceInFlight = null;
+      }
+    });
+    _saveWorkspaceInFlight = save;
+    return save;
+  }
+
+  Future<bool> _saveWorkspaceLoop() async {
+    var saved = false;
+    do {
+      _saveWorkspaceRequested = false;
+      saved = await _saveWorkspaceOnce();
+    } while (_saveWorkspaceRequested);
+    return saved;
+  }
+
+  Future<bool> _saveWorkspaceOnce() async {
     try {
       await workspaceModel.save(project);
       // Flutter test isolates cannot safely spawn a nested Dart analyzer;
@@ -1424,10 +1452,14 @@ class FlameProjectState with ChangeNotifier {
           for (final diagnostic in validation.diagnostics)
             WorkspaceDiagnostic(
               category: WorkspaceDiagnosticCategory.generation,
-              code: 'generated_source_invalid',
+              code: validation.timedOut
+                  ? 'generated_source_validation_timeout'
+                  : 'generated_source_invalid',
               operation: 'Validate generated Workspace source',
               message: diagnostic.displayMessage,
-              recovery: 'Fix the generated-code input shown in the context and save again.',
+              recovery: validation.timedOut
+                  ? 'Validation did not complete; Build State was preserved. Retry saving when the project Analyzer is idle.'
+                  : 'Fix the generated-code input shown in the context and save again.',
             ),
         ];
         if (!validation.isValid) {

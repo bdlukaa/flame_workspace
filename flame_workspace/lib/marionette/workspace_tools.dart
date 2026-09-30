@@ -193,11 +193,28 @@ Future<MarionetteExtensionResult> _openFixture() async {
       'Workspace navigator is not ready.',
     );
   }
-  final source = Directory('../fixtures/modern_workspace').absolute;
+  final source = Directory('../template').absolute;
   final temporary = await Directory.systemTemp.createTemp(
-    'flame_workspace_fixture_',
+    'flame_workspace_smoke_',
   );
   await _copyDirectory(source, temporary);
+  final entrypoint = File(path.join(temporary.path, 'lib', 'main.dart'));
+  if (!await entrypoint.exists()) {
+    throw StateError(
+      'Runnable smoke project is missing lib/main.dart: ${temporary.path}',
+    );
+  }
+  final pubspec = File(path.join(temporary.path, 'pubspec.yaml'));
+  final runtimePackage = Directory('../flame_workspace_runtime').absolute;
+  final pubspecSource = await pubspec.readAsString();
+  await pubspec.writeAsString(
+    pubspecSource
+        .replaceFirst('resolution: workspace\\n', '')
+        .replaceFirst(
+          "path: '../flame_workspace_runtime'",
+          "path: '${runtimePackage.path}'",
+        ),
+  );
   final pubGet = await Process.run('flutter', const [
     'pub',
     'get',

@@ -1,9 +1,15 @@
+import 'dart:io';
+
 import 'package:flame_workspace/main.dart';
 import 'package:flame_workspace/marionette/workspace_tools.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
 void main() {
+  test('runnable Marionette smoke template has a Flutter entrypoint', () {
+    expect(File('../template/lib/main.dart').existsSync(), isTrue);
+  });
+
   test('Welcome diagnostics succeed without an open project', () async {
     initializeFlameWorkspaceBinding();
     initializeWorkspaceMarionetteTools();

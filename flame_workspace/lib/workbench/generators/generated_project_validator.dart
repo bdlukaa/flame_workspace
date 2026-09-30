@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as path;
@@ -8,13 +9,19 @@ import '../project/project.dart';
 import 'scene_naming.dart';
 
 class GeneratedSourceValidationResult {
-  const GeneratedSourceValidationResult.success() : diagnostics = const [];
+  const GeneratedSourceValidationResult.success()
+    : diagnostics = const [],
+      timedOut = false;
 
-  const GeneratedSourceValidationResult.failure(this.diagnostics);
+  const GeneratedSourceValidationResult.failure(
+    this.diagnostics, {
+    this.timedOut = false,
+  });
 
   final List<GeneratedSourceDiagnostic> diagnostics;
+  final bool timedOut;
 
-  bool get isValid => diagnostics.isEmpty;
+  bool get isValid => diagnostics.isEmpty && !timedOut;
 }
 
 class GeneratedSourceDiagnostic {
@@ -73,12 +80,31 @@ class GeneratedProjectValidator {
     String executable,
     List<String> arguments, {
     String? workingDirectory,
-  }) => Process.run(executable, arguments, workingDirectory: workingDirectory);
+  }) async {
+    final process = await Process.start(
+      executable,
+      arguments,
+      workingDirectory: workingDirectory,
+    );
+    final stdout = process.stdout.transform(utf8.decoder).join();
+    final stderr = process.stderr.transform(utf8.decoder).join();
+    try {
+      final exitCode = await process.exitCode.timeout(
+        const Duration(seconds: 30),
+      );
+      return ProcessResult(process.pid, exitCode, await stdout, await stderr);
+    } on TimeoutException {
+      process.kill();
+      await process.exitCode;
+      rethrow;
+    }
+  }
 
   static Future<GeneratedSourceValidationResult> validate({
     required FlameProject project,
     required Iterable<SceneDefinition> scenes,
     GeneratedAnalyzer analyzer = _runAnalyzer,
+    Duration timeout = const Duration(seconds: 30),
   }) async {
     final generatedDirectory = Directory(
       path.join(project.location.path, 'lib', '.generated'),
@@ -89,11 +115,12 @@ class GeneratedProjectValidator {
 
     late final ProcessResult result;
     try {
-      result = await analyzer(
-        Platform.resolvedExecutable,
-        ['analyze', '--format', 'machine', generatedDirectory.path],
-        workingDirectory: project.location.path,
-      ).timeout(const Duration(seconds: 30));
+      result = await analyzer(Platform.resolvedExecutable, [
+        'analyze',
+        '--format',
+        'machine',
+        generatedDirectory.path,
+      ], workingDirectory: project.location.path).timeout(timeout);
     } on TimeoutException {
       return GeneratedSourceValidationResult.failure([
         GeneratedSourceDiagnostic(
@@ -102,9 +129,10 @@ class GeneratedProjectValidator {
           componentTypes: const [],
           property: null,
           file: generatedDirectory.path,
-          compilerMessage: 'Dart analyzer timed out after 30 seconds.',
+          compilerMessage:
+              'Dart analyzer timed out after ${timeout.inSeconds} seconds.',
         ),
-      ]);
+      ], timedOut: true);
     }
     if (result.exitCode == 0) {
       return const GeneratedSourceValidationResult.success();

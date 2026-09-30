@@ -908,7 +908,11 @@ ComponentInstance _componentFromSelection(
     for (final parameter in indexed.parameters)
       if (!_isTransformParameter(parameter.name) &&
           parameter.name != 'children' &&
-          parameter.name != 'key')
+          parameter.name != 'key' &&
+          ComponentSupportMatrix.exposesInspectorProperty(
+            indexed.name,
+            parameter.name,
+          ))
         parameter.name: WorkspacePropertyDefinition(
           name: parameter.name,
           type: parameter.type,
@@ -924,6 +928,12 @@ ComponentInstance _componentFromSelection(
         ),
   };
   for (final property in indexed.writableProperties) {
+    if (!ComponentSupportMatrix.exposesInspectorProperty(
+      indexed.name,
+      property.name,
+    )) {
+      continue;
+    }
     final previous = definitionsByName[property.name];
     definitionsByName[property.name] = WorkspacePropertyDefinition(
       name: property.name,

@@ -894,32 +894,24 @@ class PropertyFieldState extends State<PropertyField> {
                     : CrossAxisAlignment.center,
                 children: [
                   Expanded(
-                    child: EditableText(
+                    child: TextField(
                       controller: controller,
                       focusNode: focusNode,
-                      style: theme.textTheme.bodySmall!,
+                      style: theme.textTheme.bodySmall,
                       cursorColor: theme.colorScheme.primary,
-                      cursorHeight: 16.0,
                       readOnly: !widget.editable,
-                      backgroundCursorColor: Colors.transparent,
-                      selectionColor: theme.colorScheme.primary.withValues(
-                        alpha: 0.3,
-                      ),
                       maxLines: isExpanded ? null : 1,
+                      minLines: 1,
                       keyboardType: isNumbericField
                           ? TextInputType.number
                           : null,
                       textInputAction: TextInputAction.done,
-                      onChanged: (text) {
-                        final abcdRegex = RegExp(
-                          r'^[A-B\.]+$',
-                          caseSensitive: false,
-                        );
-                        if (text.contains(abcdRegex)) {
-                          controller.text = text.replaceAll(abcdRegex, '');
-                        }
-                      },
-                      onSubmitted: (text) => onSubmit(),
+                      onSubmitted: (_) => onSubmit(),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
                     ),
                   ),
                   if (isNumbericField && _isHovering)

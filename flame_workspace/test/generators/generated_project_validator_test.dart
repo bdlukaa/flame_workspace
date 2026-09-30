@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flame_workspace/workbench/generators/generated_project_validator.dart';
@@ -73,4 +74,33 @@ void main() {
     expect(pubspec.existsSync(), isTrue);
     expect(generatedFile.existsSync(), isTrue);
   });
+
+  test(
+    'reports a timeout as unavailable validation, not invalid source',
+    () async {
+      final projectDirectory = await Directory.systemTemp.createTemp(
+        'flame_workspace_validation_timeout_',
+      );
+      addTearDown(() => projectDirectory.delete(recursive: true));
+      await Directory('${projectDirectory.path}/lib/.generated')
+          .create(recursive: true);
+
+      final pending = Completer<ProcessResult>();
+      final result = await GeneratedProjectValidator.validate(
+        analyzer: (_, _, {workingDirectory}) => pending.future,
+        project: FlameProject(
+          name: 'timeout',
+          organization: 'test',
+          location: projectDirectory,
+          initialScene: 'Main',
+        ),
+        scenes: const [],
+        timeout: const Duration(milliseconds: 5),
+      );
+
+      expect(result.isValid, isFalse);
+      expect(result.timedOut, isTrue);
+      expect(result.diagnostics.single.compilerMessage, contains('timed out'));
+    },
+  );
 }

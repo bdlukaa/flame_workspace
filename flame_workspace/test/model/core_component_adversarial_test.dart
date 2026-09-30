@@ -175,11 +175,8 @@ void main() {
       expect(generated, contains('Vector2(-12.5, 0.0)'));
       expect(generated, contains('Vector2(0.25, 2.5)'));
       expect(generated, contains('Anchor(0.25, 0.75)'));
-      expect(
-        generated,
-        contains('component3.text = ${jsonEncode('"quoted"\nnext')};'),
-      );
-      expect(generated, contains('fontFamily: ""'));
+      expect(generated, contains("component3.text = '\"quoted\"\\nnext';"));
+      expect(generated, contains("fontFamily: ''"));
       expect(generated, contains('maxWidth: 0.01'));
       expect(generated, isNot(contains('radius: "')));
       expect(generated, isNot(contains('strokeWidth = "')));

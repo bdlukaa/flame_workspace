@@ -49,6 +49,25 @@ class ComponentSupportSpec {
 class ComponentSupportMatrix {
   const ComponentSupportMatrix._();
 
+  static const _coreInspectorProperties = <String, Set<String>>{
+    'PositionComponent': {},
+    'SpriteComponent': {},
+    'CircleComponent': {'radius', 'paint'},
+    'RectangleComponent': {'paint'},
+    'PolygonComponent': {'vertices', 'paint'},
+    'TextComponent': {'text', 'textRenderer'},
+    'TextBoxComponent': {'text', 'textRenderer', 'boxConfig', 'align'},
+  };
+
+  /// Whether an ordinary Inspector field is part of the Core Visual contract.
+  ///
+  /// Discovered setters remain available as API metadata, but are not thereby
+  /// promised to have a supported semantic value/editor/runtime path.
+  static bool exposesInspectorProperty(String component, String property) {
+    final supported = _coreInspectorProperties[component];
+    return supported == null || supported.contains(property);
+  }
+
   static const coreVisual = <ComponentSupportSpec>[
     ComponentSupportSpec(
       name: 'PositionComponent',

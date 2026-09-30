@@ -36,6 +36,40 @@ FlameComponentField parameter(
 );
 
 void main() {
+  group('Core Visual Inspector property capabilities', () {
+    test('exposes authored properties and hides Flame plumbing', () {
+      expect(
+        ComponentSupportMatrix.exposesInspectorProperty(
+          'CircleComponent',
+          'radius',
+        ),
+        isTrue,
+      );
+      expect(
+        ComponentSupportMatrix.exposesInspectorProperty(
+          'CircleComponent',
+          'paint',
+        ),
+        isTrue,
+      );
+      for (final property in [
+        'paintLayers',
+        'debugColor',
+        'parent',
+        'decorator',
+      ]) {
+        expect(
+          ComponentSupportMatrix.exposesInspectorProperty(
+            'CircleComponent',
+            property,
+          ),
+          isFalse,
+          reason: '$property is Flame plumbing, not a Core Inspector field.',
+        );
+      }
+    });
+  });
+
   group('ComponentCapabilityEvaluator', () {
     test('rejects abstract components', () {
       final capability = ComponentCapabilityEvaluator.evaluate(
