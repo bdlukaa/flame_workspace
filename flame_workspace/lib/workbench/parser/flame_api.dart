@@ -50,6 +50,7 @@ class const FlameApiClass({
   required final List<FlameApiConstructor> constructors,
   required final List<FlameApiProperty> properties,
   required final bool isComponent,
+  required final bool isAbstract,
 }) {
   bool get isPositionComponent =>
       name == 'PositionComponent' ||
@@ -140,6 +141,9 @@ class const FlameApiClass({
       data: {
         'source': libraryUri,
         'api': true,
+        'abstract': isAbstract,
+        'constructorName': constructor.name,
+        'constructorIsFactory': constructor.isFactory,
         'properties': {
           for (final property in properties)
             property.name: {
@@ -444,6 +448,7 @@ class FlameApiDiscovery {
       constructors: element.constructors.map(_constructorMetadata).toList(),
       properties: properties,
       isComponent: isComponent,
+      isAbstract: element.isAbstract,
     );
   }
 

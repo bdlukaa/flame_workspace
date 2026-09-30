@@ -1,0 +1,99 @@
+import 'package:flame_workspace/workbench/parser/component_capabilities.dart';
+import 'package:flame_workspace/workbench/project/objects/component.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+FlameComponentObject component({
+  String name = 'TestComponent',
+  bool abstract = false,
+  String constructorName = '',
+  List<FlameComponentField> parameters = const [],
+}) {
+  return FlameComponentObject(
+    name: name,
+    type: 'Component',
+    parameters: parameters,
+    constructorParameters: parameters,
+    data: {'abstract': abstract, 'constructorName': constructorName},
+  );
+}
+
+FlameComponentField parameter(
+  String name,
+  String type, {
+  bool required = true,
+  String? defaultValue,
+  List<String> enumValues = const [],
+}) => FlameComponentField(
+  name,
+  type,
+  defaultValue,
+  null,
+  false,
+  false,
+  false,
+  enumValues,
+  required,
+);
+
+void main() {
+  group('ComponentCapabilityEvaluator', () {
+    test('rejects abstract components', () {
+      final capability = ComponentCapabilityEvaluator.evaluate(
+        component(abstract: true),
+      );
+
+      expect(capability.status, ComponentCapabilityStatus.unsupported);
+      expect(capability.addable, isFalse);
+    });
+
+    test('rejects named constructors', () {
+      final capability = ComponentCapabilityEvaluator.evaluate(
+        component(constructorName: 'regular'),
+      );
+
+      expect(capability.status, ComponentCapabilityStatus.unsupported);
+      expect(capability.reason, contains('unnamed constructor'));
+    });
+
+    test('rejects required unsupported callback and map values', () {
+      for (final type in ['void Function()', 'Map<String, Object?>']) {
+        final capability = ComponentCapabilityEvaluator.evaluate(
+          component(parameters: [parameter('value', type)]),
+        );
+
+        expect(capability.status, ComponentCapabilityStatus.unsupported);
+        expect(capability.reason, contains('value'));
+      }
+    });
+
+    test('classifies optional unsupported values as partially supported', () {
+      final capability = ComponentCapabilityEvaluator.evaluate(
+        component(
+          parameters: [parameter('value', 'CustomValue', required: false)],
+        ),
+      );
+
+      expect(capability.status, ComponentCapabilityStatus.partiallySupported);
+      expect(capability.addable, isFalse);
+    });
+
+    test('accepts supported semantic constructor values', () {
+      final capability = ComponentCapabilityEvaluator.evaluate(
+        component(
+          parameters: [
+            parameter('text', 'String'),
+            parameter('visible', 'bool'),
+            parameter('radius', 'double?'),
+            parameter('color', 'Color'),
+            parameter('position', 'Vector2'),
+            parameter('anchor', 'Anchor'),
+            parameter('style', 'PaintingStyle', enumValues: ['fill', 'stroke']),
+          ],
+        ),
+      );
+
+      expect(capability.status, ComponentCapabilityStatus.supported);
+      expect(capability.addable, isTrue);
+    });
+  });
+}

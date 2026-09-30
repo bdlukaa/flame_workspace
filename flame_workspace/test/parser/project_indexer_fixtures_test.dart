@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flame_workspace/workbench/parser/component_capabilities.dart';
 import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/parser/type_resolver.dart';
 import 'package:flame_workspace/workbench/parser/workspace_model_mapper.dart';
@@ -319,6 +320,30 @@ void main() {}
       (parameter) => parameter.name == 'position',
     );
     expect(position.superComponents, contains('PositionComponent'));
+  });
+
+  test('classifies core Flame components as addable', () async {
+    final (project, resolver, _) = await _resolvedFixture('empty_game');
+    addTearDown(resolver.dispose);
+    addTearDown(() => project.delete(recursive: true));
+
+    for (final name in [
+      'CircleComponent',
+      'RectangleComponent',
+      'PolygonComponent',
+      'TextComponent',
+      'TextBoxComponent',
+    ]) {
+      final component = resolver.flameApi.componentObjects.firstWhere(
+        (item) => item.name == name,
+      );
+      final capability = ComponentCapabilityEvaluator.evaluate(component);
+      expect(
+        capability.status,
+        ComponentCapabilityStatus.supported,
+        reason: '$name: ${capability.reason}',
+      );
+    }
   });
 
   test('discovers resolved Flame APIs and caches component metadata', () async {

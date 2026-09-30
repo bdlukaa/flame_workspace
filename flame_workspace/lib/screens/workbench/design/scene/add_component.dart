@@ -1,6 +1,7 @@
 import 'package:flame_workspace/screens/workbench/project/create_component.dart';
 import 'package:flame_workspace/widgets/inked_icon_button.dart';
 import 'package:flame_workspace/workbench/extensions.dart';
+import 'package:flame_workspace/workbench/parser/component_capabilities.dart';
 import 'package:flame_workspace/workbench/parser/values.dart';
 import 'package:flame_workspace_protocol/workspace_value.dart';
 import 'package:flutter/material.dart';
@@ -101,6 +102,17 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
 
   void _updateComponents() {
     final components = widget.workbench.state.components;
+    final addableFlameComponents = widget.workbench.state.flameComponents
+        .where(
+          (component) =>
+              ComponentCapabilityEvaluator.evaluate(component).addable,
+        )
+        .toList();
+
+    final addableProjectComponents = components.where((entry) {
+      final (component, _, _) = entry;
+      return ComponentCapabilityEvaluator.evaluate(component).addable;
+    });
 
     int sorter(TreeNode a, TreeNode b) {
       if (a.children == null && b.children == null) return 0;
@@ -188,12 +200,12 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
 
     rootComponents = componentsFor(
       types: ['Component'],
-      components: widget.workbench.state.flameComponents,
+      components: addableFlameComponents,
     ).toList()..sort(sorter);
 
     projectComponents = componentsFor(
-      types: widget.workbench.state.flameComponents.map((e) => e.type),
-      components: components.map((e) {
+      types: addableFlameComponents.map((e) => e.type),
+      components: addableProjectComponents.map((e) {
         final (component, _, _) = e;
         return component;
       }),
@@ -477,6 +489,9 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
   List<String> get _unsupportedParameters => [
     for (final parameter in _constructorParameters)
       if (!_isTransformParameter(parameter.name) &&
+          !ComponentCapabilityEvaluator.isWorkspaceManagedParameter(
+            parameter.name,
+          ) &&
           parameter.name != 'children' &&
           parameter.name != 'key' &&
           (parameter.isRequired ||
@@ -612,6 +627,9 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
         const Divider(),
         for (final parameter in _constructorParameters)
           if (!_isTransformParameter(parameter.name) &&
+              !ComponentCapabilityEvaluator.isWorkspaceManagedParameter(
+                parameter.name,
+              ) &&
               parameter.name != 'children' &&
               parameter.name != 'key')
             Padding(
