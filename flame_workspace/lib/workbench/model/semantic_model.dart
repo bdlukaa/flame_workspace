@@ -1,3 +1,5 @@
+import 'package:flame_workspace_protocol/workspace_value.dart';
+
 /// Widget-independent semantic data used by the editor and generators.
 class WorkspaceProject {
   final String id;
@@ -80,15 +82,28 @@ class const WorkspacePropertyDefinition({
   final bool inherited = false,
   final bool editable = true,
   final List<String> enumValues = const [],
+  final int? constructorPosition,
+  final bool recreateOnEdit = false,
 }) {
   factory WorkspacePropertyDefinition.fromJson(Map<String, Object?> json) {
+    final type = _requiredString(json, 'type');
+    final enumValues = _list(json['enumValues']).whereType<String>().toList();
+    final storedDefault = PropertyTypeAdapterRegistry.deserialize(
+      json['defaultValue'],
+    );
     return WorkspacePropertyDefinition(
       name: _requiredString(json, 'name'),
-      type: _requiredString(json, 'type'),
-      defaultValue: json['defaultValue'],
+      type: type,
+      defaultValue: PropertyTypeAdapterRegistry.migrateLegacy(
+        type,
+        storedDefault,
+        enumValues: enumValues,
+      ),
       inherited: json['inherited'] as bool? ?? false,
       editable: json['editable'] as bool? ?? true,
-      enumValues: _list(json['enumValues']).whereType<String>().toList(),
+      enumValues: enumValues,
+      constructorPosition: json['constructorPosition'] as int?,
+      recreateOnEdit: json['recreateOnEdit'] as bool? ?? false,
     );
   }
 
@@ -97,10 +112,13 @@ class const WorkspacePropertyDefinition({
   Map<String, Object?> toJson() => {
     'name': name,
     'type': type,
-    if (defaultValue != null) 'defaultValue': defaultValue,
+    if (defaultValue != null)
+      'defaultValue': PropertyTypeAdapterRegistry.serialize(defaultValue),
     if (inherited) 'inherited': true,
     if (!editable) 'editable': false,
     if (enumValues.isNotEmpty) 'enumValues': enumValues,
+    if (constructorPosition != null) 'constructorPosition': constructorPosition,
+    if (recreateOnEdit) 'recreateOnEdit': true,
   };
 }
 
@@ -196,15 +214,28 @@ class ComponentInstance {
        transform = transform ?? const WorkspaceTransform();
 
   factory ComponentInstance.fromJson(Map<String, Object?> json) {
+    final type = ComponentType.fromJson(_object(json['type']));
+    final properties = PropertyTypeAdapterRegistry.deserialize(
+      json['properties'] ?? const {},
+    ) as Map<String, Object?>;
+    for (final definition in type.properties) {
+      if (properties.containsKey(definition.name)) {
+        properties[definition.name] = PropertyTypeAdapterRegistry.migrateLegacy(
+          definition.type,
+          properties[definition.name],
+          enumValues: definition.enumValues,
+        );
+      }
+    }
     return ComponentInstance(
       id: _requiredString(json, 'id'),
-      type: ComponentType.fromJson(_object(json['type'])),
+      type: type,
       declarationName: json['declarationName'] as String?,
       sourcePath: json['sourcePath'] as String?,
       assetPath: json['assetPath'] as String?,
       children: _list(json['children'])
           .map((child) => ComponentInstance.fromJson(_object(child))),
-      properties: _object(json['properties'] ?? const {}),
+      properties: properties,
       transform: WorkspaceTransform.fromJson(_object(json['transform'])),
       priority: (json['priority'] as num?)?.toInt() ?? 0,
       editorMetadata: json['editor'] == null
@@ -229,7 +260,7 @@ class ComponentInstance {
     if (sourcePath != null) 'sourcePath': sourcePath,
     if (assetPath != null) 'assetPath': assetPath,
     'children': children.map((child) => child.toJson()).toList(),
-    'properties': _sortedObject(properties),
+    'properties': PropertyTypeAdapterRegistry.serialize(properties),
     'transform': transform.toJson(),
     'priority': priority,
     if (editorMetadata != const WorkspaceEditorMetadata())
@@ -368,16 +399,5 @@ String _requiredString(Map<String, Object?> json, String key) {
   if (value is! String || value.isEmpty) {
     throw FormatException('Expected a non-empty string for "$key".');
   }
-  return value;
-}
-
-Map<String, Object?> _sortedObject(Map<String, Object?> value) {
-  final keys = value.keys.toList()..sort();
-  return {for (final key in keys) key: _sortJsonValue(value[key])};
-}
-
-Object? _sortJsonValue(Object? value) {
-  if (value is Map) return _sortedObject(_object(value));
-  if (value is List) return value.map(_sortJsonValue).toList();
   return value;
 }

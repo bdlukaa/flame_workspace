@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flame_workspace_protocol/workspace_value.dart';
 
 import '../../../../workbench/model/semantic_model.dart';
 
@@ -7,6 +8,7 @@ enum EditorPreviewPrimitive {
   text,
   rectangle,
   circle,
+  polygon,
   ellipse,
   placeholder,
 }
@@ -17,14 +19,22 @@ class EditorPreviewRenderData {
     required this.label,
     this.text,
     this.color,
+    this.paint,
+    this.vertices = const [],
     this.fontSize = 16,
+    this.textStyle,
+    this.textDirection = TextDirection.ltr,
   });
 
   final EditorPreviewPrimitive primitive;
   final String label;
   final String? text;
   final Color? color;
+  final Paint? paint;
+  final List<WorkspaceVectorValue> vertices;
   final double fontSize;
+  final TextStyle? textStyle;
+  final TextDirection textDirection;
 }
 
 abstract interface class EditorComponentRenderAdapter {
@@ -78,6 +88,7 @@ class _TextPreviewAdapter implements EditorComponentRenderAdapter {
   @override
   EditorPreviewRenderData? resolve(ComponentInstance component) {
     if (!_matches(component, const {'TextComponent'})) return null;
+    final textPaint = _resolveTextPaint(component);
     return EditorPreviewRenderData(
       primitive: EditorPreviewPrimitive.text,
       label: component.type.name,
@@ -85,10 +96,55 @@ class _TextPreviewAdapter implements EditorComponentRenderAdapter {
         final String text => text,
         _ => null,
       },
-      color: _color(component.properties['color']),
-      fontSize: _fontSize(component.properties['fontSize']),
+      color: textPaint.color == null ? null : Color(textPaint.color!.argb),
+      fontSize: textPaint.fontSize ?? 24,
+      textStyle: _textStyle(textPaint),
+      textDirection: _textDirection(textPaint.textDirection),
     );
   }
+
+  static WorkspaceTextPaint _resolveTextPaint(ComponentInstance component) {
+    final value = _textPaint(component.properties['textRenderer']);
+    if (value != null) return value;
+    final legacyColor = _color(component.properties['color']);
+    final legacySize = component.properties['fontSize'];
+    if (legacyColor != null || legacySize is num) {
+      return WorkspaceTextPaint(
+        color: WorkspaceColor(
+          legacyColor?.toARGB32() ?? const WorkspaceTextPaint().color!.argb,
+        ),
+        fontSize: legacySize is num && legacySize > 0
+            ? legacySize.toDouble()
+            : 24,
+      );
+    }
+    return const WorkspaceTextPaint();
+  }
+
+  static WorkspaceTextPaint? _textPaint(Object? value) =>
+      value is WorkspaceTextPaint ? value : null;
+
+  static TextStyle _textStyle(WorkspaceTextPaint value) {
+    return TextStyle(
+      color: value.color == null ? null : Color(value.color!.argb),
+      fontSize: value.fontSize,
+      fontFamily: value.fontFamily,
+      fontWeight: value.fontWeight == null
+          ? null
+          : FontWeight.values[value.fontWeight!.index],
+      fontStyle: value.fontStyle == null
+          ? null
+          : FontStyle.values[value.fontStyle!.index],
+      letterSpacing: value.letterSpacing,
+      wordSpacing: value.wordSpacing,
+      height: value.height,
+    );
+  }
+
+  static TextDirection _textDirection(WorkspaceTextDirection? value) =>
+      value == WorkspaceTextDirection.rtl
+      ? TextDirection.rtl
+      : TextDirection.ltr;
 }
 
 class _ShapePreviewAdapter implements EditorComponentRenderAdapter {
@@ -99,12 +155,14 @@ class _ShapePreviewAdapter implements EditorComponentRenderAdapter {
     final type = switch (component.type.name) {
       'RectangleComponent' ||
       'CircleComponent' ||
+      'PolygonComponent' ||
       'EllipseComponent' => component.type.name,
       _ => component.type.baseType,
     };
     final primitive = switch (type) {
       'RectangleComponent' => EditorPreviewPrimitive.rectangle,
       'CircleComponent' => EditorPreviewPrimitive.circle,
+      'PolygonComponent' => EditorPreviewPrimitive.polygon,
       'EllipseComponent' => EditorPreviewPrimitive.ellipse,
       _ => null,
     };
@@ -113,6 +171,11 @@ class _ShapePreviewAdapter implements EditorComponentRenderAdapter {
       primitive: primitive,
       label: component.type.name,
       color: _color(component.properties['color']),
+      paint: _paint(component.properties['paint']),
+      vertices: switch (component.properties['vertices']) {
+        List<WorkspaceVectorValue> vertices => vertices,
+        _ => const [],
+      },
     );
   }
 }
@@ -120,6 +183,18 @@ class _ShapePreviewAdapter implements EditorComponentRenderAdapter {
 bool _matches(ComponentInstance component, Set<String> types) =>
     types.contains(component.type.name) ||
     types.contains(component.type.baseType);
+
+Paint? _paint(Object? value) {
+  if (value is! WorkspacePaint) return null;
+  return Paint()
+    ..color = Color(value.color.argb)
+    ..style = PaintingStyle.values.byName(value.style.name)
+    ..strokeWidth = value.strokeWidth
+    ..strokeCap = StrokeCap.values.byName(value.strokeCap.name)
+    ..strokeJoin = StrokeJoin.values.byName(value.strokeJoin.name)
+    ..blendMode = BlendMode.values.byName(value.blendMode.name)
+    ..isAntiAlias = value.antiAlias;
+}
 
 Color? _color(Object? value) {
   if (value is Color) return value;
@@ -136,6 +211,3 @@ Color? _color(Object? value) {
       : int.tryParse(source);
   return parsed == null ? null : Color(parsed);
 }
-
-double _fontSize(Object? value) =>
-    value is num && value > 0 ? value.toDouble() : 16;

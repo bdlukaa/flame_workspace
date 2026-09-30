@@ -34,6 +34,42 @@ void main() {
     expect(diagnostics, isEmpty);
   });
 
+  test(
+    'does not reconcile calculated TextComponent size as authored resize',
+    () {
+      final textScene = SceneDefinition(
+        id: 'text-scene',
+        name: 'text-level',
+        components: [
+          ComponentInstance(
+            id: 'label',
+            type: const ComponentType(id: 'text', name: 'TextComponent'),
+          ),
+        ],
+      );
+      final diagnostics = reconcileRuntimeTree(
+        expectedScene: textScene,
+        runtimeRoot: const WorkspaceComponentNode(
+          id: 'text-level',
+          type: 'TextLevel',
+          children: [
+            WorkspaceComponentNode(
+              id: 'label',
+              type: 'TextComponent',
+              transform: WorkspaceTransformData(size: {'x': 96, 'y': 28}),
+            ),
+          ],
+        ),
+      );
+
+      expect(diagnostics, isEmpty);
+      expect(
+        textScene.components.single.transform.size,
+        WorkspaceVector2.zero(),
+      );
+    },
+  );
+
   test('reports a dynamically spawned runtime-only child', () {
     const runtimeOnlyId = 'spawned-enemy';
     final diagnostics = reconcileRuntimeTree(

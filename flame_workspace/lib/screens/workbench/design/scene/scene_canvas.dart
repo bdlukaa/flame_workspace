@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flame_workspace_protocol/workspace_value.dart';
 import 'package:path/path.dart' as path;
 
 import '../../../../workbench/assets/asset_drag_data.dart';
@@ -151,6 +152,32 @@ class SceneCanvasGeometry {
   static const fallbackSize = Size.square(64);
 
   static Size sizeFor(ComponentInstance component) {
+    if (component.type.name == 'TextComponent') {
+      final data = const EditorComponentRenderRegistry().resolve(component);
+      final painter = TextPainter(
+        text: TextSpan(text: data.text ?? '', style: data.textStyle),
+        textDirection: data.textDirection,
+      )..layout();
+      final measured = painter.size;
+      if (measured.width > 0 && measured.height > 0) return measured;
+      return fallbackSize;
+    }
+    if (component.type.name == 'CircleComponent') {
+      final radius = component.properties['radius'];
+      if (radius is num && radius > 0) {
+        return Size.square(radius.toDouble() * 2);
+      }
+    }
+    if (component.type.name == 'PolygonComponent') {
+      final vertices = component.properties['vertices'];
+      if (vertices is List<WorkspaceVectorValue> && vertices.length >= 3) {
+        final xs = vertices.map((vertex) => vertex.x);
+        final ys = vertices.map((vertex) => vertex.y);
+        final width = xs.reduce(math.max) - xs.reduce(math.min);
+        final height = ys.reduce(math.max) - ys.reduce(math.min);
+        if (width > 0 && height > 0) return Size(width, height);
+      }
+    }
     final size = component.transform.size;
     return size.x > 0 && size.y > 0 ? Size(size.x, size.y) : fallbackSize;
   }
@@ -291,11 +318,14 @@ class SceneCanvasGeometry {
       return SceneEditHandle.scale;
     }
 
-    final resizeHandle = frame.localToWorld(
-      Offset(frame.size.width, frame.size.height),
-    );
-    if ((worldPoint - resizeHandle).distance <= tolerance) {
-      return SceneEditHandle.resize;
+    if (frame.component.type.name != 'CircleComponent' &&
+        frame.component.type.name != 'TextComponent') {
+      final resizeHandle = frame.localToWorld(
+        Offset(frame.size.width, frame.size.height),
+      );
+      if ((worldPoint - resizeHandle).distance <= tolerance) {
+        return SceneEditHandle.resize;
+      }
     }
 
     if (containsFrame(frame, worldPoint)) return SceneEditHandle.move;
@@ -1144,6 +1174,7 @@ class _SceneCanvasPainter({
 
     final rect = Offset.zero & frame.size;
     final color = data.color ?? _colorFor(frame.component);
+    final paint = data.paint ?? (Paint()..color = color);
     switch (data.primitive) {
       case EditorPreviewPrimitive.sprite:
         if (image == null) {
@@ -1167,21 +1198,40 @@ class _SceneCanvasPainter({
         final painter = TextPainter(
           text: TextSpan(
             text: data.text ?? data.label,
-            style: TextStyle(color: color, fontSize: data.fontSize),
+            style:
+                data.textStyle ??
+                TextStyle(color: color, fontSize: data.fontSize),
           ),
-          textDirection: TextDirection.ltr,
+          textDirection: data.textDirection,
         )..layout(maxWidth: frame.size.width);
         painter.paint(canvas, Offset.zero);
         break;
       case EditorPreviewPrimitive.rectangle:
-        canvas.drawRect(rect, Paint()..color = color);
+        canvas.drawRect(rect, paint);
         break;
       case EditorPreviewPrimitive.circle:
         final diameter = math.min(frame.size.width, frame.size.height);
-        canvas.drawCircle(rect.center, diameter / 2, Paint()..color = color);
+        canvas.drawCircle(rect.center, diameter / 2, paint);
+        break;
+      case EditorPreviewPrimitive.polygon:
+        if (data.vertices.length >= 3) {
+          final minX = data.vertices.map((vertex) => vertex.x).reduce(math.min);
+          final minY = data.vertices.map((vertex) => vertex.y).reduce(math.min);
+          final path = Path()
+            ..moveTo(
+              data.vertices.first.x - minX,
+              data.vertices.first.y - minY,
+            );
+          for (final vertex in data.vertices.skip(1)) {
+            path.lineTo(vertex.x - minX, vertex.y - minY);
+          }
+          canvas.drawPath(path..close(), paint);
+        } else {
+          _paintPlaceholder(canvas, rect, 'Polygon', color, unsupported: true);
+        }
         break;
       case EditorPreviewPrimitive.ellipse:
-        canvas.drawOval(rect, Paint()..color = color);
+        canvas.drawOval(rect, paint);
         break;
       case EditorPreviewPrimitive.placeholder:
         _paintPlaceholder(
@@ -1256,17 +1306,20 @@ class _SceneCanvasPainter({
     canvas.drawRect(rect, selection);
 
     final handleSize = 8 / viewport.zoom;
-    final resizeHandle = Offset(frame.size.width, frame.size.height);
-    canvas.drawRect(
-      Rect.fromCenter(
-        center: resizeHandle,
-        width: handleSize,
-        height: handleSize,
-      ),
-      Paint()
-        ..color = outlineColor
-        ..style = PaintingStyle.fill,
-    );
+    if (frame.component.type.name != 'CircleComponent' &&
+        frame.component.type.name != 'TextComponent') {
+      final resizeHandle = Offset(frame.size.width, frame.size.height);
+      canvas.drawRect(
+        Rect.fromCenter(
+          center: resizeHandle,
+          width: handleSize,
+          height: handleSize,
+        ),
+        Paint()
+          ..color = outlineColor
+          ..style = PaintingStyle.fill,
+      );
+    }
 
     final scaleHandle = Offset(frame.size.width, 0);
     final scaleHandleSize = handleSize * 1.4;

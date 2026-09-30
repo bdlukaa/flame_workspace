@@ -272,7 +272,12 @@ class WorkspaceEditorModel extends ChangeNotifier {
     return true;
   }
 
-  bool updateProperty(String componentId, String name, Object? value) {
+  bool updateProperty(
+    String componentId,
+    String name,
+    Object? value, {
+    WorkspaceChangeKind changeKind = WorkspaceChangeKind.property,
+  }) {
     final component = _componentInCurrentScene(componentId);
     if (component == null) return false;
 
@@ -283,7 +288,7 @@ class WorkspaceEditorModel extends ChangeNotifier {
 
     final command = EditorCommand(
       description: 'Change $name',
-      changeKind: WorkspaceChangeKind.property,
+      changeKind: changeKind,
       componentId: componentId,
       propertyName: name,
       sceneId: currentScene?.id,
@@ -890,6 +895,14 @@ class WorkspaceEditorModel extends ChangeNotifier {
     Object? value,
   ) {
     component.setProperty(name, value);
+    if (name == 'radius' && component.type.name == 'CircleComponent') {
+      final diameter = value is num ? value.toDouble() * 2 : 0.0;
+      component.setTransform(
+        component.transform.copyWith(
+          size: WorkspaceVector2(diameter, diameter),
+        ),
+      );
+    }
   }
 
   static Iterable<ComponentInstance> _allComponents(

@@ -1,6 +1,7 @@
 import 'package:flame_workspace/screens/workbench/design/scene/scene_canvas.dart';
 import 'package:flame_workspace/screens/workbench/design/scene/scene_render_adapters.dart';
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
+import 'package:flame_workspace_protocol/workspace_value.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -17,7 +18,6 @@ void main() {
       id: 'label',
       type: const ComponentType(id: 'text', name: 'TextComponent'),
       properties: {'text': 'Hello Flame', 'fontSize': 24, 'color': 0xFF123456},
-      transform: const WorkspaceTransform(size: WorkspaceVector2(120, 32)),
     );
     final rectangle = ComponentInstance(
       id: 'panel',
@@ -27,6 +27,26 @@ void main() {
     final circle = ComponentInstance(
       id: 'orb',
       type: const ComponentType(id: 'circle', name: 'CircleComponent'),
+      properties: {
+        'paint': const WorkspacePaint(
+          color: WorkspaceColor(0xFFABCDEF),
+          style: WorkspacePaintStyle.stroke,
+          strokeWidth: 4,
+        ),
+      },
+    );
+    final polygon = ComponentInstance(
+      id: 'polygon',
+      type: const ComponentType(id: 'polygon', name: 'PolygonComponent'),
+      properties: {
+        'vertices': const [
+          WorkspaceVectorValue(0, 0),
+          WorkspaceVectorValue(64, 0),
+          WorkspaceVectorValue(32, 48),
+        ],
+        'paint': const WorkspacePaint(color: WorkspaceColor(0xFF123456)),
+      },
+      transform: const WorkspaceTransform(size: WorkspaceVector2(64, 48)),
     );
     final customCircle = ComponentInstance(
       id: 'custom-orb',
@@ -48,12 +68,47 @@ void main() {
     expect(textData.color, const Color(0xFF123456));
     expect(rectangleData.primitive, EditorPreviewPrimitive.rectangle);
     expect(rectangleData.color, const Color(0xFFABCDEF));
-    expect(registry.resolve(circle).primitive, EditorPreviewPrimitive.circle);
+    final polygonData = registry.resolve(polygon);
+    expect(polygonData.primitive, EditorPreviewPrimitive.polygon);
+    expect(polygonData.vertices, hasLength(3));
+    expect(polygonData.paint?.color.toARGB32(), 0xFF123456);
+    final circleData = registry.resolve(circle);
+    expect(circleData.primitive, EditorPreviewPrimitive.circle);
+    expect(circleData.paint?.color.toARGB32(), 0xFFABCDEF);
+    expect(circleData.paint?.style, PaintingStyle.stroke);
+    expect(circleData.paint?.strokeWidth, 4);
     expect(
       registry.resolve(customCircle).primitive,
       EditorPreviewPrimitive.circle,
     );
-    expect(SceneCanvasGeometry.sizeFor(text), const Size(120, 32));
+    final measuredText = TextPainter(
+      text: TextSpan(text: textData.text, style: textData.textStyle),
+      textDirection: textData.textDirection,
+    )..layout();
+    expect(SceneCanvasGeometry.sizeFor(text), measuredText.size);
+    expect(text.transform.size, WorkspaceVector2.zero());
+
+    final textSizeBefore = SceneCanvasGeometry.sizeFor(text);
+    text.setProperty('text', 'Hello Flame with a longer label');
+    expect(
+      SceneCanvasGeometry.sizeFor(text).width,
+      greaterThan(textSizeBefore.width),
+    );
+    text.setProperty('textRenderer', const WorkspaceTextPaint(fontSize: 36));
+    expect(
+      SceneCanvasGeometry.sizeFor(text).height,
+      greaterThan(textSizeBefore.height),
+    );
+    final circleWithRadius = ComponentInstance(
+      id: 'radius-circle',
+      type: const ComponentType(id: 'circle', name: 'CircleComponent'),
+      properties: {'radius': 12.0},
+    );
+    expect(
+      SceneCanvasGeometry.sizeFor(circleWithRadius),
+      const Size.square(24),
+    );
+    expect(SceneCanvasGeometry.sizeFor(polygon), const Size(64, 48));
   });
 
   testWidgets('unsupported components paint without failing the canvas', (

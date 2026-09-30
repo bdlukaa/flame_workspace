@@ -2,6 +2,7 @@
 /// Do not edit it manually.
 
 import 'package:flame/components.dart';
+import 'package:flame/geometry.dart';
 import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
 import 'package:template/components/my_component.dart';

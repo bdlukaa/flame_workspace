@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flame_workspace_protocol/workspace_value.dart';
 import 'package:path/path.dart' as path;
 import 'package:recase/recase.dart';
 
@@ -16,7 +17,10 @@ class ScenePersistenceGenerator {
   static String generate(SceneDefinition scene, FlameProject project) {
     final sceneToken = _sceneToken(scene.name);
     final imports = <String>{
+      "import 'dart:ui';",
       "import 'package:flame/components.dart';",
+      "import 'package:flame/text.dart';",
+      "import 'package:flame/geometry.dart';",
       "import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';",
     };
     final componentImports = <String>{};
@@ -65,14 +69,39 @@ class ScenePersistenceGenerator {
           'Component "${component.id}" has an image asset but is not sprite-like.',
         );
       }
+      final positionalProperties =
+          component.type.properties
+              .where((property) => property.constructorPosition != null)
+              .toList()
+            ..sort(
+              (first, second) => first.constructorPosition!.compareTo(
+                second.constructorPosition!,
+              ),
+            );
       final constructorProperties =
           component.type.properties
-              .where((property) => !property.editable)
+              .where(
+                (property) =>
+                    !property.editable && property.constructorPosition == null,
+              )
               .map((property) => property.name)
               .where((name) => component.properties[name] != null)
               .toList()
             ..sort();
+      for (final property in positionalProperties) {
+        if (component.properties[property.name] == null &&
+            property.defaultValue == null) {
+          throw FormatException(
+            'Missing positional constructor value "${property.name}" '
+            'for ${component.type.name} (${component.id}).',
+          );
+        }
+      }
       final constructorArguments = [
+        for (final property in positionalProperties)
+          _literal(
+            component.properties[property.name] ?? property.defaultValue,
+          ),
         "key: FlameKey('${component.id}')",
         for (final name in constructorProperties)
           '$name: ${_literal(component.properties[name])}',
@@ -91,10 +120,14 @@ class ScenePersistenceGenerator {
           ..writeln('  ($variable as PositionComponent)')
           ..writeln(
             '    ..position = Vector2(${_number(component.transform.position.x)}, ${_number(component.transform.position.y)})',
-          )
-          ..writeln(
+          );
+        if (component.type.name != 'CircleComponent' &&
+            component.type.name != 'TextComponent') {
+          buffer.writeln(
             '    ..size = Vector2(${_number(component.transform.size.x)}, ${_number(component.transform.size.y)})',
-          )
+          );
+        }
+        buffer
           ..writeln(
             '    ..scale = Vector2(${_number(component.transform.scale.x)}, ${_number(component.transform.scale.y)})',
           )
@@ -108,7 +141,9 @@ class ScenePersistenceGenerator {
         if (_transformProperties.contains(entry.key) ||
             entry.value == null ||
             component.type.properties.any(
-              (property) => property.name == entry.key && !property.editable,
+              (property) =>
+                  property.name == entry.key &&
+                  (!property.editable || property.constructorPosition != null),
             )) {
           continue;
         }
@@ -211,20 +246,8 @@ class ScenePersistenceGenerator {
     return 'Anchor.topLeft';
   }
 
-  static String _literal(Object? value) {
-    if (value == null) return 'null';
-    if (value is String) return jsonEncode(value);
-    if (value is bool || value is num) return value.toString();
-    if (value is List) {
-      return '[${value.map(_literal).join(', ')}]';
-    }
-    if (value is Map) {
-      final entries = value.entries.toList()
-        ..sort((a, b) => a.key.toString().compareTo(b.key.toString()));
-      return '{${entries.map((entry) => '${jsonEncode(entry.key.toString())}: ${_literal(entry.value)}').join(', ')}}';
-    }
-    throw FormatException('Unsupported persisted property value: $value');
-  }
+  static String _literal(Object? value) =>
+      PropertyTypeAdapterRegistry.emitDart(value);
 }
 
 const _transformProperties = {

@@ -141,38 +141,9 @@ class FlameWorkspaceRuntimeBridge {
   }
 
   dynamic _propertyValue(Map<String, dynamic> arguments) {
-    final value = arguments['value'];
     final type = arguments['type'];
-    if (type is! String) return value;
-    if (value is String) {
-      try {
-        return RuntimeValuesParser.parse(type, value);
-      } on Object {
-        return value;
-      }
-    }
-
-    final baseType = type.replaceAll('?', '').split('<').first;
-    return switch (baseType) {
-      'double' when value is num => value.toDouble(),
-      'int' when value is num => value.toInt(),
-      'Vector2' when value is Map => Vector2(
-        (value['x'] as num).toDouble(),
-        (value['y'] as num).toDouble(),
-      ),
-      'Anchor' when value is Map => _anchorFromMap(value),
-      'Color' when value is num => Color(value.toInt()),
-      _ => value,
-    };
-  }
-
-  Anchor _anchorFromMap(Map value) {
-    final name = value['name'];
-    if (name is String) return Anchor.valueOf(name);
-    return Anchor(
-      (value['x'] as num).toDouble(),
-      (value['y'] as num).toDouble(),
-    );
+    if (type is! String) return arguments['value'];
+    return RuntimeValuesParser.parse(type, arguments['value']);
   }
 
   dynamic _setTransform(Map<String, dynamic> arguments) {

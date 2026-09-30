@@ -71,6 +71,8 @@ class FlameComponentField(
   final bool hasSetter = false,
   final List<String> enumValues = const [],
   final bool isRequired = false,
+  final bool isNamed = true,
+  final int? constructorPosition,
 ]) {
   /// The type of the field.
   ///
@@ -133,6 +135,13 @@ class FlameComponentField(
       type ?? this.type,
       defaultValue ?? this.defaultValue,
       superComponents ?? this.superComponents,
+      isLocalField,
+      isFinalField,
+      hasSetter,
+      enumValues,
+      isRequired,
+      isNamed,
+      constructorPosition,
     );
   }
 }

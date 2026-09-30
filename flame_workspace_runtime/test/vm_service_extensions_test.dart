@@ -181,6 +181,42 @@ void main() {
     expect(selectedScene, 'other_scene');
   });
 
+  test('mutates Paint properties from structured semantic payloads', () async {
+    Paint? changedPaint;
+    core.setPropertyValue = (_, target, property, value) {
+      expect(target, component);
+      expect(property, 'paint');
+      changedPaint = value as Paint;
+    };
+
+    final response = await bridge.dispatch(
+      WorkspaceExtensionNames.setProperty,
+      const {
+        'componentId': runtimeComponentId,
+        'property': 'paint',
+        'type': 'Paint',
+        'value': {
+          'color': 0xFF654321,
+          'style': 'stroke',
+          'strokeWidth': 6.0,
+          'strokeCap': 'square',
+          'strokeJoin': 'round',
+          'blendMode': 'multiply',
+          'antiAlias': false,
+        },
+      },
+    );
+
+    expect(response.ok, isTrue);
+    expect(changedPaint?.color.toARGB32(), 0xFF654321);
+    expect(changedPaint?.style, PaintingStyle.stroke);
+    expect(changedPaint?.strokeWidth, 6);
+    expect(changedPaint?.strokeCap, StrokeCap.square);
+    expect(changedPaint?.strokeJoin, StrokeJoin.round);
+    expect(changedPaint?.blendMode, BlendMode.multiply);
+    expect(changedPaint?.isAntiAlias, isFalse);
+  });
+
   test('pause and resume use Flame engine controls', () async {
     final paused = await bridge.dispatch(
       WorkspaceExtensionNames.pause,

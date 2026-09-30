@@ -99,6 +99,7 @@ class PropertiesGenerator {
       '// ignore_for_file: unused_import, unnecessary_import, unnecessary_this',
     );
     buffer.writeln(defaultImports);
+    buffer.writeln("import 'package:flame/text.dart';");
 
     Set<String> imports = {};
 

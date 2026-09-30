@@ -10,6 +10,34 @@ import 'package:flame_workspace_protocol/runtime.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('Circle radius edits keep semantic size in sync through undo', () {
+    final circle = ComponentInstance(
+      id: 'circle',
+      type: const ComponentType(
+        id: 'CircleComponent',
+        name: 'CircleComponent',
+        isPositionComponent: true,
+      ),
+      properties: {'radius': 10.0},
+      transform: const WorkspaceTransform(size: WorkspaceVector2(20, 20)),
+    );
+    final editor = WorkspaceEditorModel(
+      WorkspaceProject(
+        id: 'project',
+        name: 'Game',
+        scenes: [
+          SceneDefinition(id: 'scene', name: 'Main', components: [circle]),
+        ],
+      ),
+    );
+
+    expect(editor.updateProperty(circle.id, 'radius', 18.0), isTrue);
+    expect(circle.transform.size, const WorkspaceVector2(36, 36));
+    expect(editor.undo(), isTrue);
+    expect(circle.properties['radius'], 10.0);
+    expect(circle.transform.size, const WorkspaceVector2(20, 20));
+  });
+
   test('selection survives a refresh when scene and component IDs remain', () {
     final player = _component('player', 'Player');
     final scene = SceneDefinition(
@@ -480,7 +508,7 @@ void main() {
 
       expect(editor.isDirty, isFalse);
       expect(editor.selectedComponent, isNull);
-      expect(editor.currentScene!.components.single.properties['speed'], '4');
+      expect(editor.currentScene!.components.single.properties['speed'], 4.0);
     },
   );
 }

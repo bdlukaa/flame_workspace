@@ -1,5 +1,6 @@
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
 import 'package:flame_workspace/workbench/model/semantic_property_editor.dart';
+import 'package:flame_workspace_protocol/workspace_value.dart';
 import 'package:flame_workspace/workbench/model/workspace_editor_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,13 +10,13 @@ void main() {
       SemanticPropertyEditor.kindFor(
         const WorkspacePropertyDefinition(name: 'speed', type: 'double'),
       ),
-      SemanticPropertyKind.decimal,
+      WorkspacePropertyEditorKind.decimal,
     );
     expect(
       SemanticPropertyEditor.kindFor(
         const WorkspacePropertyDefinition(name: 'anchor', type: 'Anchor'),
       ),
-      SemanticPropertyKind.anchor,
+      WorkspacePropertyEditorKind.anchor,
     );
     expect(
       SemanticPropertyEditor.kindFor(
@@ -25,13 +26,13 @@ void main() {
           enumValues: ['horizontal', 'vertical'],
         ),
       ),
-      SemanticPropertyKind.enumeration,
+      WorkspacePropertyEditorKind.enumeration,
     );
     expect(
       SemanticPropertyEditor.kindFor(
         const WorkspacePropertyDefinition(name: 'effect', type: 'CustomEffect'),
       ),
-      SemanticPropertyKind.unsupported,
+      WorkspacePropertyEditorKind.unsupported,
     );
   });
 
@@ -45,7 +46,8 @@ void main() {
       type: 'Vector2',
     );
     final edit = SemanticPropertyEditor.parse(vector, 'Vector2(12, -3.5)');
-    expect(edit!.runtimeValue, 'Vector2(12.0, -3.5)');
+    expect(edit!.modelValue, const WorkspaceVectorValue(12, -3.5));
+    expect(edit.runtimeValue, {'x': 12.0, 'y': -3.5});
     expect(
       SemanticPropertyEditor.vectorFromValue(edit.modelValue),
       const WorkspaceVector2(12, -3.5),
@@ -92,7 +94,8 @@ void main() {
     expect(SemanticPropertyEditor.optionsFor(definition), contains('center'));
 
     final edit = SemanticPropertyEditor.parse(definition, 'Anchor.bottomRight');
-    expect(edit!.modelValue, 'Anchor.bottomRight');
+    expect(edit!.modelValue, const WorkspaceAnchor(1, 1));
+    expect(edit.runtimeValue, {'name': 'bottomRight'});
     expect(
       SemanticPropertyEditor.anchorVector('bottomRight'),
       const WorkspaceVector2(1, 1),
@@ -102,7 +105,8 @@ void main() {
       definition,
       'Anchor(0.25, 0.75)',
     );
-    expect(custom!.runtimeValue, 'Anchor(0.25, 0.75)');
+    expect(custom!.modelValue, const WorkspaceAnchor(0.25, 0.75));
+    expect(custom.runtimeValue, {'x': 0.25, 'y': 0.75});
     expect(SemanticPropertyEditor.parse(definition, 'Anchor.invalid'), isNull);
   });
 
@@ -115,8 +119,12 @@ void main() {
 
     const color = WorkspacePropertyDefinition(name: 'tint', type: 'Color');
     expect(
+      SemanticPropertyEditor.parse(color, 'Color(0xFF00AA11)')!.modelValue,
+      const WorkspaceColor(0xFF00AA11),
+    );
+    expect(
       SemanticPropertyEditor.parse(color, 'Color(0xFF00AA11)')!.runtimeValue,
-      'const Color(0xFF00AA11)',
+      0xFF00AA11,
     );
 
     const mode = WorkspacePropertyDefinition(
@@ -126,8 +134,12 @@ void main() {
     );
     expect(
       SemanticPropertyEditor.parse(mode, 'Mode.running')!.modelValue,
-      'Mode.running',
+      const WorkspaceEnumValue('Mode', 'running'),
     );
+    expect(SemanticPropertyEditor.parse(mode, 'Mode.running')!.runtimeValue, {
+      'enumType': 'Mode',
+      'member': 'running',
+    });
     expect(SemanticPropertyEditor.parse(mode, 'stopped'), isNull);
   });
 }

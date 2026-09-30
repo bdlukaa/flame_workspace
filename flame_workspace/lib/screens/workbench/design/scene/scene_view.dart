@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../workbench/model/semantic_model.dart';
+import '../../../../workbench/project/objects/component.dart';
 import '../../../../workbench/runner/state.dart';
 
 import 'package:flame_workspace_protocol/runtime.dart';
+import 'package:flame_workspace_protocol/workspace_value.dart';
 
 import '../../../../workbench/parser/values.dart';
 
@@ -798,32 +800,123 @@ bool _containsComponentId(Iterable<ComponentInstance> components, String id) {
   return false;
 }
 
+Object? _parseComponentDefault(FlameComponentField parameter) {
+  if (parameter.defaultValue == null ||
+      !ValuesParser.supports(
+        parameter.type,
+        enumValues: parameter.enumValues,
+      )) {
+    return null;
+  }
+  try {
+    return ValuesParser.parse(
+      parameter.type,
+      parameter.defaultValue!,
+      enumValues: parameter.enumValues,
+    );
+  } on FormatException {
+    return null;
+  }
+}
+
+Object? _selectedParameterValue(
+  FlameComponentField parameter,
+  Map<String, Object?> parameters,
+) {
+  final value = parameters.containsKey(parameter.name)
+      ? parameters[parameter.name]
+      : parameter.defaultValue;
+  if (value == null ||
+      value is WorkspacePaint ||
+      value is List<WorkspaceVectorValue>) {
+    return value;
+  }
+  if (value is! String) {
+    throw FormatException('Invalid value for ${parameter.name}.');
+  }
+  return ValuesParser.parse(
+    parameter.type,
+    value,
+    enumValues: parameter.enumValues,
+  );
+}
+
 ComponentInstance _componentFromSelection(
   AddIndexedComponent selection,
   SceneDefinition scene,
 ) {
   final (indexed, declarationName, parameters) = selection;
+  final selectedValues = <String, Object?>{
+    for (final parameter in indexed.parameters)
+      parameter.name: _selectedParameterValue(parameter, parameters),
+  };
+  final isCircle = indexed.name == 'CircleComponent';
+  final isRectangle = indexed.name == 'RectangleComponent';
+  final isPolygon = indexed.name == 'PolygonComponent';
+  final vertices = selectedValues['vertices'] as List<WorkspaceVectorValue>?;
+  var size =
+      _vectorValue(selectedValues['size']) ??
+      (isCircle || isRectangle
+          ? const WorkspaceVector2(64, 64)
+          : const WorkspaceVector2.zero());
+  if (isCircle) {
+    final radius = selectedValues['radius'];
+    if (radius is num && radius > 0) {
+      size = WorkspaceVector2(radius.toDouble() * 2, radius.toDouble() * 2);
+    }
+  } else if (isPolygon && vertices != null && selectedValues['size'] == null) {
+    final xs = vertices.map((vertex) => vertex.x);
+    final ys = vertices.map((vertex) => vertex.y);
+    size = WorkspaceVector2(
+      xs.reduce((a, b) => a > b ? a : b) - xs.reduce((a, b) => a < b ? a : b),
+      ys.reduce((a, b) => a > b ? a : b) - ys.reduce((a, b) => a < b ? a : b),
+    );
+  }
   final properties = <String, Object?>{
     for (final parameter in indexed.parameters)
-      parameter.name: ValuesParser.parse(
-        parameter.type,
-        parameters[parameter.name] ?? parameter.defaultValue ?? 'null',
-      ),
+      if (!_isTransformParameter(parameter.name) &&
+          parameter.name != 'children' &&
+          parameter.name != 'key')
+        parameter.name: selectedValues[parameter.name],
   };
-  final definitions = indexed.parameters
-      .map(
-        (parameter) => WorkspacePropertyDefinition(
+  final definitionsByName = <String, WorkspacePropertyDefinition>{
+    for (final parameter in indexed.parameters)
+      if (!_isTransformParameter(parameter.name) &&
+          parameter.name != 'children' &&
+          parameter.name != 'key')
+        parameter.name: WorkspacePropertyDefinition(
           name: parameter.name,
           type: parameter.type,
-          defaultValue: parameter.defaultValue,
+          defaultValue: _parseComponentDefault(parameter),
           inherited: parameter.superComponents?.isNotEmpty ?? false,
           editable:
               (parameter.isLocalField && !parameter.isFinalField) ||
-              parameter.hasSetter,
+              parameter.hasSetter ||
+              (isPolygon && parameter.name == 'vertices'),
           enumValues: parameter.enumValues,
+          constructorPosition: parameter.constructorPosition,
+          recreateOnEdit: isPolygon && parameter.name == 'vertices',
         ),
-      )
-      .toList();
+  };
+  for (final property in indexed.writableProperties) {
+    final previous = definitionsByName[property.name];
+    definitionsByName[property.name] = WorkspacePropertyDefinition(
+      name: property.name,
+      type: property.type,
+      defaultValue: previous?.defaultValue,
+      inherited: previous?.inherited ?? false,
+      editable: true,
+      enumValues: previous?.enumValues ?? const [],
+      constructorPosition: previous?.constructorPosition,
+      recreateOnEdit: previous?.recreateOnEdit ?? false,
+    );
+  }
+
+  final position = _vectorValue(selectedValues['position']);
+  final scale = _vectorValue(selectedValues['scale']);
+  final anchor = selectedValues['anchor'];
+  final angle = selectedValues['angle'];
+  final priority = selectedValues['priority'];
 
   return ComponentInstance(
     id: WorkspaceIds.component(
@@ -842,10 +935,38 @@ ComponentInstance _componentFromSelection(
                 parameter.superComponents?.contains('PositionComponent') ??
                 false,
           ),
-      properties: definitions,
+      properties: definitionsByName.values.toList(),
     ),
     declarationName: declarationName,
     sourcePath: indexed.filePath,
     properties: properties,
+    transform: WorkspaceTransform(
+      position: position ?? const WorkspaceVector2.zero(),
+      size: size,
+      scale: scale ?? const WorkspaceVector2(1, 1),
+      angle: angle is num ? angle.toDouble() : 0,
+      anchor: anchor is WorkspaceAnchor
+          ? WorkspaceVector2(anchor.x, anchor.y)
+          : const WorkspaceVector2.zero(),
+    ),
+    priority: priority is int ? priority : 0,
   );
 }
+
+const _transformParameterNames = {
+  'position',
+  'size',
+  'scale',
+  'angle',
+  'nativeAngle',
+  'anchor',
+  'priority',
+};
+
+bool _isTransformParameter(String name) =>
+    _transformParameterNames.contains(name);
+
+WorkspaceVector2? _vectorValue(Object? value) => switch (value) {
+  WorkspaceVectorValue(:final x, :final y) => WorkspaceVector2(x, y),
+  _ => null,
+};

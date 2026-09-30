@@ -19,6 +19,7 @@ import 'package:flame_workspace/workbench/parser/workspace_model_mapper.dart';
 import 'package:flame_workspace/workbench/parser/type_resolver.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flame_workspace_protocol/runtime.dart';
+import 'package:flame_workspace_protocol/workspace_value.dart';
 import 'package:path/path.dart' as path;
 
 import 'indexing_scheduler.dart';
@@ -440,9 +441,32 @@ class FlameProjectState with ChangeNotifier {
     required Object? runtimeValue,
     required Object? modelValue,
   }) async {
+    final definition = workspaceModel.selectedComponent?.id == componentId
+        ? workspaceModel.selectedComponent!.type.properties
+              .where((item) => item.name == property)
+              .firstOrNull
+        : null;
+    final recreate = definition?.recreateOnEdit ?? false;
     final changed =
         canEditWorkspace &&
-        workspaceModel.updateProperty(componentId, property, modelValue);
+        workspaceModel.updateProperty(
+          componentId,
+          property,
+          modelValue,
+          changeKind: recreate
+              ? WorkspaceChangeKind.structure
+              : WorkspaceChangeKind.property,
+        );
+    if (recreate) {
+      if (!changed || isGameMode) return false;
+      final scene = workspaceModel.currentScene;
+      if (scene == null || !await saveWorkspace()) return false;
+      final runner = _runner;
+      if (runner?.isPreviewRunning == true) {
+        return runner!.recreateScene(scene.name);
+      }
+      return true;
+    }
     if (isBuildMode && !changed) return false;
     final runner = _runner;
     if (classifyWorkspaceChange(WorkspaceChangeKind.property) ==
@@ -698,7 +722,10 @@ class FlameProjectState with ChangeNotifier {
                 componentId: component.id,
                 property: name,
                 type: property.type,
-                value: component.properties[name] ?? property.defaultValue,
+                value: PropertyTypeAdapterRegistry.encodeRuntime(
+                  property.type,
+                  component.properties[name] ?? property.defaultValue,
+                ),
               );
             }
             break;

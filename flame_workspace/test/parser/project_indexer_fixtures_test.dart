@@ -3,6 +3,10 @@ import 'dart:io';
 import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/parser/type_resolver.dart';
 import 'package:flame_workspace/workbench/parser/workspace_model_mapper.dart';
+import 'package:flame_workspace/workbench/parser/values.dart';
+import 'package:flame_workspace/workbench/generators/scene_persistence_generator.dart';
+import 'package:flame_workspace/workbench/model/semantic_model.dart';
+import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -58,6 +62,76 @@ void main() {}
     await resolver.refresh([source.path]);
 
     expect(identical(resolver.flameApi, catalog), isTrue);
+  });
+
+  test(
+    'CircleComponent radius input generates a numeric adapter argument',
+    () async {
+      final (directory, resolver, _) = await _resolvedFixture('empty_game');
+      addTearDown(resolver.dispose);
+      addTearDown(() => directory.delete(recursive: true));
+
+      final circle = resolver.flameApi.componentObjects.firstWhere(
+        (component) => component.name == 'CircleComponent',
+      );
+      final radiusParameter = circle.constructorParameters!.firstWhere(
+        (parameter) => parameter.name == 'radius',
+      );
+      final radius = ValuesParser.parse(radiusParameter.type, '40.0');
+      final project = FlameProject(
+        name: 'empty_game',
+        organization: 'com.example',
+        location: directory,
+        initialScene: 'Main',
+      );
+      final scene = SceneDefinition(
+        id: 'scene:main',
+        name: 'Main',
+        components: [
+          ComponentInstance(
+            id: 'scene:main:component:circle',
+            type: ComponentType(
+              id: circle.name,
+              name: circle.name,
+              baseType: circle.type,
+              isPositionComponent: true,
+              properties: [
+                WorkspacePropertyDefinition(
+                  name: 'radius',
+                  type: radiusParameter.type,
+                  editable: false,
+                ),
+              ],
+            ),
+            properties: {'radius': radius},
+          ),
+        ],
+      );
+
+      final adapter = await ScenePersistenceGenerator.writeForScene(
+        scene,
+        project,
+      );
+      final generated = await adapter.readAsString();
+      expect(generated, contains('radius: 40.0'));
+      expect(generated, isNot(contains('radius: "40.0"')));
+      expect(generated, contains("import 'package:flame/geometry.dart';"));
+    },
+  );
+
+  test('PolygonComponent exposes its positional vertices parameter', () async {
+    final (project, resolver, _) = await _resolvedFixture('empty_game');
+    addTearDown(resolver.dispose);
+    addTearDown(() => project.delete(recursive: true));
+
+    final polygon = resolver.flameApi.componentObjects.firstWhere(
+      (component) => component.name == 'PolygonComponent',
+    );
+    final vertices = polygon.constructorParameters!.first;
+    expect(vertices.name, 'vertices');
+    expect(vertices.type.replaceAll(' ', ''), 'List<Vector2>');
+    expect(vertices.isNamed, isFalse);
+    expect(vertices.constructorPosition, 0);
   });
 
   test('CircleComponent generation uses constructor parameters only', () async {

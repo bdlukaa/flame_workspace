@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
+import 'package:flame_workspace_protocol/workspace_value.dart';
 import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/parser/type_resolver.dart';
 import 'package:flame_workspace/workbench/project/objects/component.dart';
@@ -122,9 +123,29 @@ class WorkspaceModelMapper {
     String sceneId,
     int ordinal,
   ) {
+    Object? parseDefault(FlameComponentField parameter) {
+      final rawValue = parameter.defaultValue;
+      if (rawValue == null ||
+          !PropertyTypeAdapterRegistry.supports(
+            parameter.type,
+            enumValues: parameter.enumValues,
+          )) {
+        return null;
+      }
+      try {
+        return PropertyTypeAdapterRegistry.parse(
+          parameter.type,
+          rawValue,
+          enumValues: parameter.enumValues,
+        );
+      } on FormatException {
+        return null;
+      }
+    }
+
     final properties = <String, Object?>{};
     for (final parameter in component.parameters) {
-      properties[parameter.name] = parameter.defaultValue;
+      properties[parameter.name] = parseDefault(parameter);
     }
 
     final propertyDefinitions = component.parameters
@@ -132,7 +153,7 @@ class WorkspaceModelMapper {
           (parameter) => WorkspacePropertyDefinition(
             name: parameter.name,
             type: parameter.type,
-            defaultValue: parameter.defaultValue,
+            defaultValue: parseDefault(parameter),
             inherited: parameter.superComponents?.isNotEmpty ?? false,
             editable:
                 (parameter.isLocalField && !parameter.isFinalField) ||

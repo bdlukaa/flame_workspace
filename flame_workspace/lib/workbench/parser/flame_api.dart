@@ -73,10 +73,17 @@ class const FlameApiClass({
 
     final constructorFields = <FlameComponentField>[];
     final fields = <String, FlameComponentField>{};
+    var positionalIndex = 0;
     for (final parameter in constructor.parameters) {
+      final parameterName =
+          name == 'PolygonComponent' && parameter.name == '_vertices'
+          ? 'vertices'
+          : parameter.name;
       final field = FlameComponentField(
-        parameter.name,
-        parameter.type,
+        parameterName,
+        name == 'TextComponent' && parameter.name == 'textRenderer'
+            ? 'TextPaint?'
+            : parameter.type,
         parameter.defaultValue,
         isPositionComponent && _transformParameters.contains(parameter.name)
             ? ['PositionComponent']
@@ -86,6 +93,8 @@ class const FlameApiClass({
         parameter.isFieldFormal && !parameter.isRequired,
         parameter.namedValues,
         parameter.isRequired,
+        parameter.isNamed,
+        parameter.isNamed ? null : positionalIndex++,
       );
       constructorFields.add(field);
       fields[parameter.name] = field;
@@ -114,9 +123,16 @@ class const FlameApiClass({
       writableProperties: [
         for (final property in properties)
           if (property.hasSetter &&
-              property.typeAccessible &&
+              (property.typeAccessible ||
+                  (name == 'TextComponent' &&
+                      property.name == 'textRenderer')) &&
               !_transformParameters.contains(property.name))
-            FlameComponentProperty(name: property.name, type: property.type),
+            FlameComponentProperty(
+              name: property.name,
+              type: name == 'TextComponent' && property.name == 'textRenderer'
+                  ? 'TextPaint?'
+                  : property.type,
+            ),
       ],
       data: {
         'source': libraryUri,

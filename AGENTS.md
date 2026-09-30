@@ -1,40 +1,22 @@
 # Flame Workspace — Agent Instructions
 
-## 1. Project Overview
+## Purpose
 
-Flame Workspace is a visual development environment for building games with [Flame](https://flame-engine.org/) and Flutter.
+Flame Workspace is a visual development environment for building normal Flutter + Flame games.
 
-Flame is the game engine. Flame Workspace is **not** a replacement for Flame and must not evolve into a separate game engine.
+**Flame is the game engine. Flame Workspace is the editor.**
 
-The purpose of Flame Workspace is to provide an IDE/editor experience around normal Flame projects, including:
+A project created or edited with Flame Workspace must remain understandable, maintainable, and runnable with standard Flutter/Dart/Flame tooling even if the developer stops using Flame Workspace.
 
-- project creation and management;
-- scene management;
-- visual scene editing;
-- component hierarchy inspection;
-- component creation and configuration;
-- property inspection and editing;
-- asset management;
-- code generation;
-- project analysis;
-- game preview;
-- hot reload and hot restart;
-- runtime inspection and debugging;
-- launching the user's game through embedded Flutter Web Preview.
-
-A project created or edited with Flame Workspace should remain a normal Flutter + Flame project.
-
-Users must be able to stop using Flame Workspace and continue developing their project using standard Flutter/Dart tooling.
+Do not evolve Flame Workspace into a competing runtime, proprietary game format, or replacement for Flame.
 
 ---
 
-# 2. Current Goal: Developer Preview
+# 1. Current Objective
 
-The immediate objective of this repository is the **Developer Preview** milestone.
+The current milestone is a reliable **Developer Preview / Visual Editing Core**.
 
-Prioritize completing a coherent end-to-end workflow over adding more editor features.
-
-The target workflow is:
+Prioritize the complete workflow:
 
 ```text
 Create/Open Project
@@ -45,26 +27,28 @@ Discover Scenes and Components
         ↓
 Open Scene
         ↓
-Inspect Component Hierarchy
+Inspect Hierarchy
         ↓
-Select Component
+Add / Remove Components
         ↓
-Edit Basic Properties
+Edit Properties
         ↓
-Move/Resize/Rotate Visually
+Move / Resize / Rotate / Scale
         ↓
-Persist Changes
+Persist Authored State
         ↓
-Preview Game
+Play Actual Game
         ↓
-Hot Reload / Hot Restart
+Inspect Runtime
+        ↓
+Stop
+        ↓
+Return to Unchanged Build State
 ```
 
-A feature that does not materially improve this workflow should generally be deferred until after Developer Preview.
+A smaller workflow that works reliably is better than many partially implemented editor systems.
 
-Do not expand Developer Preview into a complete Unity/Godot-style editor.
-
-Unless explicitly requested, Developer Preview does **not** require:
+Unless explicitly requested, defer:
 
 - animation editor;
 - tilemap editor;
@@ -73,273 +57,304 @@ Unless explicitly requested, Developer Preview does **not** require:
 - visual scripting;
 - prefab system;
 - plugin marketplace;
-- multiplayer collaboration;
-- complete source-code IDE;
 - advanced profiler;
-- arbitrary custom inspectors;
-- full mobile-device embedding;
+- complete source-code IDE;
 - sophisticated asset pipelines.
-
-Prefer a small workflow that works reliably over many partially implemented systems.
 
 ---
 
-# 3. Architectural Principles
+# 2. Decision Priority
 
-These principles are project invariants.
+When architectural choices conflict, optimize in this order:
 
-Do not violate them without explicit approval.
+1. correctness;
+2. developer project safety;
+3. normal Flame compatibility;
+4. architectural simplicity;
+5. testability;
+6. cross-platform behavior;
+7. editor responsiveness;
+8. developer experience;
+9. implementation convenience.
 
-## 3.1 Flame Owns Runtime Behavior
+Do not sacrifice project safety or Flame compatibility merely because another implementation is easier.
 
-Flame is responsible for:
+---
+
+# 3. Core Architectural Invariants
+
+These rules are non-negotiable unless the task explicitly changes the architecture.
+
+## 3.1 Flame owns runtime behavior
+
+Flame owns:
 
 - component lifecycle;
 - rendering;
 - input;
+- game loop;
 - collision detection;
-- camera behavior;
+- cameras;
 - worlds;
 - routing;
 - effects;
 - timers;
-- game loop;
-- other runtime game-engine behavior.
+- runtime component trees.
 
-Flame Workspace should integrate with these APIs rather than recreate them.
-
-Do not implement Workspace-specific alternatives to existing Flame functionality unless there is a compelling editor-specific reason.
+Workspace integrates with Flame rather than reimplementing those systems.
 
 ---
 
-## 3.2 Flame Workspace Is an Editor
+## 3.2 The Workspace semantic model owns authored state
 
-Think of the architecture as:
-
-```text
-                  Flame Workspace
-                        │
-        ┌───────────────┼────────────────┐
-        │               │                │
-        ▼               ▼                ▼
-     Analyzer      Workspace Model    Generator
-        │               │                │
-        │               ▼                │
-        │          Scene Editor           │
-        │                                │
-        └──────────── Runtime Protocol ──┘
-                         │
-                         ▼
-                    Flame Project
-                         │
-                         ▼
-                       Flame
-```
-
-The editor should understand and manipulate Flame projects without becoming their runtime.
-
----
-
-## 3.3 No Vendor Lock-In
-
-A generated project must remain understandable and maintainable without Flame Workspace.
-
-Avoid requiring proprietary runtime behavior for ordinary game functionality.
-
-Workspace-specific runtime code should exist only where editor/debug integration requires it.
-
-Generated code should be:
-
-- valid Dart;
-- formatted;
-- readable;
-- reproducible;
-- clearly separated from developer-owned code.
-
----
-
-# 4. Package Boundaries
-
-The desired dependency direction is:
+The authoritative authored pipeline is:
 
 ```text
-flame_workspace
-      │
-      ▼
-flame_workspace_protocol
-      ▲
-      │
-flame_workspace_runtime
-      ▲
-      │
-   user game
-```
-
-Conceptually:
-
-### `flame_workspace`
-
-Contains editor functionality:
-
-- Flutter UI;
-- project explorer;
-- scene editor;
-- inspector;
-- project analysis;
-- Dart Analyzer integration;
-- code generation;
-- preview orchestration;
-- Flutter process management;
-- VM Service client.
-
-### `flame_workspace_protocol`
-
-Contains editor/runtime communication contracts:
-
-- message models;
-- serialization;
-- protocol constants;
-- request/response types.
-
-It must remain lightweight.
-
-### `flame_workspace_runtime`
-
-Contains functionality installed into games for development-time integration:
-
-- VM Service extensions;
-- component inspection;
-- scene inspection;
-- property mutation;
-- editor/runtime synchronization.
-
-The runtime package must **never depend on the editor package**.
-
-Circular package dependencies are prohibited.
-
----
-
-# 5. Workspace Semantic Model
-
-The editor must not use arbitrary Dart source code as its primary mutable scene representation.
-
-Introduce and maintain a semantic Workspace model representing concepts such as:
-
-```text
-WorkspaceProject
-SceneDefinition
-ComponentDefinition
-ComponentInstance
-PropertyDefinition
-AssetDefinition
-Transform
-```
-
-The exact classes may evolve.
-
-The important rule is:
-
-```text
-Dart/Flame project
-       ↓
-     Analyzer
-       ↓
+Developer Dart / Flame API
+          ↓
+       Analyzer
+          ↓
 Workspace Semantic Model
-       ↓
- ┌─────┴─────┐
- ▼           ▼
-Editor    Generator
+          ↓
+     Persistence
+          ↓
+      Generator
+          ↓
+   Normal Flame Game
 ```
 
-The UI should interact primarily with this model.
+The UI should primarily manipulate the Workspace semantic model.
 
-Avoid coupling widgets directly to Analyzer AST nodes.
+Do not use Analyzer AST nodes as mutable editor state.
+
+Do not use generated Dart as the primary editor database.
 
 ---
 
-# 6. Scene Data vs Behavior
+## 3.3 Build State and Game State are separate
 
-Maintain a clear conceptual distinction:
+### Build State
+
+Build State is authored content.
+
+It includes:
+
+- scene composition;
+- component hierarchy;
+- transforms;
+- editable properties;
+- assets;
+- scene properties;
+- editor metadata where appropriate.
+
+Build changes may:
+
+- become dirty;
+- participate in undo/redo;
+- persist under `.flame_workspace`;
+- regenerate Workspace-owned adapters.
+
+### Game State
+
+Game State is the actual running Flame game.
+
+Runtime changes are transient.
+
+They must **not implicitly**:
+
+- mutate Build State;
+- mark the project dirty;
+- modify persisted scene data;
+- regenerate authored adapters;
+- rewrite developer source.
+
+Stopping Game State must discard runtime-only overrides.
+
+If a future feature allows copying a runtime value into Build State, that must be an explicit user action.
+
+---
+
+## 3.4 Canonical component identity
+
+`ComponentInstance.id` is the canonical component identity across:
 
 ```text
-WHAT exists and WHERE it is
-            vs
-HOW it behaves
+semantic model
+generated FlameKey
+runtime protocol
+hierarchy
+selection
+runtime reconciliation
+property mutation
+transform mutation
 ```
 
-Scene composition belongs to Workspace's scene representation.
+`declarationName` is display/source metadata only.
 
-Examples:
+Never use `declarationName` as runtime identity.
 
-- component type;
-- component identifier;
-- position;
-- size;
-- angle;
-- anchor;
-- priority;
-- editable constructor/property values.
+---
 
-Behavior belongs in developer Dart code.
+## 3.5 Scene View and Game Preview are different
 
-Examples:
+**Scene View** is an editor-owned representation of authored Build State.
+
+**Game Preview** executes the user's actual Flutter + Flame application.
+
+Do not make gameplay execution the source of truth for scene editing.
+
+Do not make Build State depend on a runtime connection.
+
+---
+
+# 4. Typed Property Architecture
+
+Raw Dart source strings are not semantic values.
+
+Never store values such as:
+
+```text
+Anchor.center
+Color(0xFFFFFFFF)
+Vector2(10, 20)
+Paint()..color = ...
+```
+
+as ordinary strings merely because they are valid Dart expressions.
+
+The target property pipeline is:
+
+```text
+Analyzer type metadata
+        ↓
+Property Type Adapter
+        ↓
+Typed Workspace Value
+        ↓
+ ┌───────────────┬────────────────┐
+ ↓               ↓                ↓
+Inspector     Persistence     Code Generation
+                                  ↓
+                           Runtime Encoding
+```
+
+At minimum, common values should have explicit semantics for:
+
+- null;
+- String;
+- bool;
+- int;
+- double / num;
+- Color;
+- Vector2;
+- Anchor;
+- enums;
+- Paint;
+- text styling structures;
+- other structured types as support is added.
+
+Do not infer a value's type from what its string representation looks like.
+
+Example:
+
+```text
+String "40.0" ≠ double 40.0
+```
+
+Fix type mistakes where values enter the semantic model, not inside the Dart generator.
+
+---
+
+# 5. Property and Component Adapters
+
+When behavior varies by data type or component type, prefer an adapter/capability abstraction over scattered special cases.
+
+A property type adapter should conceptually own:
+
+```text
+parse
+validate
+display
+JSON serialization
+Dart expression generation
+runtime encoding
+editor metadata
+```
+
+Do not independently implement these rules in:
+
+- Add Component;
+- Inspector;
+- generator;
+- runtime protocol.
+
+Likewise, component-specific behavior belongs in a component adapter/capability layer when generic property handling is insufficient.
+
+Do not add one-off checks such as:
 
 ```dart
-class Player extends SpriteComponent {
-  @override
-  void update(double dt) {
-    // Developer behavior.
-  }
-}
+if (component is CircleComponent) ...
 ```
 
-Do not attempt to turn arbitrary game logic into visual scene data.
+throughout unrelated layers when the behavior belongs in a reusable adapter.
 
 ---
 
-# 7. Developer-Owned Source Code
+# 6. Flame Component Support Contract
 
-Treat developer source code as user data.
+**Discovered does not mean supported.**
 
-Do not destructively rewrite developer-owned Dart files unless there is no reasonable alternative.
+Flame Workspace should inspect the Flame version installed in the user's project and discover public API metadata dynamically.
 
-Prefer:
+However, a component may only be presented as normally addable when Workspace can construct it safely.
+
+A supported component requires:
+
+- a usable constructor;
+- representations for all required constructor arguments;
+- valid imports;
+- valid generated Dart;
+- persistence support;
+- enough editor representation to make adding it meaningful.
+
+If these requirements are not met:
+
+- hide it from normal Add Component results, or
+- display it disabled with a clear unsupported reason.
+
+Never allow:
 
 ```text
-scene.workspace.yaml
-        ↓
-generator
-        ↓
-scene.g.dart
+Add Component
+    ↓
+valid-looking editor form
+    ↓
+Add
+    ↓
+generated project does not compile
 ```
 
-over repeatedly modifying:
+Core visual component support should be tested explicitly.
 
-```text
-scene.dart
-```
+Current core targets include:
 
-Generated files should follow recognizable conventions such as:
+- PositionComponent;
+- SpriteComponent;
+- CircleComponent;
+- RectangleComponent;
+- PolygonComponent;
+- TextComponent;
+- TextBoxComponent.
 
-```text
-*.g.dart
-```
-
-or another clearly documented generated location.
-
-Generated files must include an appropriate generated-file warning.
-
-Generation must be deterministic whenever practical.
-
-Running generation twice without input changes should produce no meaningful diff.
+Do not claim additional components are supported merely because Flame exports them.
 
 ---
 
-# 8. Dart Analysis
+# 7. Flame API Discovery
 
-Use semantic Dart analysis for understanding projects.
+Use semantic Dart analysis.
 
-Prefer the Dart Analyzer resolved model, including concepts such as:
+Prefer resolved Analyzer APIs such as:
 
 ```text
 AnalysisContextCollection
@@ -347,13 +362,12 @@ ResolvedLibraryResult
 LibraryElement
 ClassElement
 ConstructorElement
-PropertyAccessorElement
 InterfaceType
 ```
 
-Use the currently supported Analyzer APIs where names differ.
+Use current equivalent API names when Analyzer changes.
 
-Do not rely on source-text matching for semantic questions.
+Do not answer semantic questions using source string matching.
 
 Bad:
 
@@ -367,88 +381,36 @@ Bad:
 extendsName == 'PositionComponent'
 ```
 
-Good:
+Correct approach:
 
 ```text
 resolve class
     ↓
-inspect its type hierarchy
+inspect type hierarchy
     ↓
 determine whether PositionComponent is an ancestor
 ```
 
-This must correctly support:
+This must correctly understand indirect inheritance.
 
-```dart
-class Enemy extends PositionComponent {}
-
-class Boss extends Enemy {}
-
-class FinalBoss extends Boss {}
-```
-
-All three should be understood as PositionComponent descendants.
+Do not maintain a manually curated snapshot of the Flame API as the authoritative source when the installed dependency can be inspected.
 
 ---
 
-# 9. Flame API Discovery
+# 8. Modern Flame Compatibility
 
-Do not maintain large manually written snapshots of Flame's public API when that information can be discovered from the project's installed dependencies.
+Use the Flame API resolved by the user's project.
 
-Avoid static catalogs equivalent to:
+Prefer current Flame concepts such as:
 
-```text
-built_in_components.dart
-built_in_mixins.dart
-```
+- `World`;
+- `CameraComponent`;
+- `FlameGame<W extends World>`;
+- `HasGameReference<T>`;
+- `RouterComponent`;
+- `WorldRoute`.
 
-as the authoritative source of Flame APIs.
-
-Instead inspect the Flame version actually installed by the user's project.
-
-Relevant information includes:
-
-- classes;
-- constructors;
-- constructor parameters;
-- inheritance;
-- mixins;
-- properties;
-- types;
-- annotations where relevant.
-
-Flame Workspace should tolerate projects using different compatible Flame versions whenever reasonably possible.
-
----
-
-# 10. Modern Flame Conventions
-
-Use current stable Flame APIs unless compatibility requirements explicitly require otherwise.
-
-Prefer modern APIs such as:
-
-```text
-World
-CameraComponent
-FlameGame<W extends World>
-HasGameReference<T>
-RouterComponent
-WorldRoute
-```
-
-Do not introduce deprecated Flame APIs into new code.
-
-For example, prefer:
-
-```dart
-HasGameReference<MyGame>
-```
-
-instead of deprecated:
-
-```dart
-HasGameRef
-```
+Do not introduce deprecated Flame APIs into new code without an explicit compatibility reason.
 
 Respect Flame lifecycle signatures.
 
@@ -456,577 +418,320 @@ For example:
 
 ```dart
 Future<void> onLoad() async {}
-```
-
-is valid.
-
-But:
-
-```dart
-Future<void> update(double dt) async {}
-```
-
-is incorrect.
-
-Use:
-
-```dart
 void update(double dt) {}
-```
-
-Likewise rendering should remain synchronous:
-
-```dart
 void render(Canvas canvas) {}
 ```
 
-Do not generate asynchronous `update` or `render` methods.
+Do not generate asynchronous `update` or `render`.
 
 ---
 
-# 11. Scenes and Worlds
+# 9. Scene Composition vs Game Behavior
 
-Workspace scenes should integrate naturally with Flame's `World` architecture.
-
-A Workspace scene may be represented as a `World` or a compatible abstraction.
-
-Do not create an independent scene graph that competes with Flame's component tree at runtime.
-
-Support native Flame navigation patterns where practical, including:
+Maintain this distinction:
 
 ```text
-World
-CameraComponent
-RouterComponent
-WorldRoute
+WHAT exists / WHERE it is
+          vs
+HOW it behaves
 ```
 
-Workspace-specific scene switching must not make normal Flame routing impossible.
+Workspace scene data may describe:
+
+- component type;
+- semantic identity;
+- hierarchy;
+- position;
+- size;
+- scale;
+- angle;
+- anchor;
+- priority;
+- supported constructor values;
+- supported editable properties;
+- asset references.
+
+Game behavior remains developer Dart code.
+
+Do not attempt to serialize arbitrary `update`, input, collision, routing, or gameplay logic into visual scene data.
 
 ---
 
-# 12. Scene Editor
+# 10. Developer-Owned Source
 
-The editor's Scene View and the running game are different concepts.
+Treat developer source as user data.
 
-### Scene View
+Avoid destructively rewriting developer-owned Dart files.
 
-The Scene View exists for editing.
-
-It should eventually support:
-
-- selection;
-- translation;
-- resizing;
-- rotation;
-- zoom;
-- pan;
-- component outlines;
-- hierarchy synchronization;
-- grid snapping;
-- guides;
-- multi-selection.
-
-Developer Preview only requires a reliable subset.
-
-### Game Preview
-
-The Game Preview executes the user's actual game.
-
-Do not confuse Scene View with Game Preview.
-
----
-
-# 13. Game Preview Architecture
-
-Do not make native child-window embedding a core architectural dependency.
-
-Avoid depending on OS-specific approaches such as:
-
-```text
-HWND parenting
-NSWindow parenting
-GtkWindow parenting
-```
-
-for the primary preview implementation.
-
-The preferred Developer Preview architecture is:
-
-```text
-Flame Workspace
-       │
-       ├── Scene View
-       │      └── editor-owned rendering
-       │
-       └── Game Preview
-              │
-              ▼
-       embedded web surface
-              │
-              ▼
-      flutter run -d web-server
-              │
-              ▼
-       user's actual game
-```
-
-The preview must execute the user's real Flutter + Flame application rather than an approximation of its runtime behavior.
-
----
-
-# 14. Preview Execution
-
-Flame Workspace currently has exactly one game execution workflow: embedded
-Flutter Web Preview using `flutter run -d web-server`. Native game execution and
-native game-window embedding are intentionally unsupported. Keep Scene View
-(editor-owned editing) distinct from Game Preview (the user's actual game).
-
-Web Preview supports visual/input iteration, logs, stop, hot reload, and hot
-restart through Flutter's process controls. Runtime inspection is available only
-when a real VM Service connection is present; never simulate it or add another
-transport to compensate for web tooling limitations.
-
----
-
-# 15. Preview Surface Abstraction
-
-Do not tightly couple Workspace architecture to one WebView package.
-
-Hide the implementation behind an abstraction.
+Prefer Workspace-owned data and additive generated adapters.
 
 Conceptually:
 
-```dart
-abstract interface class PreviewSurface {
-  Future<void> load(Uri uri);
-
-  Future<void> reload();
-
-  Future<void> dispose();
-}
+```text
+.flame_workspace/scenes/...
+        ↓
+generator
+        ↓
+lib/.generated/...
 ```
 
-Platform-specific implementations may use different browser technologies.
+Generated files must be:
 
-Prefer solutions that compose correctly with Flutter and support:
+- clearly marked as generated;
+- deterministic;
+- readable;
+- formatted;
+- replaceable;
+- separated from developer-owned code.
 
-- pointer input;
-- keyboard input;
-- focus;
-- resizing;
-- clipping;
-- overlays where possible.
+Do not modify developer Dart continuously during editor interactions.
 
 ---
 
-# 16. Flutter Process Management
+# 11. Dart Code Generation
 
-Process management must be encapsulated.
+Use structured generation for machine-generated Dart.
 
-The editor should be able to:
+Prefer `package:code_builder` for:
+
+- libraries;
+- imports/references;
+- declarations;
+- constructor calls;
+- named arguments;
+- literals;
+- static references;
+- assignments;
+- cascades where practical;
+- generated functions and dispatchers.
+
+The generation pipeline should be:
 
 ```text
-Start
-Stop
-Hot Reload
-Hot Restart
-Observe Logs
-Detect Exit
-Detect Startup Failure
+Typed Workspace Value
+        ↓
+code_builder Expression / AST
+        ↓
+DartEmitter
+        ↓
+dart_style
+        ↓
+Analyzer validation
 ```
 
-Do not scatter `Process.start` calls throughout UI code.
+`code_builder` is an implementation detail of Flame Workspace.
 
-Create a dedicated runner abstraction.
+Generated user projects must not depend on it.
 
-The runner must clean up child processes when:
+### Do not
 
-- the user stops execution;
-- the project closes;
-- Workspace exits;
-- preview startup fails.
+Do not build typed Dart values through arbitrary interpolation like:
 
-Do not leave orphaned Flutter/Dart processes.
+```dart
+'$name: $value'
+```
+
+Do not guess whether a string contains Dart source.
+
+Do not silently call `.toString()` for unsupported semantic values.
+
+Avoid raw `Code(...)` when a structured `code_builder` representation exists.
+
+If raw code is unavoidable, isolate it behind the generation abstraction and document why.
+
+### Generation failures
+
+If a supported semantic value cannot be generated, fail before emitting broken source.
+
+Include useful context where possible:
+
+- scene;
+- component ID;
+- component type;
+- property;
+- semantic value type.
 
 ---
 
-# 17. VM Service Communication
+# 12. Import Generation
 
-Use the Dart/Flutter VM Service as the primary debug/runtime integration mechanism whenever possible.
+Prefer structured references and scoped allocation for generated Dart imports.
 
-Do not maintain two competing runtime communication systems.
+Generation must safely handle:
 
-The legacy custom Shelf/WebSocket debug server should be considered migration code and should not receive new features unless explicitly requested.
+- Flame symbols;
+- Flutter/Dart symbols;
+- Workspace runtime symbols;
+- project-defined component symbols;
+- naming collisions.
 
-Prefer a stable service-extension API.
+Do not grow a second ad-hoc import-resolution system alongside `code_builder`.
 
-For example:
+Generated imports must remain deterministic.
+
+---
+
+# 13. Generated-Code Validation
+
+Generator unit tests are not enough.
+
+Whenever generator behavior changes, validate generated projects where practical:
+
+```text
+generate
+   ↓
+format
+   ↓
+analyze
+   ↓
+test where relevant
+```
+
+Generated Dart that looks correct but does not compile is a generator failure.
+
+For supported components, maintain contract tests covering:
+
+```text
+discover
+→ construct semantic value
+→ generate
+→ analyze
+→ persist/reopen
+```
+
+Include regression tests for type-sensitive values such as:
+
+```text
+double 40.0 → 40.0
+String "40.0" → '40.0'
+Color → valid Color expression
+Anchor → valid static/member expression
+Vector2 → valid constructor expression
+Paint → valid structured expression
+```
+
+---
+
+# 14. Structural Scene Changes
+
+Do not assume Flutter hot reload reruns Flame `onLoad`.
+
+Structural changes such as:
+
+- add;
+- remove;
+- reparent;
+- component type change;
+- relevant ordering changes;
+
+must use an explicit deterministic synchronization/reconstruction path.
+
+Classify changes centrally rather than letting individual widgets guess whether to:
+
+- mutate runtime directly;
+- reconstruct a scene;
+- hot reload;
+- hot restart.
+
+Build State remains authoritative even if runtime synchronization fails.
+
+---
+
+# 15. Runtime Protocol
+
+Use the Dart/Flutter VM Service as the primary runtime/debug integration mechanism when available.
+
+Do not maintain multiple competing debug transports.
+
+Legacy custom Shelf/WebSocket infrastructure is migration code unless explicitly revived.
+
+Use stable service extensions with structured parameters.
+
+Examples may include:
 
 ```text
 ext.flameWorkspace.getState
 ext.flameWorkspace.getComponentTree
 ext.flameWorkspace.setProperty
-ext.flameWorkspace.addComponent
-ext.flameWorkspace.removeComponent
 ext.flameWorkspace.setTransform
 ext.flameWorkspace.setScene
 ext.flameWorkspace.pause
 ext.flameWorkspace.resume
 ```
 
-Prefer:
+The exact supported set should match implementation.
+
+Do not document obsolete service extensions as active.
+
+Protocol contracts belong in `flame_workspace_protocol`.
+
+The runtime package must never depend on the editor package.
+
+---
+
+# 16. Runtime Reconciliation
+
+When runtime inspection is available, compare the live Flame component tree with authored Build State.
+
+Detect meaningful mismatches such as:
+
+- expected component missing;
+- unexpected runtime-only component;
+- duplicate semantic IDs;
+- type mismatch;
+- hierarchy mismatch.
+
+Do not wait for a later `component_not_found` to reveal a known synchronization failure.
+
+Runtime-only dynamically spawned components must not automatically become authored Build State components.
+
+---
+
+# 17. Preview Architecture
+
+The primary game execution workflow is embedded Flutter Web Preview using:
 
 ```text
-stable extension name
-+
-structured JSON parameters
+flutter run -d web-server
 ```
 
-over dynamically registering extension names for individual scenes or components.
+Do not make native child-window embedding a core dependency.
 
-Protocol changes should be represented in `flame_workspace_protocol`.
+Keep WebView/browser implementation details behind an abstraction.
+
+The preview should support, where available:
+
+- start;
+- stop;
+- reload;
+- hot reload;
+- hot restart;
+- logs;
+- process-exit detection;
+- runtime/debug control.
+
+Runtime mutation is available only when a real supported debug connection exists.
+
+Do not create another transport merely to simulate unavailable VM Service functionality.
 
 ---
 
-# 18. Property Editing
+# 18. Flutter Process Management
 
-Property editing should not require rewriting arbitrary developer code for every interaction.
+Process management belongs behind a runner abstraction.
 
-For interactive operations such as dragging:
+Do not scatter `Process.start` throughout widgets.
 
-```text
-pointer movement
-      ↓
-Workspace scene model
-      ↓
-Scene View updates immediately
-```
+The runner must clean up child processes when:
 
-Do not perform:
+- preview stops;
+- project closes;
+- Workspace exits;
+- startup fails.
 
-```text
-pointer movement
-      ↓
-rewrite Dart
-      ↓
-hot reload
-      ↓
-wait
-      ↓
-render
-```
+Do not leave orphaned Flutter or Dart processes.
 
-for every frame of an editor interaction.
-
-Persist/generate changes at appropriate boundaries.
-
----
-
-# 19. Dependencies
-
-Keep generated projects minimal.
-
-A base project should not automatically depend on every Flame ecosystem package.
-
-Do not include packages such as:
-
-```text
-flame_audio
-flame_forge2d
-flame_isolate
-```
-
-unless the project actually uses them or the template explicitly requires them.
-
-Optional Flame packages may impose newer SDK constraints or introduce platform requirements.
-
-Keep the base template as close as practical to:
-
-```text
-Flutter
-Flame
-Flame Workspace runtime
-```
-
-Additional capabilities should be opt-in.
-
----
-
-# 20. Version Compatibility
-
-Do not assume versions found in old repository files are authoritative.
-
-This repository contains historical version references.
-
-Before performing a dependency migration:
-
-1. inspect the current repository;
-2. inspect current package constraints;
-3. determine current stable compatible versions;
-4. check migration notes for major API changes;
-5. update code and tests together.
-
-Do not blindly bump dependency versions.
-
-Do not downgrade current dependencies simply because an older file references an older version.
-
----
-
-# 21. Cross-Platform Requirements
-
-Flame Workspace is intended to be cross-platform.
-
-Editor code must not unnecessarily assume:
-
-```text
-Windows
-macOS
-Linux
-```
-
-unless contained behind a platform abstraction.
-
-Paths must use Dart path utilities.
-
-Do not construct paths using hardcoded `/` or `\`.
-
-Do not assume a specific Flutter executable location.
-
-Do not assume the preview device is Windows.
-
-Platform-specific implementations should expose platform-neutral interfaces to the rest of Workspace.
-
----
-
-# 22. Error Handling
-
-The editor must expect user projects to be broken.
-
-Examples:
-
-```text
-syntax errors
-missing packages
-failed pub get
-invalid generated files
-unsupported Flame version
-Flutter compilation failure
-missing assets
-runtime exceptions
-preview crash
-VM Service disconnect
-```
-
-A broken game project must not crash the Workspace editor.
-
-Report actionable errors.
-
-Where possible include:
-
-- operation that failed;
-- relevant project/file;
-- command that failed;
-- process exit code;
-- useful stderr/stdout;
-- suggested recovery action.
-
----
-
-# 23. Testing Philosophy
-
-Tests should validate meaningful behavior and user workflows.
-
-Do not create tests merely to increase coverage.
-
-Avoid low-value tests that primarily verify:
-
-- hardcoded labels;
-- literal UI strings;
-- theme colors;
-- constants;
-- implementation details;
-- trivial getters/setters;
-- framework behavior.
-
-Prefer tests that would catch real regressions.
-
----
-
-# 24. Test Structure
-
-Use the appropriate level of testing.
-
-### Unit tests
-
-For:
-
-- semantic models;
-- serializers;
-- parsers;
-- generators;
-- protocol messages;
-- path handling;
-- component discovery.
-
-### Widget tests
-
-For meaningful editor behavior such as:
-
-- selecting a hierarchy item updates Inspector;
-- editing a property updates the model;
-- changing scenes updates editor state;
-- error states are recoverable.
-
-### Integration tests
-
-For complete Workspace workflows.
-
-Integration tests are especially important for Developer Preview.
-
----
-
-# 25. Fixture Projects
-
-Maintain representative Flame fixture projects.
-
-Examples:
-
-```text
-fixtures/
-  empty_game/
-  basic_components/
-  custom_components/
-  inheritance/
-  multiple_scenes/
-  routing/
-  broken_project/
-```
-
-Add additional fixtures when they represent a meaningful compatibility case.
-
-Fixture projects should remain intentionally small.
-
----
-
-# 26. Generated-Code Validation
-
-Whenever generator behavior changes, validate the generated project itself.
-
-A successful generator test should not only compare strings.
-
-Where practical:
-
-```text
-Generate project
-      ↓
-dart format
-      ↓
-flutter pub get
-      ↓
-flutter analyze
-      ↓
-flutter test
-```
-
-Generated Dart that looks correct but does not compile is a generator failure.
-
----
-
-# 27. Developer Preview End-to-End Test
-
-Maintain an automated test covering the core Developer Preview workflow.
-
-Conceptually:
-
-```text
-1. Create temporary Workspace project.
-2. Resolve dependencies.
-3. Index project.
-4. Create/open a scene.
-5. Add a component.
-6. Modify component properties.
-7. Persist/generate project state.
-8. Format generated sources.
-9. Run Flutter analyzer.
-10. Run project tests.
-11. Start preview.
-12. Verify preview successfully starts.
-13. Connect runtime/debug communication.
-14. Perform at least one runtime operation.
-15. Hot reload.
-16. Stop preview.
-17. Verify child processes terminate.
-```
-
-As the architecture becomes capable of supporting these steps, extend this test rather than replacing it with isolated mocks.
-
-This test is the primary regression guard for Developer Preview.
-
----
-
-# 28. Testing Changes Made by Agents
-
-Agents must test their own changes.
-
-Do not claim a task is complete without executing the relevant validation.
-
-At minimum, for affected Dart/Flutter packages, run the applicable commands:
-
-```bash
-dart format .
-```
-
-```bash
-flutter analyze
-```
-
-```bash
-flutter test
-```
-
-For large repositories, package-specific equivalents are acceptable while iterating.
-
-Before completing architectural or cross-package work, run broader repository validation.
-
-If a command cannot run, explicitly report:
-
-- which command;
-- why it could not run;
-- what remains unverified.
-
-Never silently skip failing tests.
-
----
-
-# 29. Fixing Failures
-
-When tests fail after a change:
-
-1. determine whether the implementation or test is incorrect;
-2. fix the root cause;
-3. rerun the relevant test;
-4. rerun nearby tests when appropriate.
-
-Do not weaken tests simply to make them pass.
-
-Do not:
-
-```text
-skip
-disable
-delete
-loosen assertion
-increase arbitrary delay
-```
-
-without establishing that the test itself is incorrect or obsolete.
-
----
-
-# 30. Async and Integration Tests
-
-Avoid arbitrary timing assumptions.
+Wait for observable readiness rather than arbitrary delays.
 
 Bad:
 
@@ -1034,111 +739,391 @@ Bad:
 await Future.delayed(const Duration(seconds: 5));
 ```
 
-Prefer waiting for observable state:
+Prefer:
 
 ```text
 process reports ready
-VM Service becomes available
-expected file appears
-specific event arrives
-component reaches expected state
+VM Service appears
+expected event arrives
+specific state becomes true
 ```
 
-All process/network waits must have reasonable timeouts and useful failure messages.
+All waits require reasonable timeouts and useful failure messages.
 
 ---
 
-# 31. Mocks
+# 19. Editor Interaction Performance
 
-Prefer real implementations for integration boundaries when reasonably cheap.
+Interactive operations must update in-memory authored state first.
 
-Do not mock the Dart Analyzer when testing project analysis.
+Do not trigger expensive work for every pointer movement.
 
-Do not mock generated Dart compilation when testing generators.
+Avoid per-frame:
 
-Do not mock Flutter process management in the end-to-end test.
+- source generation;
+- project-wide analysis;
+- `flutter analyze`;
+- hot reload;
+- filesystem-wide scanning.
 
-Mocks are appropriate for focused unit tests, not as substitutes for validating the actual development workflow.
+Persist, generate, synchronize, and validate at deliberate boundaries.
 
 ---
 
-# 32. Agent Workflow
+# 20. Undo / Redo
 
-Before changing code:
+Build-State mutations should travel through a coherent editing transaction system.
+
+Undo/redo must preserve semantic correctness and synchronize the preview through the same synchronization strategy as the original edit.
+
+Game-State runtime overrides do not belong in Build-State undo history.
+
+Do not create separate history logic for each widget.
+
+---
+
+# 21. Assets
+
+Keep generated projects minimal.
+
+Base projects should generally depend on:
+
+```text
+Flutter
+Flame
+Flame Workspace runtime
+```
+
+Optional Flame ecosystem packages should only be added when actually required.
+
+Asset operations must respect `pubspec.yaml`.
+
+Do not silently rewrite user project configuration unless the operation explicitly owns that change.
+
+---
+
+# 22. Cross-Platform Rules
+
+Flame Workspace targets desktop environments without unnecessary platform coupling.
+
+Do not assume Windows, macOS, or Linux except inside a platform-specific implementation.
+
+Use `package:path` for filesystem paths.
+
+Do not:
+
+- hardcode `/` or `\`;
+- assume Flutter's executable path;
+- assume a specific preview host platform.
+
+Platform-specific implementations must expose platform-neutral interfaces.
+
+---
+
+# 23. Project Trust
+
+Treat opened projects as potentially untrusted.
+
+Static indexing must not automatically execute project code.
+
+Actions that execute project code include:
+
+- Preview;
+- Run;
+- Tests;
+- Build.
+
+Keep static project analysis distinct from runtime execution.
+
+Never construct unsafe shell commands from unvalidated project data.
+
+---
+
+# 24. Error Handling
+
+User projects may be broken.
+
+Expected failure cases include:
+
+- syntax errors;
+- missing dependencies;
+- failed `pub get`;
+- invalid assets;
+- unsupported Flame versions;
+- generated-code failures;
+- preview compilation failures;
+- runtime exceptions;
+- VM Service disconnects.
+
+A broken game project must not crash Flame Workspace.
+
+Errors should be actionable and, where relevant, include:
+
+- operation;
+- project/file;
+- component/property context;
+- command;
+- exit code;
+- useful stdout/stderr;
+- recovery action.
+
+No editable control should silently do nothing.
+
+---
+
+# 25. Testing Strategy
+
+Tests exist to catch user-visible or architectural regressions, not inflate coverage.
+
+## Unit tests
+
+Use for:
+
+- semantic models;
+- typed values;
+- adapters;
+- serializers;
+- parsers;
+- generators;
+- protocol messages;
+- component discovery;
+- transform/grid math.
+
+## Widget tests
+
+Use for meaningful editor behavior, such as:
+
+- hierarchy selection updates Inspector;
+- property edits update semantic state;
+- invalid values are rejected;
+- Build/Game controls expose correct state;
+- errors remain recoverable.
+
+## Integration tests
+
+Use for real workflows across subsystem boundaries.
+
+Prefer real implementations at integration boundaries.
+
+Do not mock:
+
+- Dart Analyzer when testing project analysis;
+- generated code compilation when testing generators;
+- actual process management in the primary E2E test.
+
+---
+
+# 26. Core End-to-End Regression
+
+Maintain at least one automated test covering:
+
+```text
+Create/Open Project
+→ index
+→ open scene
+→ inspect hierarchy
+→ add supported component
+→ edit properties
+→ transform component
+→ persist
+→ generate
+→ format/analyze
+→ start preview
+→ reconcile runtime
+→ mutate runtime
+→ Stop
+→ verify Build State unchanged
+→ reopen
+→ verify authored values
+```
+
+Also retain a specific Play Mode isolation scenario:
+
+```text
+Build value = A
+→ Play
+→ runtime value = B
+→ Stop
+→ Build value still = A
+→ Play again
+→ runtime starts at A
+```
+
+These are primary architectural regression guards.
+
+---
+
+# 27. Marionette UI Verification
+
+When Marionette integration is available, use it for real editor workflow validation.
+
+Marionette supplements tests; it does not replace them.
+
+For editor-facing changes, prefer:
+
+```text
+focused tests
+→ flutter analyze
+→ launch Flame Workspace
+→ connect Marionette
+→ interact with actual UI
+→ inspect diagnostics/logs
+→ screenshot when visual behavior matters
+```
+
+Important editor controls should expose stable, meaningful `Key` and/or Semantics identifiers when practical.
+
+Do not build test-only UI APIs that bypass the actual workflow being tested.
+
+Diagnostic custom extensions are appropriate for observing internal state.
+
+UI operations should still exercise real UI where that behavior is under test.
+
+---
+
+# 28. Agent Workflow
+
+Before editing:
 
 1. read this file;
-2. inspect the relevant package;
+2. inspect the relevant implementation;
 3. inspect nearby tests;
-4. understand current behavior;
-5. identify the smallest architectural boundary affected.
+4. trace the real flow end-to-end;
+5. identify the smallest architectural boundary that owns the problem.
 
-Do not immediately start editing based solely on an issue description.
+Then apply the repository's efficiency ladder:
 
----
+1. does this need to exist?
+2. does the repository already solve it?
+3. does Dart/Flutter/Flame already solve it?
+4. does an installed dependency solve it?
+5. can an existing abstraction be extended?
+6. only then add the minimum new code.
 
-# 33. Scope Control
+A bug report usually describes a symptom.
 
-Keep each task focused.
-
-If asked to:
-
-> Improve component discovery.
-
-Do not simultaneously:
-
-- redesign the Inspector;
-- migrate preview architecture;
-- rename unrelated classes;
-- reorganize the repository;
-- change formatting conventions.
-
-If another architectural problem blocks the task, explain the dependency before broadening scope.
-
-Small, independently verifiable changes are preferred.
+Trace sibling callers and fix the shared root cause once.
 
 ---
 
-# 34. Refactoring
+# 29. Scope Control
 
-Refactoring is encouraged when it directly improves the requested work.
+Keep tasks focused.
 
-Avoid opportunistic repository-wide refactors.
+Do not turn a request such as:
 
-When performing substantial refactoring:
+> Fix CircleComponent radius generation.
 
-1. preserve behavior with tests;
-2. make structural changes;
-3. verify tests;
-4. then add new behavior.
+into:
 
-Avoid mixing massive mechanical changes with new functionality in one change.
+- an Inspector redesign;
+- a preview migration;
+- repository-wide renaming;
+- unrelated formatting cleanup.
+
+However, if the root cause is shared—for example the semantic value system—fix the shared abstraction rather than patching only `CircleComponent`.
+
+Prefer small independently verifiable changes.
 
 ---
 
-# 35. Dead and Legacy Code
+# 30. Refactoring
 
-This repository contains experimental implementations from earlier architectural iterations.
+Refactor when it directly supports the requested change.
 
-Do not assume existing code represents the desired architecture.
+For substantial refactors:
 
-When encountering:
+1. characterize current behavior with tests;
+2. change structure;
+3. restore green tests;
+4. add new behavior.
 
-- old WebSocket communication;
+Do not mix broad mechanical cleanup with unrelated functionality.
+
+Do not preserve obsolete APIs solely because they already exist.
+
+---
+
+# 31. Legacy Code
+
+This repository contains remnants of earlier architectural iterations.
+
+Examples may include:
+
+- custom WebSocket debugging;
 - native-window preview experiments;
-- static Flame metadata;
-- deprecated Flame APIs;
-- Windows-specific assumptions;
-- abandoned generated-code approaches;
+- static Flame API snapshots;
+- deprecated APIs;
+- old scene mutation hooks;
+- old generated-code approaches.
 
-determine whether they are still part of the intended architecture before extending them.
+Before extending old code, determine whether it belongs to the current architecture.
 
-Prefer deleting obsolete architecture once its replacement is working and tested.
-
-Do not maintain two permanent implementations of the same subsystem.
+When a replacement is working and tested, prefer deleting obsolete architecture over maintaining two implementations.
 
 ---
 
-# 36. TODOs
+# 32. Dependencies
+
+Before dependency changes:
+
+1. inspect current constraints;
+2. inspect actual usage;
+3. verify compatible current versions;
+4. review migration implications;
+5. update tests with the dependency.
+
+Do not upgrade or downgrade blindly based on stale repository references.
+
+Dependencies used only for Workspace implementation, such as `code_builder`, should not leak into generated game projects.
+
+---
+
+# 33. Documentation
+
+Update documentation when changing:
+
+- architecture;
+- persisted project format;
+- generated files;
+- runtime protocol;
+- supported component capabilities;
+- preview behavior;
+- platform support;
+- setup requirements.
+
+Document reality, not aspiration.
+
+Use clear states:
+
+```text
+implemented
+experimental
+unsupported
+planned
+```
+
+---
+
+# 34. Logging
+
+Prefer structured subsystem logging over scattered `print`.
+
+Important logs should identify enough context for:
+
+- project loading;
+- Analyzer;
+- generation;
+- preview process;
+- VM Service;
+- runtime reconciliation;
+- filesystem watching.
+
+Avoid noisy success logging during ordinary editor interactions.
+
+---
+
+# 35. TODOs
 
 Do not add vague TODOs.
 
@@ -1148,194 +1133,100 @@ Bad:
 // TODO: fix this
 ```
 
-Better:
-
-```dart
-// TODO(flame-workspace): Replace the temporary web preview URL parser
-// with structured Flutter daemon events once preview startup uses the
-// daemon protocol.
-```
-
-A TODO should communicate:
+A useful TODO explains:
 
 - what remains;
-- why it remains;
-- what would allow it to be removed.
+- why;
+- what condition allows removal.
+
+If the work should be completed as part of the current task, do not replace implementation with a TODO.
 
 ---
 
-# 37. Documentation
+# 36. Completion Criteria
 
-Update documentation when changing:
+A task is not complete because code was written.
 
-- architecture;
-- project format;
-- generated files;
-- runtime protocol;
-- setup requirements;
-- preview behavior;
-- supported platforms;
-- Developer Preview capabilities.
+Before completion, run the relevant validation.
 
-Do not document aspirational functionality as implemented.
+At minimum where applicable:
 
-Clearly distinguish:
-
-```text
-implemented
-experimental
-planned
-```
-
----
-
-# 38. Performance
-
-The Scene View should feel interactive.
-
-Do not trigger expensive operations such as:
-
-```text
-full project analysis
-source generation
+```bash
+dart format .
 flutter analyze
-hot reload
-filesystem-wide scanning
+flutter test
 ```
 
-for every pointer movement or property slider update.
+Use package-specific commands while iterating when appropriate.
 
-Interactive editor operations should update in-memory state first.
-
-Expensive persistence and validation should occur at deliberate boundaries and may be debounced where appropriate.
-
----
-
-# 39. Logging
-
-Use structured project logging rather than scattered `print` statements.
-
-Important subsystems should provide enough context to diagnose:
+For generator changes:
 
 ```text
-project loading
-analysis
-generation
-Flutter processes
-preview
-VM Service
-runtime protocol
-filesystem watching
+generate fixture
+→ format
+→ analyze generated project
 ```
 
-Avoid excessively verbose logs during normal operation.
-
----
-
-# 40. Security and Project Trust
-
-Treat opened projects as potentially untrusted.
-
-Opening/indexing a project should not automatically execute arbitrary project code.
-
-Operations that execute project code include actions such as:
+For preview changes:
 
 ```text
-Preview
-Run
-Tests
-Build
+actually start preview
 ```
 
-Keep static project analysis separate from runtime execution.
+when the environment permits.
 
-Do not execute generated shell commands constructed from unvalidated project content.
-
----
-
-# 41. Completion Criteria
-
-A code task is not complete merely because code was written.
-
-Before reporting completion:
-
-- format affected code;
-- run static analysis;
-- run relevant tests;
-- inspect failures;
-- verify generated output when applicable;
-- verify cross-package implications when applicable;
-- remove obsolete code introduced/replaced by the task;
-- summarize remaining limitations.
-
-For UI work, also verify the actual interaction rather than relying only on static analysis.
-
-For generated project changes, compile/analyze a generated fixture.
-
-For preview changes, actually launch a preview when the environment permits it.
-
----
-
-# 42. Decision Priority
-
-When architectural choices conflict, optimize in this order:
-
-1. **Correctness**
-2. **Developer project safety**
-3. **Compatibility with normal Flame projects**
-4. **Architectural simplicity**
-5. **Testability**
-6. **Cross-platform behavior**
-7. **Editor responsiveness**
-8. **Developer experience**
-9. **Implementation convenience**
-
-Do not sacrifice project safety or Flame compatibility merely because another implementation is easier.
-
----
-
-# 43. Developer Preview Definition of Done
-
-Developer Preview is reached when a developer can reliably:
+For UI changes:
 
 ```text
-Create or open a Flame project
-        ↓
-Workspace understands the project
-        ↓
-Open a scene
-        ↓
-See its component hierarchy
-        ↓
-Select a component
-        ↓
-Inspect useful properties
-        ↓
-Edit basic properties
-        ↓
-Visually manipulate basic PositionComponents
-        ↓
-Persist those changes
-        ↓
-Run an embedded game preview
-        ↓
-Hot reload / restart
-        ↓
-See runtime errors/logs
+exercise the actual interaction
 ```
 
-This workflow must be covered by meaningful automated tests and at least one end-to-end fixture.
+and use Marionette when available.
 
-Developer Preview does **not** mean that every Flame feature has a visual editor.
+If validation cannot run, report explicitly:
+
+- command not run;
+- reason;
+- what remains unverified.
+
+Never silently skip failing tests.
+
+Do not weaken or delete tests merely to make them pass.
 
 ---
 
-# 44. Guiding Question
+# 37. Definition of Done for a Supported Component
 
-When uncertain whether a feature or architectural decision belongs in Flame Workspace, ask:
+If Flame Workspace presents a Flame component as supported, this workflow must succeed:
 
-> Does this make it easier to build a normal Flame game visually while preserving Flame as the engine and Dart as the source of game behavior?
+```text
+select component
+→ configure required constructor values
+→ Add
+→ generated code compiles
+→ component appears in Build State
+→ edit supported properties
+→ generated code still compiles
+→ save
+→ reopen
+→ authored values preserved
+→ Play
+→ runtime matches authored state
+→ runtime-only edits remain transient
+→ Stop
+→ Build State remains correct
+```
 
-If yes, it likely belongs in Workspace.
+If this contract cannot be satisfied, classify the component as unsupported or partially supported instead of pretending otherwise.
 
-If it requires Flame Workspace to become its own game engine, runtime, or proprietary application format, reconsider the approach.
+---
+
+# 38. Guiding Question
+
+When unsure whether something belongs in Flame Workspace, ask:
+
+> Does this make it easier to build a normal Flame game visually while preserving Flame as the engine, Dart as the behavior language, and the Workspace semantic model as authored editor state?
+
+If yes, it probably belongs.
+
+If it requires Flame Workspace to become a separate engine, proprietary runtime, or opaque project format, reconsider the design.

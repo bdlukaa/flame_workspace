@@ -6,6 +6,7 @@ import 'package:flame_workspace/workbench/model/semantic_model.dart';
 import 'package:flame_workspace/workbench/model/workspace_editor_model.dart';
 import 'package:flame_workspace/workbench/model/runtime_tree_reconciliation.dart';
 import 'package:flame_workspace_protocol/runtime.dart';
+import 'package:flame_workspace_protocol/workspace_value.dart';
 import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -98,6 +99,239 @@ void main() {
       expect(await file.readAsString(), endsWith('\n'));
     },
   );
+
+  test(
+    'typed properties survive persistence and generate Dart expressions',
+    () {
+      final scene = SceneDefinition(
+        id: 'typed-scene',
+        name: 'Typed',
+        components: [
+          ComponentInstance(
+            id: 'typed-component',
+            type: const ComponentType(
+              id: 'TypedComponent',
+              name: 'TypedComponent',
+            ),
+            properties: {
+              'label': 'Anchor.center',
+              'enabled': true,
+              'count': 5,
+              'radius': 40.0,
+              'tint': const WorkspaceColor(0xFF123456),
+              'offset': const WorkspaceVectorValue(2.5, -3),
+              'textRenderer': const WorkspaceTextPaint(
+                color: WorkspaceColor(0xFF123456),
+                fontSize: 18,
+                fontFamily: 'Roboto',
+                fontWeight: WorkspaceFontWeight.w700,
+                fontStyle: WorkspaceFontStyle.italic,
+                letterSpacing: 1.25,
+                wordSpacing: 2,
+                height: 1.2,
+                textDirection: WorkspaceTextDirection.rtl,
+              ),
+              'paint': const WorkspacePaint(
+                color: WorkspaceColor(0xFFABCDEF),
+                style: WorkspacePaintStyle.stroke,
+                strokeWidth: 2.5,
+                strokeCap: WorkspaceStrokeCap.round,
+                strokeJoin: WorkspaceStrokeJoin.bevel,
+                blendMode: WorkspaceBlendMode.screen,
+                antiAlias: false,
+              ),
+              'direction': const WorkspaceEnumValue('Direction', 'horizontal'),
+            },
+          ),
+        ],
+      );
+      final restored = SceneDefinition.fromJson(scene.toJson());
+      final generated = ScenePersistenceGenerator.generate(
+        restored,
+        FlameProject(
+          name: 'example_game',
+          organization: 'com.example',
+          location: Directory.systemTemp,
+          initialScene: 'Typed',
+        ),
+      );
+
+      expect(
+        restored.components.single.properties,
+        scene.components.single.properties,
+      );
+      expect(generated, contains('label = "Anchor.center"'));
+      expect(generated, contains('enabled = true'));
+      expect(generated, contains('count = 5'));
+      expect(generated, contains('radius = 40.0'));
+      expect(generated, contains('tint = Color(0xFF123456)'));
+      expect(generated, contains('offset = Vector2(2.5, -3.0)'));
+      expect(generated, contains("import 'dart:ui';"));
+      expect(generated, contains("import 'package:flame/text.dart';"));
+      expect(generated, contains('textRenderer = TextPaint('));
+      expect(generated, contains('fontFamily: "Roboto"'));
+      expect(generated, contains('fontWeight: FontWeight.w700'));
+      expect(generated, contains('textDirection: TextDirection.rtl'));
+      expect(generated, contains('paint = Paint()'));
+      expect(generated, contains('..color = const Color(0xFFABCDEF)'));
+      expect(generated, contains('..style = PaintingStyle.stroke'));
+      expect(generated, contains('..strokeWidth = 2.5'));
+      expect(generated, contains('..strokeCap = StrokeCap.round'));
+      expect(generated, contains('..strokeJoin = StrokeJoin.bevel'));
+      expect(generated, contains('..blendMode = BlendMode.screen'));
+      expect(generated, contains('..isAntiAlias = false'));
+      expect(generated, contains('direction = Direction.horizontal'));
+    },
+  );
+
+  test('generates the supported shape family without duplicate transforms', () {
+    const vertices = [
+      WorkspaceVectorValue(0, 0),
+      WorkspaceVectorValue(80, 0),
+      WorkspaceVectorValue(40, 60),
+    ];
+    final scene = SceneDefinition(
+      id: 'shapes',
+      name: 'Shapes',
+      components: [
+        ComponentInstance(
+          id: 'circle-id',
+          type: const ComponentType(
+            id: 'CircleComponent',
+            name: 'CircleComponent',
+            baseType: 'ShapeComponent',
+            isPositionComponent: true,
+            properties: [
+              WorkspacePropertyDefinition(
+                name: 'radius',
+                type: 'double?',
+                editable: true,
+              ),
+              WorkspacePropertyDefinition(
+                name: 'paint',
+                type: 'Paint?',
+                editable: true,
+              ),
+            ],
+          ),
+          properties: {
+            'radius': 18.0,
+            'paint': const WorkspacePaint(
+              color: WorkspaceColor(0xFF112233),
+              style: WorkspacePaintStyle.stroke,
+              strokeWidth: 2,
+            ),
+          },
+          transform: const WorkspaceTransform(
+            position: WorkspaceVector2(10, 20),
+            size: WorkspaceVector2(36, 36),
+            scale: WorkspaceVector2(2, 1),
+          ),
+          priority: 4,
+        ),
+        ComponentInstance(
+          id: 'rectangle-id',
+          type: const ComponentType(
+            id: 'RectangleComponent',
+            name: 'RectangleComponent',
+            baseType: 'ShapeComponent',
+            isPositionComponent: true,
+            properties: [
+              WorkspacePropertyDefinition(
+                name: 'paint',
+                type: 'Paint?',
+                editable: true,
+              ),
+            ],
+          ),
+          properties: {
+            'paint': const WorkspacePaint(color: WorkspaceColor(0xFF445566)),
+          },
+          transform: const WorkspaceTransform(
+            position: WorkspaceVector2(40, 50),
+            size: WorkspaceVector2(120, 80),
+          ),
+          priority: 5,
+        ),
+        ComponentInstance(
+          id: 'polygon-id',
+          type: const ComponentType(
+            id: 'PolygonComponent',
+            name: 'PolygonComponent',
+            baseType: 'ShapeComponent',
+            isPositionComponent: true,
+            properties: [
+              WorkspacePropertyDefinition(
+                name: 'vertices',
+                type: 'List<Vector2>',
+                editable: true,
+                constructorPosition: 0,
+                recreateOnEdit: true,
+              ),
+              WorkspacePropertyDefinition(
+                name: 'paint',
+                type: 'Paint?',
+                editable: true,
+              ),
+            ],
+          ),
+          properties: {
+            'vertices': vertices,
+            'paint': const WorkspacePaint(color: WorkspaceColor(0xFF778899)),
+          },
+          transform: const WorkspaceTransform(
+            position: WorkspaceVector2(80, 90),
+            size: WorkspaceVector2(80, 60),
+            angle: 0.5,
+          ),
+          priority: 6,
+        ),
+      ],
+    );
+    final restored = SceneDefinition.fromJson(scene.toJson());
+    final restoredPolygon = restored.components.last;
+    expect(restoredPolygon.properties['vertices'], vertices);
+    expect(
+      restoredPolygon.type.properties
+          .firstWhere((property) => property.name == 'vertices')
+          .constructorPosition,
+      0,
+    );
+    expect(
+      restoredPolygon.type.properties
+          .firstWhere((property) => property.name == 'vertices')
+          .recreateOnEdit,
+      isTrue,
+    );
+    final generated = ScenePersistenceGenerator.generate(
+      restored,
+      FlameProject(
+        name: 'example_game',
+        organization: 'com.example',
+        location: Directory.systemTemp,
+        initialScene: 'Shapes',
+      ),
+    );
+
+    expect(generated, contains('component0.radius = 18.0;'));
+    expect(
+      generated,
+      contains(
+        '..position = Vector2(10.0, 20.0)\n    ..scale = Vector2(2.0, 1.0)',
+      ),
+    );
+    expect(generated, contains('..position = Vector2(40.0, 50.0)'));
+    expect(generated, contains('..size = Vector2(120.0, 80.0)'));
+    expect(
+      generated,
+      contains(
+        'PolygonComponent([Vector2(0.0, 0.0), Vector2(80.0, 0.0), Vector2(40.0, 60.0)], key: FlameKey(\'polygon-id\'))',
+      ),
+    );
+    expect(generated, isNot(contains('component2.vertices =')));
+    expect(generated, contains('..position = Vector2(80.0, 90.0)'));
+    expect(generated, contains('component2.paint = Paint()'));
+  });
 
   test('loads older scene documents with the default background color', () {
     final scene = SceneDefinition.fromJson({

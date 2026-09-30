@@ -6,11 +6,13 @@ import 'package:flame_workspace/workbench/generators/properties_generator.dart';
 import 'package:flame_workspace/workbench/generators/scene_persistence_generator.dart';
 import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/parser/type_resolver.dart';
+import 'package:flame_workspace/workbench/parser/values.dart';
 import 'package:flame_workspace/workbench/model/scene_persistence.dart';
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
 import 'package:flame_workspace/workbench/parser/workspace_model_mapper.dart';
 import 'package:flame_workspace/workbench/project/import.dart';
 import 'package:flame_workspace/workbench/project/project_creator.dart';
+import 'package:flame_workspace_protocol/workspace_value.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as path;
 
@@ -104,7 +106,7 @@ void main() {
           ),
         ),
       );
-      persistedScene.components.add(
+      persistedScene.components.addAll([
         ComponentInstance(
           id: 'scene:level-one:component:sprite',
           type: const ComponentType(
@@ -116,7 +118,156 @@ void main() {
           assetPath: assetPath,
           transform: const WorkspaceTransform(size: WorkspaceVector2(64, 64)),
         ),
-      );
+        ComponentInstance(
+          id: 'scene:level-one:component:circle',
+          type: const ComponentType(
+            id: 'CircleComponent',
+            name: 'CircleComponent',
+            baseType: 'ShapeComponent',
+            isPositionComponent: true,
+            properties: [
+              WorkspacePropertyDefinition(
+                name: 'radius',
+                type: 'double?',
+                editable: true,
+              ),
+              WorkspacePropertyDefinition(
+                name: 'paint',
+                type: 'Paint?',
+                editable: true,
+              ),
+            ],
+          ),
+          properties: {
+            'radius': ValuesParser.parse('double?', '40.0'),
+            'paint': const WorkspacePaint(
+              color: WorkspaceColor(0xFF334455),
+              style: WorkspacePaintStyle.stroke,
+              strokeWidth: 2,
+            ),
+          },
+          transform: const WorkspaceTransform(
+            position: WorkspaceVector2(20, 30),
+            size: WorkspaceVector2(80, 80),
+            scale: WorkspaceVector2(2, 0.5),
+            angle: 0.5,
+            anchor: WorkspaceVector2(0.5, 0.5),
+          ),
+          priority: 4,
+        ),
+        ComponentInstance(
+          id: 'scene:level-one:component:rectangle',
+          type: const ComponentType(
+            id: 'RectangleComponent',
+            name: 'RectangleComponent',
+            baseType: 'ShapeComponent',
+            isPositionComponent: true,
+            properties: [
+              WorkspacePropertyDefinition(
+                name: 'paint',
+                type: 'Paint?',
+                editable: true,
+              ),
+            ],
+          ),
+          properties: {
+            'paint': const WorkspacePaint(color: WorkspaceColor(0xFF123456)),
+          },
+          transform: const WorkspaceTransform(
+            position: WorkspaceVector2(100, 20),
+            size: WorkspaceVector2(120, 60),
+            scale: WorkspaceVector2(1.5, 1),
+            angle: 0.25,
+            anchor: WorkspaceVector2(0.5, 0.5),
+          ),
+          priority: 2,
+        ),
+        ComponentInstance(
+          id: 'scene:level-one:component:polygon',
+          type: const ComponentType(
+            id: 'PolygonComponent',
+            name: 'PolygonComponent',
+            baseType: 'ShapeComponent',
+            isPositionComponent: true,
+            properties: [
+              WorkspacePropertyDefinition(
+                name: 'vertices',
+                type: 'List<Vector2>',
+                editable: true,
+                constructorPosition: 0,
+                recreateOnEdit: true,
+              ),
+              WorkspacePropertyDefinition(
+                name: 'paint',
+                type: 'Paint?',
+                editable: true,
+              ),
+            ],
+          ),
+          properties: {
+            'vertices': const [
+              WorkspaceVectorValue(0, 0),
+              WorkspaceVectorValue(80, 0),
+              WorkspaceVectorValue(40, 60),
+            ],
+            'paint': const WorkspacePaint(
+              color: WorkspaceColor(0xFFABCDEF),
+              style: WorkspacePaintStyle.stroke,
+              strokeWidth: 3,
+            ),
+          },
+          transform: const WorkspaceTransform(
+            position: WorkspaceVector2(40, 100),
+            size: WorkspaceVector2(80, 60),
+            scale: WorkspaceVector2(0.5, 2),
+            angle: 0.75,
+            anchor: WorkspaceVector2(0.5, 0.5),
+          ),
+          priority: 3,
+        ),
+        ComponentInstance(
+          id: 'scene:level-one:component:text',
+          type: const ComponentType(
+            id: 'TextComponent',
+            name: 'TextComponent',
+            baseType: 'PositionComponent',
+            isPositionComponent: true,
+            properties: [
+              WorkspacePropertyDefinition(
+                name: 'text',
+                type: 'String',
+                editable: true,
+              ),
+              WorkspacePropertyDefinition(
+                name: 'textRenderer',
+                type: 'TextPaint?',
+                editable: true,
+              ),
+            ],
+          ),
+          properties: {
+            'text': 'Flame Workspace',
+            'textRenderer': const WorkspaceTextPaint(
+              color: WorkspaceColor(0xFF123456),
+              fontSize: 18,
+              fontFamily: 'Roboto',
+              fontWeight: WorkspaceFontWeight.w700,
+              fontStyle: WorkspaceFontStyle.italic,
+              letterSpacing: 1.25,
+              wordSpacing: 2,
+              height: 1.2,
+              textDirection: WorkspaceTextDirection.rtl,
+            ),
+          },
+          transform: const WorkspaceTransform(
+            position: WorkspaceVector2(15, 25),
+            scale: WorkspaceVector2(1.5, 0.75),
+            angle: 0.2,
+            anchor: WorkspaceVector2(0.5, 0.5),
+          ),
+          priority: 5,
+        ),
+      ]);
       await WorkspaceScenePersistence.save(
         file: WorkspaceScenePersistence.fileFor(imported, persistedScene),
         scene: persistedScene,
@@ -132,6 +283,157 @@ void main() {
       );
       expect(generatedSpriteAdapter, contains('"$assetPath"'));
       expect(generatedSpriteAdapter, contains('images: images'));
+      expect(generatedSpriteAdapter, contains('component2.radius = 40.0;'));
+      expect(generatedSpriteAdapter, contains('component2.paint = Paint()'));
+      expect(generatedSpriteAdapter, isNot(contains('radius: "40.0"')));
+      expect(generatedSpriteAdapter, contains('PolygonComponent('));
+      expect(generatedSpriteAdapter, contains('Vector2(80.0, 0.0)'));
+      expect(
+        generatedSpriteAdapter,
+        contains("FlameKey('scene:level-one:component:polygon')"),
+      );
+      expect(generatedSpriteAdapter, isNot(contains('component3.vertices =')));
+      expect(generatedSpriteAdapter, contains('component3.paint = Paint()'));
+      expect(
+        generatedSpriteAdapter,
+        contains('component5.text = "Flame Workspace";'),
+      );
+      expect(
+        generatedSpriteAdapter,
+        contains('component5.textRenderer = TextPaint('),
+      );
+      expect(generatedSpriteAdapter, contains('fontWeight: FontWeight.w700'));
+      expect(
+        generatedSpriteAdapter,
+        contains('textDirection: TextDirection.rtl'),
+      );
+      expect(
+        generatedSpriteAdapter,
+        isNot(contains('component5 as PositionComponent)\n    ..size')),
+      );
+      expect(
+        generatedSpriteAdapter,
+        contains("import 'package:flame/geometry.dart';"),
+      );
+
+      final shapeScene = SceneDefinition(
+        id: 'scene:shape-test',
+        name: 'ShapesTest',
+        components: persistedScene.components.skip(2),
+      );
+      await ScenePersistenceGenerator.writeForScene(shapeScene, imported);
+      final shapeTest = File(
+        path.join(
+          creator.projectDirectory.path,
+          'test',
+          'shape_generation_test.dart',
+        ),
+      );
+      await shapeTest.writeAsString('''
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:generated_game/.generated/properties.dart';
+import 'package:generated_game/.generated/scenes/shapes_test.workspace.dart';
+
+Future<void> pumpUntilComplete(
+  WidgetTester tester,
+  Future<void> future,
+) async {
+  var completed = false;
+  future.then((_) => completed = true);
+  for (var frame = 0; frame < 100 && !completed; frame++) {
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+  expect(completed, isTrue, reason: 'Flame component lifecycle should finish.');
+  await future;
+}
+
+void main() {
+  testWidgets('generated shape adapters construct equivalent Flame shapes', (tester) async {
+    final scene = FlameScene(
+      sceneName: 'ShapesTest',
+      backgroundColor: const Color(0x00000000),
+    );
+    await populateShapesTestWorkspaceScene(scene);
+    final game = FlameGame(world: scene);
+    FlameWorkspaceCore.instance = FlameWorkspaceCore()..game = game;
+    await tester.pumpWidget(GameWidget(game: game));
+    await pumpUntilComplete(tester, game.ready());
+
+    final circle = scene.children.whereType<CircleComponent>().single;
+    expect(circle.radius, 40);
+    expect(circle.size, Vector2(80, 80));
+    expect(circle.position, Vector2(20, 30));
+    expect(circle.scale, Vector2(2, 0.5));
+    expect(circle.angle, 0.5);
+    expect(circle.anchor, Anchor.center);
+    expect(circle.priority, 4);
+    expect(circle.paint.color.toARGB32(), 0xFF334455);
+    expect(circle.paint.style, PaintingStyle.stroke);
+    expect(circle.paint.strokeWidth, 2);
+
+    final rectangle = scene.children.whereType<RectangleComponent>().single;
+    expect(rectangle.size, Vector2(120, 60));
+    expect(rectangle.position, Vector2(100, 20));
+    expect(rectangle.scale, Vector2(1.5, 1));
+    expect(rectangle.angle, 0.25);
+    expect(rectangle.anchor, Anchor.center);
+    expect(rectangle.paint.color.toARGB32(), 0xFF123456);
+
+    final polygon = scene.children
+        .whereType<PolygonComponent>()
+        .singleWhere((component) => component.vertices.length == 3);
+    expect(polygon.vertices, hasLength(3));
+    expect(polygon.position, Vector2(40, 100));
+    expect(polygon.size, Vector2(80, 60));
+    expect(polygon.scale, Vector2(0.5, 2));
+    expect(polygon.angle, 0.75);
+    expect(polygon.anchor, Anchor.center);
+    expect(polygon.priority, 3);
+    expect(polygon.paint.color.toARGB32(), 0xFFABCDEF);
+    expect(polygon.paint.style, PaintingStyle.stroke);
+    expect(polygon.paint.strokeWidth, 3);
+
+    final text = scene.children.whereType<TextComponent>().single;
+    expect(text.text, 'Flame Workspace');
+    expect(text.position, Vector2(15, 25));
+    expect(text.scale, Vector2(1.5, 0.75));
+    expect(text.angle, 0.2);
+    expect(text.anchor, Anchor.center);
+    expect(text.priority, 5);
+    expect(text.size.x, greaterThan(0));
+    expect(text.size.y, greaterThan(0));
+    final originalWidth = text.size.x;
+    setPropertyValue('TextComponent', text, 'text', 'A much longer workspace label');
+    expect(text.size.x, greaterThan(originalWidth));
+
+    final originalHeight = text.size.y;
+    setPropertyValue(
+      'TextComponent',
+      text,
+      'textRenderer',
+      TextPaint(
+        style: const TextStyle(
+          color: Color(0xFFABCDEF),
+          fontSize: 36,
+          fontFamily: 'Roboto',
+          fontWeight: FontWeight.w700,
+          fontStyle: FontStyle.italic,
+          letterSpacing: 2,
+        ),
+        textDirection: TextDirection.ltr,
+      ),
+    );
+    final renderer = text.textRenderer as TextPaint;
+    expect(renderer.style.color, const Color(0xFFABCDEF));
+    expect(renderer.style.fontFamily, 'Roboto');
+    expect(renderer.style.fontWeight, FontWeight.w700);
+    expect(renderer.style.fontStyle, FontStyle.italic);
+    expect(renderer.style.letterSpacing, 2);
+    expect(text.size.y, greaterThan(originalHeight));
+  });
+}
+''');
 
       final resolver = await FlameTypeResolver.forProject(
         creator.projectDirectory,

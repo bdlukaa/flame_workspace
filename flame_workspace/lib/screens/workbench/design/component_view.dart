@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import 'vertices_property_field.dart';
+
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 import 'package:flame_workspace/workbench/extensions.dart';
@@ -8,6 +11,10 @@ import 'package:flame_workspace/workbench/model/semantic_model.dart';
 import 'package:flame_workspace/workbench/model/semantic_property_editor.dart';
 import 'package:flame_workspace/workbench/parser/values.dart';
 import 'package:flame_workspace_protocol/runtime.dart';
+import 'package:flame_workspace_protocol/workspace_value.dart';
+
+import 'paint_property_field.dart';
+import 'text_paint_property_field.dart';
 
 import 'scene/scene_properties.dart';
 import '../workbench_view.dart';
@@ -44,8 +51,22 @@ class const ComponentView({super.key}) extends StatelessWidget {
     );
 
     final definitions = component.type.properties;
+    final isTextComponent = component.type.name == 'TextComponent';
+    final textProperties = isTextComponent
+        ? definitions.where((property) => property.name == 'text').toList()
+        : const <WorkspacePropertyDefinition>[];
+    final textPaintProperties = isTextComponent
+        ? definitions
+              .where((property) => property.name == 'textRenderer')
+              .toList()
+        : const <WorkspacePropertyDefinition>[];
     final scriptProperties = definitions
-        .where((property) => !_transformNames.contains(property.name))
+        .where(
+          (property) =>
+              !_transformNames.contains(property.name) &&
+              !(isTextComponent &&
+                  {'text', 'textRenderer'}.contains(property.name)),
+        )
         .toList();
     final transformDefinitions = {
       for (final property in definitions)
@@ -57,9 +78,27 @@ class const ComponentView({super.key}) extends StatelessWidget {
           WorkspacePropertyDefinition(name: name, type: type);
     }
 
-    void updateProperty(WorkspacePropertyDefinition definition, String value) {
-      if (!definition.editable) return;
-      final edit = SemanticPropertyEditor.parse(definition, value);
+    void updateProperty(WorkspacePropertyDefinition definition, Object? value) {
+      if (!definition.editable ||
+          (workbench.state.isGameMode && definition.recreateOnEdit)) {
+        return;
+      }
+      final edit =
+          value is WorkspacePaint ||
+              value is WorkspaceTextPaint ||
+              value is List<WorkspaceVectorValue> ||
+              value == null
+          ? SemanticPropertyEdit(
+              modelValue: value,
+              runtimeValue: PropertyTypeAdapterRegistry.encodeRuntime(
+                definition.type,
+                value,
+                enumValues: definition.enumValues,
+              ),
+            )
+          : value is String
+          ? SemanticPropertyEditor.parse(definition, value)
+          : null;
       if (edit == null) return;
       unawaited(
         state.editComponentProperty(
@@ -101,6 +140,44 @@ class const ComponentView({super.key}) extends StatelessWidget {
               ),
             ],
           ),
+          if (textProperties.isNotEmpty)
+            ComponentSectionCard(
+              title: 'Text',
+              children: [
+                for (final property in textProperties)
+                  _buildPropertyField(
+                    property,
+                    state.runtimeOverrides.resolveProperty(
+                      component.id,
+                      property.name,
+                      component.properties[property.name] ??
+                          property.defaultValue,
+                    ),
+                    updateProperty,
+                    allowStructuralEdits: state.isBuildMode,
+                    key: ValueKey('${component.id}:${property.name}'),
+                  ),
+              ],
+            ),
+          if (textPaintProperties.isNotEmpty)
+            ComponentSectionCard(
+              title: 'Typography',
+              children: [
+                for (final property in textPaintProperties)
+                  _buildPropertyField(
+                    property,
+                    state.runtimeOverrides.resolveProperty(
+                      component.id,
+                      property.name,
+                      component.properties[property.name] ??
+                          property.defaultValue,
+                    ),
+                    updateProperty,
+                    allowStructuralEdits: state.isBuildMode,
+                    key: ValueKey('${component.id}:${property.name}'),
+                  ),
+              ],
+            ),
           ComponentSectionCard(
             title: 'Properties',
             trailing: '${scriptProperties.length}',
@@ -115,6 +192,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
                         property.defaultValue,
                   ),
                   updateProperty,
+                  allowStructuralEdits: state.isBuildMode,
                   key: ValueKey('${component.id}:${property.name}'),
                 ),
             ],
@@ -122,7 +200,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
           if (component.type.isPositionComponent)
             ComponentSectionCard(
               title: 'Transform',
-              trailing: '6',
+              trailing: component.type.name == 'TextComponent' ? '5' : '6',
               children: [
                 PropertyField.vector2(
                   (x: transform.position.x, y: transform.position.y),
@@ -137,19 +215,21 @@ class const ComponentView({super.key}) extends StatelessWidget {
                         currentTransform.copyWith(position: vector),
                   ),
                 ),
-                PropertyField.vector2(
-                  (x: transform.size.x, y: transform.size.y),
-                  first: 'size | width',
-                  second: 'size | height',
-                  onChanged: (value) => _updateVectorTransform(
-                    workbench,
-                    component,
-                    definitionFor('size', 'Vector2'),
-                    value,
-                    (currentTransform, vector) =>
-                        currentTransform.copyWith(size: vector),
+                if (component.type.name != 'CircleComponent' &&
+                    component.type.name != 'TextComponent')
+                  PropertyField.vector2(
+                    (x: transform.size.x, y: transform.size.y),
+                    first: 'size | width',
+                    second: 'size | height',
+                    onChanged: (value) => _updateVectorTransform(
+                      workbench,
+                      component,
+                      definitionFor('size', 'Vector2'),
+                      value,
+                      (currentTransform, vector) =>
+                          currentTransform.copyWith(size: vector),
+                    ),
                   ),
-                ),
                 PropertyField.vector2(
                   (x: transform.scale.x, y: transform.scale.y),
                   first: 'scale | x',
@@ -183,7 +263,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
                   },
                 ),
                 EnumPropertyField(
-                  name: 'anchor',
+                  name: 'Component anchor',
                   type: 'Anchor',
                   value: _anchorName(transform.anchor),
                   options: SemanticPropertyEditor.anchorValues,
@@ -230,13 +310,14 @@ class const ComponentView({super.key}) extends StatelessWidget {
   static Widget _buildPropertyField(
     WorkspacePropertyDefinition definition,
     Object? rawValue,
-    void Function(WorkspacePropertyDefinition, String) onChanged, {
+    void Function(WorkspacePropertyDefinition, Object?) onChanged, {
+    bool allowStructuralEdits = true,
     Key? key,
   }) {
     final kind = SemanticPropertyEditor.kindFor(definition);
     final value = SemanticPropertyEditor.displayValue(definition, rawValue);
-    if (kind == SemanticPropertyKind.enumeration ||
-        kind == SemanticPropertyKind.anchor) {
+    if (kind == WorkspacePropertyEditorKind.enumeration ||
+        kind == WorkspacePropertyEditorKind.anchor) {
       return EnumPropertyField(
         key: key,
         name: definition.name,
@@ -247,7 +328,39 @@ class const ComponentView({super.key}) extends StatelessWidget {
         onChanged: (value) => onChanged(definition, value),
       );
     }
-    if (kind == SemanticPropertyKind.vector2) {
+    if (kind == WorkspacePropertyEditorKind.vectorList) {
+      final vertices = rawValue is List<WorkspaceVectorValue>
+          ? rawValue
+          : const <WorkspaceVectorValue>[];
+      return VerticesPropertyField(
+        key: key,
+        value: vertices,
+        editable:
+            definition.editable &&
+            (!definition.recreateOnEdit || allowStructuralEdits),
+        onChanged: (value) => onChanged(definition, value),
+      );
+    }
+    if (kind == WorkspacePropertyEditorKind.textPaint) {
+      return TextPaintPropertyField(
+        key: key,
+        value: rawValue is WorkspaceTextPaint
+            ? rawValue
+            : const WorkspaceTextPaint(),
+        editable: definition.editable,
+        onChanged: (value) => onChanged(definition, value),
+      );
+    }
+    if (kind == WorkspacePropertyEditorKind.paint) {
+      return PaintPropertyField(
+        key: key,
+        value: rawValue is WorkspacePaint ? rawValue : null,
+        editable: definition.editable,
+        nullable: definition.type.endsWith('?'),
+        onChanged: (value) => onChanged(definition, value),
+      );
+    }
+    if (kind == WorkspacePropertyEditorKind.vector2) {
       final vector =
           SemanticPropertyEditor.vectorFromValue(rawValue) ??
           const WorkspaceVector2.zero();
@@ -263,7 +376,10 @@ class const ComponentView({super.key}) extends StatelessWidget {
       name: definition.name,
       value: value,
       type: definition.type,
-      editable: definition.editable && kind != SemanticPropertyKind.unsupported,
+      editable:
+          definition.editable &&
+          kind != WorkspacePropertyEditorKind.unsupported &&
+          (!definition.recreateOnEdit || allowStructuralEdits),
       onChanged: (value) => onChanged(definition, value),
     );
   }

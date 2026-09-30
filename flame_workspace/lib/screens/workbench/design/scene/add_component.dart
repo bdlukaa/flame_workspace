@@ -2,6 +2,7 @@ import 'package:flame_workspace/screens/workbench/project/create_component.dart'
 import 'package:flame_workspace/widgets/inked_icon_button.dart';
 import 'package:flame_workspace/workbench/extensions.dart';
 import 'package:flame_workspace/workbench/parser/values.dart';
+import 'package:flame_workspace_protocol/workspace_value.dart';
 import 'package:flutter/material.dart';
 import 'package:recase/recase.dart';
 
@@ -9,13 +10,39 @@ import '../../../../workbench/project/objects/component.dart';
 import '../../../../widgets/tree_view.dart';
 import '../component_view.dart';
 import '../../workbench_view.dart';
+import '../paint_property_field.dart';
+import '../text_paint_property_field.dart';
+import '../vertices_property_field.dart';
 import 'scene_view.dart';
+
+const _transformParameterNames = {
+  'position',
+  'size',
+  'scale',
+  'angle',
+  'nativeAngle',
+  'anchor',
+  'priority',
+};
+
+bool _isTransformParameter(String name) =>
+    _transformParameterNames.contains(name);
 
 typedef AddIndexedComponent = (
   FlameComponentObject component,
   String declarationName,
-  Map<String, String> parameters,
+  Map<String, Object?> parameters,
 );
+
+WorkspacePaint? _defaultPaint(String? value) {
+  if (value == null || value.trim() == 'null') return null;
+  try {
+    final parsed = ValuesParser.parse('Paint', value);
+    return parsed is WorkspacePaint ? parsed : null;
+  } on FormatException {
+    return null;
+  }
+}
 
 Future<AddIndexedComponent?> showAddComponentDialog(BuildContext context) {
   return showModalBottomSheet<AddIndexedComponent>(
@@ -404,17 +431,94 @@ class ComponentPropertiesPage extends StatefulWidget {
 
 class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
   late String declaredName = ReCase(widget.selectedComponent.name).camelCase;
-  final parameters = <String, String>{};
+  final parameters = <String, Object?>{};
+
+  @override
+  void initState() {
+    super.initState();
+    for (final parameter in _constructorParameters) {
+      if (parameter.name == 'textRenderer' &&
+          widget.selectedComponent.name == 'TextComponent') {
+        parameters[parameter.name] = const WorkspaceTextPaint();
+      } else if (PropertyTypeAdapterRegistry.metadata(parameter.type)
+              .editorKind ==
+          WorkspacePropertyEditorKind.vectorList) {
+        parameters[parameter.name] = const [
+          WorkspaceVectorValue(0, 0),
+          WorkspaceVectorValue(64, 0),
+          WorkspaceVectorValue(32, 64),
+        ];
+      } else if (widget.selectedComponent.name == 'CircleComponent' &&
+          parameter.name == 'radius') {
+        parameters[parameter.name] = parameter.defaultValue ?? '32.0';
+      }
+    }
+  }
+
+  Iterable<FlameComponentField> get _constructorParameters =>
+      widget.selectedComponent.constructorParameters ??
+      widget.selectedComponent.parameters;
 
   List<String> get _missingRequiredParameters => [
-    for (final parameter
-        in widget.selectedComponent.constructorParameters ??
-            widget.selectedComponent.parameters)
+    for (final parameter in _constructorParameters)
       if (parameter.isRequired &&
           (parameters[parameter.name] == null ||
-              parameters[parameter.name]!.trim().isEmpty))
+              (parameters[parameter.name] is String &&
+                  (parameters[parameter.name] as String).trim().isEmpty)))
         parameter.name,
   ];
+
+  List<String> get _unsupportedParameters => [
+    for (final parameter in _constructorParameters)
+      if (!_isTransformParameter(parameter.name) &&
+          parameter.name != 'children' &&
+          parameter.name != 'key' &&
+          (parameter.isRequired ||
+              parameter.defaultValue != null ||
+              parameters.containsKey(parameter.name)) &&
+          !ValuesParser.supports(
+            parameter.type,
+            enumValues: parameter.enumValues,
+          ))
+        '${parameter.name} (${parameter.type})',
+  ];
+
+  List<String> get _invalidParameters => [
+    for (final parameter in _constructorParameters)
+      if (!_isTransformParameter(parameter.name) &&
+          parameter.name != 'children' &&
+          parameter.name != 'key' &&
+          ValuesParser.supports(
+            parameter.type,
+            enumValues: parameter.enumValues,
+          ) &&
+          (parameters.containsKey(parameter.name) ||
+              parameter.defaultValue?.isNotEmpty == true) &&
+          !_isValid(parameter))
+        parameter.name,
+  ];
+
+  bool _isValid(FlameComponentField parameter) {
+    try {
+      final input =
+          parameters[parameter.name] ?? parameter.defaultValue ?? 'null';
+      if (input is WorkspacePaint ||
+          input is WorkspaceTextPaint ||
+          input is List<WorkspaceVectorValue> ||
+          (parameter.nonNullableType == 'Paint' && input == 'null')) {
+        return true;
+      }
+      if (input is! String) return false;
+      ValuesParser.parse(
+        parameter.type,
+        input,
+        enumValues: parameter.enumValues,
+      );
+      return true;
+    } on FormatException {
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -450,7 +554,10 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: FilledButton(
-                    onPressed: _missingRequiredParameters.isEmpty
+                    onPressed:
+                        _missingRequiredParameters.isEmpty &&
+                            _unsupportedParameters.isEmpty &&
+                            _invalidParameters.isEmpty
                         ? () {
                             Navigator.of(context).pop<AddIndexedComponent>((
                               widget.selectedComponent,
@@ -477,47 +584,97 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
                 setState(() => declaredName = text.removeQuoteMarks()),
           ),
         ),
-        if (_missingRequiredParameters.isNotEmpty)
+        if (_missingRequiredParameters.isNotEmpty ||
+            _unsupportedParameters.isNotEmpty ||
+            _invalidParameters.isNotEmpty)
           Padding(
             padding: const EdgeInsetsDirectional.symmetric(horizontal: 24.0),
             child: Text(
-              'Required: ${_missingRequiredParameters.join(', ')}',
+              [
+                if (_missingRequiredParameters.isNotEmpty)
+                  'Required: ${_missingRequiredParameters.join(', ')}',
+                if (_unsupportedParameters.isNotEmpty)
+                  'Unsupported constructor parameters: ${_unsupportedParameters.join(', ')}',
+                if (_invalidParameters.isNotEmpty)
+                  'Enter valid values for: ${_invalidParameters.join(', ')}',
+              ].join('\n'),
               style: TextStyle(color: theme.colorScheme.error),
             ),
           ),
         const Divider(),
-        for (final parameter
-            in widget.selectedComponent.constructorParameters ??
-                widget.selectedComponent.parameters)
-          Padding(
-            padding: const EdgeInsetsDirectional.symmetric(horizontal: 24.0),
-            child: Builder(
-              builder: (context) {
-                if (parameter.nonNullableType == 'Vector2') {
-                  final vector2 = ValuesParser.parseVector2(
-                    parameters[parameter.name] ?? parameter.defaultValue,
-                  );
-                  return PropertyField.vector2(
-                    vector2,
-                    first: '${parameter.name} | x',
-                    second: '${parameter.name} | y',
+        for (final parameter in _constructorParameters)
+          if (!_isTransformParameter(parameter.name) &&
+              parameter.name != 'children' &&
+              parameter.name != 'key')
+            Padding(
+              padding: const EdgeInsetsDirectional.symmetric(horizontal: 24.0),
+              child: Builder(
+                builder: (context) {
+                  if (PropertyTypeAdapterRegistry.metadata(
+                        parameter.type,
+                        enumValues: parameter.enumValues,
+                      ).editorKind ==
+                      WorkspacePropertyEditorKind.vectorList) {
+                    return VerticesPropertyField(
+                      name: 'Vertices',
+                      value:
+                          parameters[parameter.name]
+                              as List<WorkspaceVectorValue>,
+                      onChanged: (value) =>
+                          setState(() => parameters[parameter.name] = value),
+                    );
+                  }
+                  if (parameter.nonNullableType == 'TextPaint') {
+                    final current = parameters[parameter.name];
+                    return TextPaintPropertyField(
+                      value: current is WorkspaceTextPaint
+                          ? current
+                          : const WorkspaceTextPaint(),
+                      onChanged: (value) =>
+                          setState(() => parameters[parameter.name] = value),
+                    );
+                  }
+                  if (parameter.nonNullableType == 'Paint') {
+                    final current = parameters[parameter.name];
+                    WorkspacePaint? paint = current is WorkspacePaint
+                        ? current
+                        : _defaultPaint(parameter.defaultValue);
+                    return PaintPropertyField(
+                      value: paint,
+                      nullable: parameter.type.endsWith('?'),
+                      onChanged: (value) =>
+                          setState(() => parameters[parameter.name] = value),
+                    );
+                  }
+                  if (parameter.nonNullableType == 'Vector2') {
+                    final vectorValue =
+                        parameters[parameter.name] ?? parameter.defaultValue;
+                    final vector2 = ValuesParser.parseVector2(
+                      vectorValue is String ? vectorValue : null,
+                    );
+                    return PropertyField.vector2(
+                      vector2,
+                      first: '${parameter.name} | x',
+                      second: '${parameter.name} | y',
+                      onChanged: (text) =>
+                          setState(() => parameters[parameter.name] = text),
+                    );
+                  }
+                  return PropertyField(
+                    name: parameter.name,
+                    type: parameter.nonNullableType,
+                    value:
+                        parameters[parameter.name] as String? ??
+                        (widget.selectedComponent.name == 'CircleComponent' &&
+                                parameter.name == 'radius'
+                            ? '32.0'
+                            : parameter.defaultValue ?? ''),
                     onChanged: (text) =>
                         setState(() => parameters[parameter.name] = text),
                   );
-                }
-                return PropertyField(
-                  name: parameter.name,
-                  type: parameter.nonNullableType,
-                  value:
-                      parameters[parameter.name] ??
-                      parameter.defaultValue ??
-                      '',
-                  onChanged: (text) =>
-                      setState(() => parameters[parameter.name] = text),
-                );
-              },
+                },
+              ),
             ),
-          ),
       ],
     );
   }
