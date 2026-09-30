@@ -19,6 +19,7 @@ void main() {
                 onDrop: (_, _) {},
               ),
               TreeNode(
+                key: const ValueKey('hierarchy.target'),
                 text: 'Target',
                 onDrop: (data, position) {
                   dropped = data;
@@ -30,6 +31,9 @@ void main() {
         ),
       ),
     );
+
+    expect(find.byKey(const ValueKey('hierarchy.target')), findsOneWidget);
+    expect(find.bySemanticsLabel('Target'), findsOneWidget);
 
     final source = tester.getCenter(find.text('Source'));
     final target = tester.getCenter(find.text('Target'));

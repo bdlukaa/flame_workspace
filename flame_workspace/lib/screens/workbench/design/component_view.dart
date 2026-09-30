@@ -365,10 +365,11 @@ class const ComponentView({super.key}) extends StatelessWidget {
   }) {
     final kind = SemanticPropertyEditor.kindFor(definition);
     final value = SemanticPropertyEditor.displayValue(definition, rawValue);
+    final fieldKey = ValueKey('inspector.${definition.name}');
     if (kind == WorkspacePropertyEditorKind.enumeration ||
         kind == WorkspacePropertyEditorKind.anchor) {
       return EnumPropertyField(
-        key: key,
+        key: fieldKey,
         name: definition.name,
         type: definition.type,
         value: SemanticPropertyEditor.optionFromValue(rawValue),
@@ -382,7 +383,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
           ? rawValue
           : const <WorkspaceVectorValue>[];
       return VerticesPropertyField(
-        key: key,
+        key: fieldKey,
         value: vertices,
         editable:
             definition.editable &&
@@ -392,7 +393,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
     }
     if (kind == WorkspacePropertyEditorKind.textBoxConfig) {
       return TextBoxConfigPropertyField(
-        key: key,
+        key: fieldKey,
         value: rawValue is WorkspaceTextBoxConfig
             ? rawValue
             : const WorkspaceTextBoxConfig(),
@@ -402,7 +403,8 @@ class const ComponentView({super.key}) extends StatelessWidget {
     }
     if (kind == WorkspacePropertyEditorKind.textPaint) {
       return TextPaintPropertyField(
-        key: key,
+        key: fieldKey,
+        semanticKey: 'inspector.text',
         value: rawValue is WorkspaceTextPaint
             ? rawValue
             : const WorkspaceTextPaint(),
@@ -412,7 +414,8 @@ class const ComponentView({super.key}) extends StatelessWidget {
     }
     if (kind == WorkspacePropertyEditorKind.paint) {
       return PaintPropertyField(
-        key: key,
+        key: fieldKey,
+        semanticKey: 'inspector.paint',
         value: rawValue is WorkspacePaint ? rawValue : null,
         editable: definition.editable,
         nullable: definition.type.endsWith('?'),
@@ -431,7 +434,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
       );
     }
     return PropertyField(
-      key: key,
+      key: fieldKey,
       name: definition.name,
       value: value,
       type: definition.type,

@@ -24,12 +24,14 @@ class const WelcomeView({super.key}) extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _ActionButton(
+                key: const ValueKey('workspace.createProject'),
                 icon: Icons.add,
                 text: 'Create new project',
                 onPressed: () => showCreateProjectView(context),
               ),
               const SizedBox(width: 16),
               _ActionButton(
+                key: const ValueKey('workspace.openProject'),
                 icon: Icons.folder_open,
                 text: 'Open existing project',
                 onPressed: () async {
@@ -49,6 +51,7 @@ class const WelcomeView({super.key}) extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               _ActionButton(
+                key: const ValueKey('workspace.settings'),
                 icon: Icons.settings,
                 text: 'Settings',
                 onPressed: () {
@@ -57,6 +60,7 @@ class const WelcomeView({super.key}) extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               _ActionButton(
+                key: const ValueKey('workspace.docs'),
                 icon: Icons.help,
                 text: 'Read the docs',
                 onPressed: () {
@@ -72,20 +76,25 @@ class const WelcomeView({super.key}) extends StatelessWidget {
 }
 
 class const _ActionButton({
+  super.key,
   required final IconData icon,
   required final String text,
   required final VoidCallback onPressed,
 }) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(14.0),
-      onTap: onPressed,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [Icon(icon), Text(text)],
+    return Semantics(
+      button: true,
+      label: text,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14.0),
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [Icon(icon), Text(text)],
+          ),
         ),
       ),
     );

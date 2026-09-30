@@ -118,70 +118,76 @@ class WorkspaceModelMapper {
         .toList();
   }
 
-  static ComponentInstance _mapComponent(
-    FlameComponentObject component,
-    String sceneId,
-    int ordinal,
-  ) {
-    Object? parseDefault(FlameComponentField parameter) {
-      final rawValue = parameter.defaultValue;
-      if (rawValue == null ||
-          !PropertyTypeAdapterRegistry.supports(
-            parameter.type,
-            enumValues: parameter.enumValues,
-          )) {
-        return null;
-      }
-      try {
-        return PropertyTypeAdapterRegistry.parse(
-          parameter.type,
-          rawValue,
-          enumValues: parameter.enumValues,
-        );
-      } on FormatException {
-        return null;
-      }
-    }
-
-    final properties = <String, Object?>{};
-    for (final parameter in component.parameters) {
-      properties[parameter.name] = parseDefault(parameter);
-    }
-
-    final propertyDefinitions = component.parameters
-        .map(
-          (parameter) => WorkspacePropertyDefinition(
+  static ComponentType componentTypeFor(FlameComponentObject component) {
+    return ComponentType(
+      id: component.name,
+      name: component.name,
+      baseType: component.type,
+      isPositionComponent: component.parameters.any(
+        (parameter) =>
+            parameter.superComponents?.contains('PositionComponent') ?? false,
+      ),
+      properties: [
+        for (final parameter in component.parameters)
+          WorkspacePropertyDefinition(
             name: parameter.name,
             type: parameter.type,
-            defaultValue: parseDefault(parameter),
+            defaultValue: _parseDefault(parameter),
             inherited: parameter.superComponents?.isNotEmpty ?? false,
             editable:
                 (parameter.isLocalField && !parameter.isFinalField) ||
                 parameter.hasSetter,
             enumValues: parameter.enumValues,
+            constructorPosition: parameter.constructorPosition,
           ),
-        )
-        .toList();
+      ],
+    );
+  }
 
+  static Map<String, Object?> defaultPropertiesFor(
+    FlameComponentObject component,
+  ) {
+    return {
+      for (final parameter in component.parameters)
+        parameter.name: _parseDefault(parameter),
+    };
+  }
+
+  static Object? _parseDefault(FlameComponentField parameter) {
+    final rawValue = parameter.defaultValue;
+    if (rawValue == null ||
+        !PropertyTypeAdapterRegistry.supports(
+          parameter.type,
+          enumValues: parameter.enumValues,
+        )) {
+      return null;
+    }
+    try {
+      return PropertyTypeAdapterRegistry.parse(
+        parameter.type,
+        rawValue,
+        enumValues: parameter.enumValues,
+      );
+    } on FormatException {
+      return null;
+    }
+  }
+
+  static ComponentInstance _mapComponent(
+    FlameComponentObject component,
+    String sceneId,
+    int ordinal,
+  ) {
     return ComponentInstance(
       id: WorkspaceIds.component(
         sceneId: sceneId,
         name: component.declarationName ?? component.name,
         ordinal: ordinal,
       ),
-      type: ComponentType(
-        id: component.name,
-        name: component.name,
-        baseType: component.type,
-        isPositionComponent: component.parameters.any(
-          (parameter) =>
-              parameter.superComponents?.contains('PositionComponent') ?? false,
-        ),
-        properties: propertyDefinitions,
-      ),
+      type: componentTypeFor(component),
       declarationName: component.declarationName ?? component.name,
       sourcePath: component.filePath,
-      properties: properties,
+      properties: defaultPropertiesFor(component),
       children: component.components.indexed.map((entry) {
         final (childOrdinal, childComponent) = entry;
         return _mapComponent(

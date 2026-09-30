@@ -8,11 +8,13 @@ class TextPaintPropertyField extends StatefulWidget {
     required this.value,
     required this.onChanged,
     this.editable = true,
+    this.semanticKey,
   });
 
   final WorkspaceTextPaint value;
   final ValueChanged<WorkspaceTextPaint> onChanged;
   final bool editable;
+  final String? semanticKey;
 
   @override
   State<TextPaintPropertyField> createState() => _TextPaintPropertyFieldState();
@@ -96,12 +98,17 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
         Row(
           children: [
             const Expanded(child: Text('Color')),
-            InkWell(
-              onTap: widget.editable ? _pickColor : null,
-              child: Container(
-                width: 34,
-                height: 22,
-                color: Color(value.color?.argb ?? 0xFFFFFFFF),
+            Semantics(
+              button: true,
+              label: 'Text color',
+              child: InkWell(
+                key: _keyFor('Color'),
+                onTap: widget.editable ? _pickColor : null,
+                child: Container(
+                  width: 34,
+                  height: 22,
+                  color: Color(value.color?.argb ?? 0xFFFFFFFF),
+                ),
               ),
             ),
           ],
@@ -118,6 +125,24 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
     );
   }
 
+  Key? _keyFor(String label) {
+    final prefix = widget.semanticKey;
+    if (prefix == null) return null;
+    final suffix = switch (label) {
+      'Size' => 'fontSize',
+      'Font family' => 'fontFamily',
+      'Weight' => 'fontWeight',
+      'Style' => 'fontStyle',
+      'Letter spacing' => 'letterSpacing',
+      'Word spacing' => 'wordSpacing',
+      'Line height' => 'height',
+      'Color' => 'color',
+      'Text direction' => 'textDirection',
+      _ => label,
+    };
+    return ValueKey('$prefix.$suffix');
+  }
+
   Widget _text(
     String label, {
     TextEditingController? controller,
@@ -127,6 +152,7 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
       Expanded(child: Text(label)),
       Expanded(
         child: TextField(
+          key: _keyFor(label),
           controller: controller,
           enabled: widget.editable,
           decoration: const InputDecoration(isDense: true),
@@ -144,6 +170,7 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
       Expanded(child: Text(label)),
       Expanded(
         child: TextField(
+          key: _keyFor(label),
           controller: controllers[label],
           enabled: widget.editable,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -164,6 +191,7 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
       Expanded(child: Text(label)),
       Expanded(
         child: DropdownButton<T>(
+          key: _keyFor(label),
           isExpanded: true,
           value: selected,
           onChanged: widget.editable

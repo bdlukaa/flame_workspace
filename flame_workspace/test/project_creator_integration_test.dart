@@ -79,13 +79,24 @@ void main() {
       final imported = await ProjectImporter.import(creator.projectDirectory);
       expect(imported.name, 'generated_game');
       expect(imported.initialScene, 'LevelOne');
+      final resolver = await FlameTypeResolver.forProject(
+        creator.projectDirectory,
+      );
+      addTearDown(resolver.dispose);
+      final spriteMetadata = resolver.flameComponents.firstWhere(
+        (component) => component.name == 'SpriteComponent',
+      );
 
       final assetPath = 'assets/images/player.png';
       final assetFile = File(
         path.join(creator.projectDirectory.path, assetPath),
       );
       await assetFile.parent.create(recursive: true);
-      await assetFile.writeAsBytes(const [0]);
+      await assetFile.writeAsBytes(
+        base64Decode(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        ),
+      );
       final pubspecFile = File(
         path.join(creator.projectDirectory.path, 'pubspec.yaml'),
       );
@@ -109,12 +120,8 @@ void main() {
       persistedScene.components.addAll([
         ComponentInstance(
           id: 'scene:level-one:component:sprite',
-          type: const ComponentType(
-            id: 'SpriteComponent',
-            name: 'SpriteComponent',
-            baseType: 'PositionComponent',
-            isPositionComponent: true,
-          ),
+          type: WorkspaceModelMapper.componentTypeFor(spriteMetadata),
+          properties: WorkspaceModelMapper.defaultPropertiesFor(spriteMetadata),
           assetPath: assetPath,
           transform: const WorkspaceTransform(size: WorkspaceVector2(64, 64)),
         ),
@@ -418,6 +425,7 @@ void main() {
     await pumpUntilComplete(tester, game.ready());
     await tester.pump(const Duration(milliseconds: 200));
 
+
     final circle = scene.children.whereType<CircleComponent>().single;
     expect(circle.radius, 40);
     expect(circle.size, Vector2(80, 80));
@@ -518,10 +526,6 @@ void main() {
 }
 ''');
 
-      final resolver = await FlameTypeResolver.forProject(
-        creator.projectDirectory,
-      );
-      addTearDown(resolver.dispose);
       final indexed = await ProjectIndexer.indexProject(
         creator.projectDirectory,
       );

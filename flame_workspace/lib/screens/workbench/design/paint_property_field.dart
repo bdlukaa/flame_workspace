@@ -9,12 +9,14 @@ class PaintPropertyField extends StatefulWidget {
     required this.onChanged,
     this.editable = true,
     this.nullable = false,
+    this.semanticKey,
   });
 
   final WorkspacePaint? value;
   final ValueChanged<WorkspacePaint?> onChanged;
   final bool editable;
   final bool nullable;
+  final String? semanticKey;
 
   @override
   State<PaintPropertyField> createState() => _PaintPropertyFieldState();
@@ -67,15 +69,22 @@ class _PaintPropertyFieldState extends State<PaintPropertyField> {
           Row(
             children: [
               const Expanded(child: Text('Color')),
-              InkWell(
-                onTap: widget.editable ? _pickColor : null,
-                child: Container(
-                  width: 34,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    color: Color(value.color.argb),
-                    border: Border.all(color: theme.dividerColor),
-                    borderRadius: BorderRadius.circular(3),
+              Semantics(
+                button: true,
+                label: 'Paint color',
+                child: InkWell(
+                  key: widget.semanticKey == null
+                      ? null
+                      : ValueKey('${widget.semanticKey}.color'),
+                  onTap: widget.editable ? _pickColor : null,
+                  child: Container(
+                    width: 34,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: Color(value.color.argb),
+                      border: Border.all(color: theme.dividerColor),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
                 ),
               ),

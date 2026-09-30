@@ -1,5 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:flame_workspace/screens/workbench/design/scene/scene_render_adapters.dart';
+import 'package:flame_workspace/workbench/model/runtime_tree_reconciliation.dart';
+import 'package:flame_workspace/workbench/model/scene_persistence.dart';
+import 'package:flame_workspace/workbench/project/objects/component.dart';
 import 'package:flame_workspace/workbench/parser/component_capabilities.dart';
 import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/parser/type_resolver.dart';
@@ -9,6 +14,7 @@ import 'package:flame_workspace/workbench/generators/scene_persistence_generator
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
 import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:path/path.dart' as path;
+import 'package:flame_workspace_protocol/runtime.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -322,27 +328,156 @@ void main() {}
     expect(position.superComponents, contains('PositionComponent'));
   });
 
-  test('classifies core Flame components as addable', () async {
-    final (project, resolver, _) = await _resolvedFixture('empty_game');
+  test('Core Visual Component matrix satisfies its editor contract', () async {
+    final (directory, resolver, _) = await _resolvedFixture('empty_game');
     addTearDown(resolver.dispose);
-    addTearDown(() => project.delete(recursive: true));
+    addTearDown(() => directory.delete(recursive: true));
 
-    for (final name in [
-      'CircleComponent',
-      'RectangleComponent',
-      'PolygonComponent',
-      'TextComponent',
-      'TextBoxComponent',
-    ]) {
-      final component = resolver.flameApi.componentObjects.firstWhere(
-        (item) => item.name == name,
+    final project = FlameProject(
+      name: 'empty_game',
+      organization: 'com.example',
+      location: directory,
+      initialScene: 'Main',
+    );
+    final components = <ComponentInstance>[];
+
+    for (final spec in ComponentSupportMatrix.coreVisual) {
+      final api = resolver.flameApi.componentObjects.firstWhere(
+        (item) => item.name == spec.name,
+        orElse: () => throw StateError(
+          '${spec.name} is missing from the resolved Flame API catalog.',
+        ),
       );
-      final capability = ComponentCapabilityEvaluator.evaluate(component);
+      final capability = ComponentCapabilityEvaluator.evaluate(api);
       expect(
         capability.status,
         ComponentCapabilityStatus.supported,
-        reason: '$name: ${capability.reason}',
+        reason: '${spec.name}: ${capability.reason}',
       );
+      expect(capability.tier, ComponentSupportTier.coreVisual);
+      expect(api.data['constructorName'], isEmpty);
+
+      final component = _componentForCoreSpec(api, spec);
+      components.add(component);
+      expect(
+        const EditorComponentRenderRegistry().resolve(component).primitive,
+        _primitiveForCoreComponent(spec.name),
+        reason: '${spec.name} must have a Build State render adapter.',
+      );
+
+      if (spec.defaultProperties.isNotEmpty) {
+        final propertyName = spec.defaultProperties.keys.first;
+        component.setProperty(
+          propertyName,
+          spec.defaultProperties[propertyName],
+        );
+        expect(
+          component.properties,
+          containsPair(propertyName, spec.defaultProperties[propertyName]),
+        );
+      } else {
+        component.transform = component.transform.copyWith(
+          position: const WorkspaceVector2(8, 12),
+        );
+        expect(component.transform.position, const WorkspaceVector2(8, 12));
+      }
+    }
+
+    final scene = SceneDefinition(
+      id: 'scene:core-visual',
+      name: 'CoreVisual',
+      components: components,
+    );
+    final file = WorkspaceScenePersistence.fileFor(project, scene);
+    await WorkspaceScenePersistence.save(file: file, scene: scene);
+    final reopened = await WorkspaceScenePersistence.load(file);
+    expect(
+      reopened.components.map((component) => component.type.name),
+      containsAll(ComponentSupportMatrix.coreVisual.map((spec) => spec.name)),
+    );
+
+    final generated = await ScenePersistenceGenerator.writeForScene(
+      reopened,
+      project,
+    );
+    final source = await generated.readAsString();
+    for (final component in reopened.components) {
+      expect(source, contains("FlameKey('${component.id}')"));
+      expect(source, contains(component.type.name));
+    }
+    final analysis = await Process.run('flutter', [
+      'analyze',
+      '--no-pub',
+    ], workingDirectory: directory.path);
+    expect(
+      analysis.exitCode,
+      0,
+      reason: 'Core Visual generated Dart must analyze: ${analysis.stderr}',
+    );
+
+    final runtimeRoot = WorkspaceComponentNode(
+      id: 'CoreVisual',
+      type: 'CoreVisualScene',
+      children: [
+        for (final component in reopened.components)
+          WorkspaceComponentNode(id: component.id, type: component.type.name),
+      ],
+    );
+    expect(
+      reconcileRuntimeTree(expectedScene: reopened, runtimeRoot: runtimeRoot),
+      isEmpty,
+    );
+
+    final animation = resolver.flameApi.componentObjects.firstWhere(
+      (item) => item.name == 'SpriteAnimationComponent',
+    );
+    final animationCapability = ComponentCapabilityEvaluator.evaluate(
+      animation,
+    );
+    expect(
+      ComponentSupportMatrix.tierFor(animation.name),
+      ComponentSupportTier.tier2,
+    );
+    expect(animationCapability.addable, isFalse);
+    expect(animationCapability.reason, contains('Tier 2'));
+  });
+
+  test('produces a grouped machine-readable Flame support report', () async {
+    final (directory, resolver, _) = await _resolvedFixture('empty_game');
+    addTearDown(resolver.dispose);
+    addTearDown(() => directory.delete(recursive: true));
+
+    final report = ComponentSupportReport.fromCatalog(
+      resolver.flameApi.componentObjects,
+    );
+    final decoded = jsonDecode(report.toJsonString()) as Map<String, dynamic>;
+    final groups = decoded['groups'] as Map<String, dynamic>;
+    final components = decoded['components'] as List<dynamic>;
+
+    expect(decoded['schemaVersion'], 1);
+    expect(
+      groups.keys,
+      containsAll(ComponentSupportGroup.values.map((group) => group.jsonName)),
+    );
+    expect(components.length, resolver.flameApi.componentObjects.length);
+    expect(
+      groups[ComponentSupportGroup.coreSupported.jsonName],
+      contains(
+        predicate<dynamic>((entry) {
+          return (entry as Map<String, dynamic>)['name'] == 'CircleComponent' &&
+              entry['addable'] == true;
+        }),
+      ),
+    );
+
+    for (final entry in report.entries) {
+      if (entry.group == ComponentSupportGroup.unsupported) {
+        expect(entry.reason, isNotEmpty, reason: entry.name);
+        expect(entry.addable, isFalse, reason: entry.name);
+      }
+      if (entry.group == ComponentSupportGroup.specializedEditorRequired) {
+        expect(entry.addable, isFalse, reason: entry.name);
+      }
     }
   });
 
@@ -451,6 +586,70 @@ void main() {}
     );
   });
 }
+
+ComponentInstance _componentForCoreSpec(
+  FlameComponentObject api,
+  ComponentSupportSpec spec,
+) {
+  final fields = <String, FlameComponentField>{
+    for (final field in api.parameters) field.name: field,
+    for (final field in api.constructorParameters ?? const [])
+      field.name: field,
+  };
+  final type = ComponentType(
+    id: api.name,
+    name: api.name,
+    baseType: api.type,
+    isPositionComponent:
+        api.name == 'PositionComponent' ||
+        api.parameters.any(
+          (field) =>
+              field.superComponents?.contains('PositionComponent') ?? false,
+        ),
+    properties: [
+      for (final field in fields.values)
+        WorkspacePropertyDefinition(
+          name: field.name,
+          type: field.type,
+          defaultValue: _typedDefault(field),
+          editable: field.hasSetter,
+          enumValues: field.enumValues,
+          constructorPosition: field.constructorPosition,
+        ),
+    ],
+  );
+  return ComponentInstance(
+    id: 'scene:core-visual:component:${spec.name}',
+    type: type,
+    properties: spec.defaultProperties,
+    transform: const WorkspaceTransform(size: WorkspaceVector2(64, 48)),
+  );
+}
+
+Object? _typedDefault(FlameComponentField field) {
+  final defaultValue = field.defaultValue;
+  if (defaultValue == null || defaultValue == 'null') return null;
+  try {
+    return ValuesParser.parse(
+      field.type,
+      defaultValue,
+      enumValues: field.enumValues,
+    );
+  } on FormatException {
+    return null;
+  }
+}
+
+EditorPreviewPrimitive _primitiveForCoreComponent(String name) =>
+    switch (name) {
+      'PositionComponent' => EditorPreviewPrimitive.placeholder,
+      'SpriteComponent' => EditorPreviewPrimitive.sprite,
+      'CircleComponent' => EditorPreviewPrimitive.circle,
+      'RectangleComponent' => EditorPreviewPrimitive.rectangle,
+      'PolygonComponent' => EditorPreviewPrimitive.polygon,
+      'TextComponent' || 'TextBoxComponent' => EditorPreviewPrimitive.text,
+      _ => throw StateError('Missing render contract for $name.'),
+    };
 
 Future<(Directory, FlameTypeResolver, IndexedProject)> _resolvedFixture(
   String name,

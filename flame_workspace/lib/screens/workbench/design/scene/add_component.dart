@@ -303,6 +303,7 @@ class SelectComponentPage extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: TextField(
+                    key: const ValueKey('workspace.componentSearch'),
                     controller: searchController,
                     autofocus: true,
                     decoration: const InputDecoration(
@@ -323,6 +324,7 @@ class SelectComponentPage extends StatelessWidget {
                     alignment: Alignment.centerRight,
                     child: FilledButton(
                       onPressed: selectedComponent == null ? null : onNext,
+                      key: const ValueKey('workspace.addComponent.next'),
                       child: const Text('Next'),
                     ),
                   ),
@@ -589,6 +591,7 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
                             ));
                           }
                         : null,
+                    key: const ValueKey('workspace.addComponent.confirm'),
                     child: const Text('Add'),
                   ),
                 ),

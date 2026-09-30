@@ -76,6 +76,7 @@ class _CreateProjectViewState extends State<CreateProjectView> {
                           child: TextFormField(
                             enabled: !_loading,
                             autofocus: true,
+                            key: const ValueKey('workspace.createProject.name'),
                             decoration: const InputDecoration(
                               labelText: 'Project name',
                               hintText: 'My Awesome Game',
@@ -114,6 +115,9 @@ class _CreateProjectViewState extends State<CreateProjectView> {
                             ),
                             textInputAction: TextInputAction.next,
                             maxLength: 30,
+                            key: const ValueKey(
+                              'workspace.createProject.organization',
+                            ),
                             controller: _organizationController,
                             validator: (text) {
                               if (text == null || text.trim().isEmpty) {
@@ -136,6 +140,7 @@ class _CreateProjectViewState extends State<CreateProjectView> {
                       ],
                     ),
                     TextFormField(
+                      key: const ValueKey('workspace.createProject.location'),
                       enabled: !_loading,
                       controller: _locationController,
                       textInputAction: TextInputAction.next,
@@ -149,6 +154,7 @@ class _CreateProjectViewState extends State<CreateProjectView> {
                       ),
                     ),
                     TextFormField(
+                      key: const ValueKey('workspace.createProject.scene'),
                       enabled: !_loading,
                       controller: _sceneController,
                       decoration: const InputDecoration(
@@ -188,6 +194,7 @@ class _CreateProjectViewState extends State<CreateProjectView> {
                     ),
                   const SizedBox(width: 16.0),
                   FilledButton(
+                    key: const ValueKey('workspace.createProject.confirm'),
                     onPressed: !_loading ? _create : null,
                     child: const Text('Create'),
                   ),

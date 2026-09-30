@@ -53,6 +53,12 @@ void main() {
     }
 
     await tester.pumpWidget(toolbar());
+    expect(find.byKey(const ValueKey('workspace.play')), findsOneWidget);
+    expect(find.byKey(const ValueKey('workspace.pause')), findsOneWidget);
+    expect(find.byKey(const ValueKey('workspace.stop')), findsOneWidget);
+    expect(find.byKey(const ValueKey('workspace.mode')), findsOneWidget);
+    expect(find.byKey(const ValueKey('workspace.mode.build')), findsOneWidget);
+    expect(find.byKey(const ValueKey('workspace.mode.game')), findsOneWidget);
     expect(button(tester, 'Play').onPressed, isNotNull);
     expect(
       button(tester, 'Pause requires a running preview').onPressed,

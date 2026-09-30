@@ -160,8 +160,14 @@ class __TreeNodeState extends State<_TreeNode> {
         ),
       ),
     );
+    final accessibleRow = Semantics(
+      button: true,
+      selected: widget.node.isSelected,
+      label: widget.node.text,
+      child: row,
+    );
     final rowWithDragAndDrop = widget.node.onDrop == null
-        ? row
+        ? accessibleRow
         : DragTarget<Object>(
             onAcceptWithDetails: (details) {
               final box =
@@ -189,7 +195,7 @@ class __TreeNodeState extends State<_TreeNode> {
                         ),
                       ),
                       childWhenDragging: Opacity(opacity: 0.35, child: row),
-                      child: row,
+                      child: accessibleRow,
                     );
               return DecoratedBox(
                 decoration: BoxDecoration(

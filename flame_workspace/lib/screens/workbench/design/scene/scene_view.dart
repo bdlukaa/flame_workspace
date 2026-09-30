@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../workbench/model/semantic_model.dart';
+import '../../../../workbench/parser/component_capabilities.dart';
+import '../../../../workbench/parser/workspace_model_mapper.dart';
 import '../../../../workbench/project/objects/component.dart';
 import '../../../../workbench/runner/state.dart';
 
@@ -116,16 +118,21 @@ class _SceneViewState extends State<SceneView> {
           Row(
             children: [
               Expanded(
-                child: InkWell(
-                  onTap: () => setState(() => choosingScene = !choosingScene),
-                  child: Row(
-                    children: [
-                      const SizedBox(
-                        width: toggleBoxWidth,
-                        child: Icon(Icons.keyboard_arrow_down, size: 12.0),
-                      ),
-                      Text(scene.name, style: theme.textTheme.labelMedium),
-                    ],
+                child: Semantics(
+                  button: true,
+                  label: 'Scene ${scene.name}',
+                  child: InkWell(
+                    key: const ValueKey('workspace.sceneSelector'),
+                    onTap: () => setState(() => choosingScene = !choosingScene),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: toggleBoxWidth,
+                          child: Icon(Icons.keyboard_arrow_down, size: 12.0),
+                        ),
+                        Text(scene.name, style: theme.textTheme.labelMedium),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -142,31 +149,36 @@ class _SceneViewState extends State<SceneView> {
               else if (!choosingScene)
                 Tooltip(
                   message: 'Add component',
-                  child: InkWell(
-                    child: const Icon(Icons.add),
-                    onTap: () async {
-                      final result = await showAddComponentDialog(context);
+                  child: Semantics(
+                    button: true,
+                    label: 'Add component',
+                    child: InkWell(
+                      key: const ValueKey('workspace.addComponent'),
+                      child: const Icon(Icons.add),
+                      onTap: () async {
+                        final result = await showAddComponentDialog(context);
 
-                      if (result != null &&
-                          context.mounted &&
-                          state.isBuildMode) {
-                        final (_, declarationName, _) = result;
-                        if (!state.hasWorkspaceComponent(declarationName)) {
-                          await state.addWorkspaceComponentAndSync(
-                            _componentFromSelection(result, scene),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Could not add $declarationName to ${scene.name} '
-                                'because the element already exists',
+                        if (result != null &&
+                            context.mounted &&
+                            state.isBuildMode) {
+                          final (_, declarationName, _) = result;
+                          if (!state.hasWorkspaceComponent(declarationName)) {
+                            await state.addWorkspaceComponentAndSync(
+                              _componentFromSelection(result, scene),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Could not add $declarationName to ${scene.name} '
+                                  'because the element already exists',
+                                ),
                               ),
-                            ),
-                          );
+                            );
+                          }
                         }
-                      }
-                    },
+                      },
+                    ),
                   ),
                 ),
             ],
@@ -299,6 +311,22 @@ class _SceneViewState extends State<SceneView> {
                               return;
                             }
 
+                            final spriteCandidates = state.flameComponents
+                                .where(
+                                  (component) =>
+                                      component.name == 'SpriteComponent',
+                                )
+                                .toList();
+                            final spriteMetadata = spriteCandidates.isEmpty
+                                ? null
+                                : spriteCandidates.first;
+                            if (spriteMetadata == null ||
+                                !ComponentCapabilityEvaluator.evaluate(
+                                  spriteMetadata,
+                                ).addable) {
+                              return;
+                            }
+
                             var ordinal = scene.components.length;
                             String componentId() => WorkspaceIds.component(
                               sceneId: scene.id,
@@ -316,12 +344,13 @@ class _SceneViewState extends State<SceneView> {
                               state.addWorkspaceComponentAndSync(
                                 ComponentInstance(
                                   id: id,
-                                  type: const ComponentType(
-                                    id: 'SpriteComponent',
-                                    name: 'SpriteComponent',
-                                    baseType: 'PositionComponent',
-                                    isPositionComponent: true,
+                                  type: WorkspaceModelMapper.componentTypeFor(
+                                    spriteMetadata,
                                   ),
+                                  properties:
+                                      WorkspaceModelMapper.defaultPropertiesFor(
+                                        spriteMetadata,
+                                      ),
                                   declarationName: 'spriteComponent$ordinal',
                                   assetPath: assetPath,
                                   transform: WorkspaceTransform(

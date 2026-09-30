@@ -2,14 +2,30 @@ import 'dart:ui' show AppExitResponse;
 
 import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
+import 'package:flame_workspace/marionette/workspace_tools.dart';
 
 import 'package:flame_workspace/workbench/runner/cef_preview_surface.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:marionette_flutter/marionette_flutter.dart';
 
 import 'screens/welcome/welcome.dart';
 
+/// Initializes exactly one Flutter binding for the Workspace process.
+///
+/// Marionette is intentionally a debug-only development aid. Profile and
+/// release builds retain the regular Flutter binding and production behavior.
+void initializeFlameWorkspaceBinding() {
+  if (kDebugMode) {
+    MarionetteBinding.ensureInitialized();
+  } else {
+    WidgetsFlutterBinding.ensureInitialized();
+  }
+}
+
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  initializeFlameWorkspaceBinding();
+  initializeWorkspaceMarionetteTools();
 
   runApp(const FlameWorkspaceApp());
 }

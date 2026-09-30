@@ -109,6 +109,25 @@ checked-in template is an ordinary Flutter + Flame project and can also be
 analyzed and run with standard Flutter/Dart tooling. See
 [`template/README.md`](template/README.md) for its structure and runtime setup.
 
+### Debug UI inspection with Marionette
+
+The Workspace application initializes `marionette_flutter` only in debug mode.
+Profile and release builds use the normal Flutter binding and do not enable the
+Marionette integration. To launch a desktop debug session:
+
+```bash
+cd flame_workspace
+flutter run -d macos    # or -d windows / -d linux
+```
+
+Flutter prints the running application's VM Service URL in the terminal. Keep
+that URL available to the Marionette tooling when connecting to the Workspace
+UI; it is the debug application's service endpoint, not the VM Service of a
+user-game preview. If a tool asks for a WebSocket URI, use the WebSocket form
+reported by Flutter/DevTools for that same VM Service rather than starting a
+second transport. Marionette is a development/test aid and is not initialized
+in generated user games.
+
 For repository validation:
 
 ```bash

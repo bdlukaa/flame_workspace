@@ -1230,3 +1230,80 @@ When unsure whether something belongs in Flame Workspace, ask:
 If yes, it probably belongs.
 
 If it requires Flame Workspace to become a separate engine, proprietary runtime, or opaque project format, reconsider the design.
+
+---
+
+# 39. Marionette Core-Component Smoke Tests
+
+When validating editor or supported-component changes, source inspection and unit tests are not sufficient. Use the real Flame Workspace UI through Marionette in a debug desktop session.
+
+## Required workflow
+
+Run the narrow checks first:
+
+1. `flutter analyze`.
+2. Relevant Flutter tests.
+3. Launch Flame Workspace in debug mode, for example `cd flame_workspace && flutter run -d macos` (or `-d windows` / `-d linux`).
+4. Obtain the Workspace VM Service URI printed by Flutter and connect Marionette to that URI. Do not connect to the user-game preview URI by mistake and do not create a second transport.
+5. Open or create a controlled fixture project.
+6. Use the real Add Component dialog, including search and confirmation.
+7. Edit values through the real Inspector fields and controls.
+8. Inspect `workspace.getPreviewLogs`, `workspace.getDiagnostics`, and `workspace.getSyncStatus`.
+9. Enter Game State with the real Play/Build/Game controls.
+10. Visually inspect the preview and take a screenshot when rendering is part of the change.
+11. Stop through the real toolbar.
+12. Reopen or refresh the project and verify authored values remain correct.
+
+The debug-only Workspace extensions are read-oriented diagnostics plus the narrowly scoped `workspace.selectScene` setup action. Do not use extensions to add components, edit properties, or simulate UI interactions; those operations must exercise the actual widgets.
+
+If Marionette reports a UI failure, preview compile failure, runtime exception, disconnected VM Service, or reconciliation diagnostic, investigate and fix it before declaring the task complete. Record the failing operation, diagnostic code/message, preview logs, and recovery in the final report if it cannot be resolved.
+
+## Mandatory component scenarios
+
+### CircleComponent
+
+Use a controlled fixture and perform:
+
+```text
+Add CircleComponent
+radius = 40
+paint color = #FF00AA
+paint style = fill
+position = 100, 100
+Play
+assert no compile error
+assert no runtime sync error
+take screenshot
+Stop
+reopen project
+assert radius and color persisted
+```
+
+### TextComponent
+
+```text
+Add TextComponent
+text = "Hello Flame"
+color = white
+font size = 32
+font family = Arial
+weight = bold
+Play
+assert no compile error
+take screenshot
+change text in Game State
+Stop
+assert Build text remains "Hello Flame"
+```
+
+This scenario must verify Build/Game isolation, not only visual output.
+
+### TextBoxComponent
+
+Add and exercise the real Inspector for text, text style, maximum width, margins, and content alignment. Play, inspect logs and diagnostics, screenshot the result, Stop, and verify the authored values after reopening.
+
+### RectangleComponent and PolygonComponent
+
+Add each component through the real dialog. Mutate its shape-specific values and Paint values in the Inspector, including transforms where supported. Play, assert compilation and runtime synchronization succeed, take a screenshot, Stop, and verify persistence after reopening.
+
+For every scenario, use semantic component IDs and the Workspace Marionette read tools to correlate Build and Runtime state. Never treat a screenshot alone as proof that generated code, runtime reconciliation, persistence, and Build/Game isolation are correct.

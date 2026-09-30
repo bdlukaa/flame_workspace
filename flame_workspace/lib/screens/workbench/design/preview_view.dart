@@ -381,6 +381,7 @@ class PreviewToolbar extends StatelessWidget {
         child: Row(
           children: [
             IconButton(
+              key: const ValueKey('workspace.play'),
               tooltip: 'Play',
               onPressed: canStart
                   ? () {
@@ -397,6 +398,7 @@ class PreviewToolbar extends StatelessWidget {
               visualDensity: VisualDensity.compact,
             ),
             IconButton(
+              key: const ValueKey('workspace.pause'),
               tooltip: pauseTooltip,
               onPressed: canPauseOrResume
                   ? () => unawaited(
@@ -407,6 +409,7 @@ class PreviewToolbar extends StatelessWidget {
               visualDensity: VisualDensity.compact,
             ),
             IconButton(
+              key: const ValueKey('workspace.stop'),
               tooltip: 'Stop',
               onPressed: canStop
                   ? () {
@@ -451,15 +454,22 @@ class PreviewToolbar extends StatelessWidget {
             Text(status, style: Theme.of(context).textTheme.labelSmall),
             const SizedBox(width: 12),
             SegmentedButton<WorkspaceExecutionMode>(
+              key: const ValueKey('workspace.mode'),
               segments: [
                 ButtonSegment(
                   value: WorkspaceExecutionMode.build,
-                  label: Text('Build'),
+                  label: Text(
+                    'Build',
+                    key: const ValueKey('workspace.mode.build'),
+                  ),
                   icon: Icon(Icons.edit_outlined),
                 ),
                 ButtonSegment(
                   value: WorkspaceExecutionMode.game,
-                  label: Text('Game'),
+                  label: Text(
+                    'Game',
+                    key: const ValueKey('workspace.mode.game'),
+                  ),
                   icon: Icon(Icons.play_arrow),
                   enabled: canEnterGame,
                   tooltip: canEnterGame

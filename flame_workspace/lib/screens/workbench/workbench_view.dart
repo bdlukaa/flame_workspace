@@ -4,6 +4,7 @@ import 'package:flame_workspace/screens/workbench/design/script_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../marionette/workspace_tools.dart';
 import '../../workbench/model/semantic_model.dart';
 import '../../workbench/project/project.dart';
 import '../../workbench/runner/preview.dart';
@@ -118,6 +119,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
       onHotRestartCompleted: state.clearRuntimeOverridesAfterRestart,
     );
     state.attachRunner(runner);
+    attachWorkspaceMarionetteContext(state, runner);
 
     state.addListener(_updateListener);
     runner.addListener(_updateListener);
@@ -129,6 +131,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
 
   @override
   void dispose() {
+    detachWorkspaceMarionetteContext(state);
     runner.dispose();
 
     super.dispose();
@@ -333,6 +336,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
               ),
               const SizedBox(width: 8.0),
               InkedIconButton(
+                key: const ValueKey('workspace.save'),
                 onTap: state.isBuildMode && state.isDirty
                     ? state.saveWorkspace
                     : null,

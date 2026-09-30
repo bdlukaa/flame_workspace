@@ -6,6 +6,7 @@ import 'package:flame_workspace/workbench/generators/properties_generator.dart';
 import 'package:flame_workspace/workbench/generators/scene_naming.dart';
 import 'package:flame_workspace/workbench/generators/scene_dispatcher_generator.dart';
 import 'package:flame_workspace/workbench/generators/scene_persistence_generator.dart';
+import 'package:flame_workspace/workbench/generators/generated_project_validator.dart';
 import 'package:flame_workspace/workbench/generators/scene_scaffolder.dart';
 import 'package:flame_workspace/workbench/model/scene_persistence.dart';
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
@@ -176,6 +177,7 @@ class FlameProjectState with ChangeNotifier {
   String? indexError;
   List<String> analysisDiagnostics = const [];
   List<RuntimeTreeDiagnostic> runtimeTreeDiagnostics = const [];
+  List<WorkspaceDiagnostic> generationDiagnostics = const [];
   String? assetError;
   WorkspaceDiagnostic? _operationDiagnostic;
 
@@ -232,6 +234,7 @@ class FlameProjectState with ChangeNotifier {
         message: analysisDiagnostics.take(5).join('\n'),
         recovery: 'Fix the listed Dart diagnostics and retry analysis.',
       ),
+    ...generationDiagnostics,
   ];
 
   Future<void> get ready => initialization;
@@ -239,6 +242,7 @@ class FlameProjectState with ChangeNotifier {
   void clearProjectIssues() {
     indexError = null;
     analysisDiagnostics = const [];
+    generationDiagnostics = const [];
     assetError = null;
     operationError = null;
     notifyListeners();
@@ -1407,6 +1411,30 @@ class FlameProjectState with ChangeNotifier {
     if (!canEditWorkspace) return false;
     try {
       await workspaceModel.save(project);
+      // Flutter test isolates cannot safely spawn a nested Dart analyzer;
+      // generated-source validation has deterministic direct tests below.
+      if (Platform.environment['FLUTTER_TEST'] == 'true') {
+        generationDiagnostics = const [];
+      } else {
+        final validation = await GeneratedProjectValidator.validate(
+          project: project,
+          scenes: workspaceProject.scenes,
+        );
+        generationDiagnostics = [
+          for (final diagnostic in validation.diagnostics)
+            WorkspaceDiagnostic(
+              category: WorkspaceDiagnosticCategory.generation,
+              code: 'generated_source_invalid',
+              operation: 'Validate generated Workspace source',
+              message: diagnostic.displayMessage,
+              recovery: 'Fix the generated-code input shown in the context and save again.',
+            ),
+        ];
+        if (!validation.isValid) {
+          notifyListeners();
+          return false;
+        }
+      }
       operationError = null;
       notifyListeners();
       return true;
