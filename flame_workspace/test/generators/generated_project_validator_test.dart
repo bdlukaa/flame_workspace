@@ -39,13 +39,17 @@ void main() {
       ],
     );
 
+    String? analyzerExecutable;
     final result = await GeneratedProjectValidator.validate(
-      analyzer: (executable, arguments, {workingDirectory}) async => ProcessResult(
-        1,
-        3,
-        'ERROR|SYNTACTIC_ERROR|MISSING_FUNCTION_BODY|${generatedFile.path}|2|1|0|A function body must be provided.',
-        '',
-      ),
+      analyzer: (executable, arguments, {workingDirectory}) async {
+        analyzerExecutable = executable;
+        return ProcessResult(
+          1,
+          3,
+          'ERROR|SYNTACTIC_ERROR|MISSING_FUNCTION_BODY|${generatedFile.path}|2|1|0|A function body must be provided.',
+          '',
+        );
+      },
       project: FlameProject(
         name: 'broken',
         organization: 'test',
@@ -56,6 +60,7 @@ void main() {
     );
 
     expect(result.isValid, isFalse);
+    expect(analyzerExecutable, isNot(contains('flutter_tester')));
     expect(result.diagnostics, isNotEmpty);
     expect(
       result.diagnostics.single.displayMessage,

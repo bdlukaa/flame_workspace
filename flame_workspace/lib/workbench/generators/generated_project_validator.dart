@@ -76,6 +76,37 @@ typedef GeneratedAnalyzer = Future<ProcessResult> Function(
 class GeneratedProjectValidator {
   const GeneratedProjectValidator._();
 
+  static String _dartExecutable() {
+    final resolved = Platform.resolvedExecutable;
+    if (const {'dart', 'dart.exe'}.contains(path.basename(resolved))) {
+      return resolved;
+    }
+
+    final executableName = Platform.isWindows ? 'dart.exe' : 'dart';
+    final flutterRoot = Platform.environment['FLUTTER_ROOT'];
+    final candidates = [
+      if (flutterRoot != null)
+        path.join(
+          flutterRoot,
+          'bin',
+          'cache',
+          'dart-sdk',
+          'bin',
+          executableName,
+        ),
+      for (final directory in (Platform.environment['PATH'] ?? '').split(
+        Platform.isWindows ? ';' : ':',
+      ))
+        if (directory.isNotEmpty) path.join(directory, executableName),
+    ];
+    for (final candidate in candidates) {
+      if (File(candidate).existsSync()) return candidate;
+    }
+    throw StateError(
+      'Could not locate the Dart CLI for generated-source validation.',
+    );
+  }
+
   static Future<ProcessResult> _runAnalyzer(
     String executable,
     List<String> arguments, {
@@ -115,7 +146,7 @@ class GeneratedProjectValidator {
 
     late final ProcessResult result;
     try {
-      result = await analyzer(Platform.resolvedExecutable, [
+      result = await analyzer(_dartExecutable(), [
         'analyze',
         '--format',
         'machine',

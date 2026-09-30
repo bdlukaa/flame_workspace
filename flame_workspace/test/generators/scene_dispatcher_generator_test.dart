@@ -35,17 +35,17 @@ void main() {
     );
 
     expect(first, second);
-    expect(first, contains('case "Alpha":'));
+    expect(RegExp(r'''case ['"]Alpha['"]:''').hasMatch(first), isTrue);
     expect(
       first,
       contains(r'FlameWorkspaceCore.instance.currentScene = $SceneAlpha();'),
     );
-    expect(first, contains('case "Beta":'));
+    expect(RegExp(r'''case ['"]Beta['"]:''').hasMatch(first), isTrue);
     expect(
       first,
       contains('FlameWorkspaceCore.instance.currentScene = BetaScene();'),
     );
-    expect(first, contains("setScene('Beta');"));
+    expect(RegExp(r'''setScene\(['"]Beta['"]\);''').hasMatch(first), isTrue);
   });
 
   test('rejects an invalid runtime class identifier', () {

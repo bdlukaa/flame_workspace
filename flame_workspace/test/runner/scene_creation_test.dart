@@ -154,10 +154,17 @@ void main() {
       final dispatcher = await File(
         path.join(directory.path, 'lib', '.generated', 'scenes.dart'),
       ).readAsString();
-      expect(gameSource, contains("import '.generated/scenes.dart';"));
+      expect(
+        RegExp(r'''import ['"]\.generated/scenes\.dart['"];''')
+            .hasMatch(gameSource),
+        isTrue,
+      );
       expect(gameSource, isNot(contains('scenes/main/main.dart')));
       expect(dispatcher, contains('void setInitialScene()'));
-      expect(dispatcher, contains('setScene("Backup");'));
+      expect(
+        RegExp(r'''setScene\(['"]Backup['"]\);''').hasMatch(dispatcher),
+        isTrue,
+      );
     },
   );
 

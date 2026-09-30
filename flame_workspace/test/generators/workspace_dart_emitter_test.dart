@@ -35,7 +35,10 @@ String _emit(Object? value) {
 void main() {
   test('emits native numbers and strings without semantic guessing', () {
     expect(_emit(40.0), contains('final value = 40.0;'));
-    expect(_emit('40.0'), contains("final value = '40.0';"));
+    expect(
+      RegExp(r'''final value = ['"]40\.0['"];''').hasMatch(_emit('40.0')),
+      isTrue,
+    );
   });
 
   test('emits structured Flame and Flutter values', () {
@@ -81,7 +84,10 @@ void main() {
       expect(paint, contains('..strokeWidth = 2.5'));
       expect(textPaint, contains('TextPaint('));
       expect(textPaint, contains('const TextStyle('));
-      expect(textPaint, contains("fontFamily: 'Arial'"));
+      expect(
+        RegExp(r'''fontFamily: ['"]Arial['"]''').hasMatch(textPaint),
+        isTrue,
+      );
       expect(textPaint, contains('fontWeight: FontWeight.w700'));
     },
   );
