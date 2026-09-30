@@ -42,6 +42,7 @@ dependencies:
     path: ../flame_workspace_communication_bridge
   webview_cef: ^0.6.2
   marionette_flutter: ^0.6.0
+  code_builder: ^4.12.0
 
 dev_dependencies:
   flutter_lints: ^6.0.0

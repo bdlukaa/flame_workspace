@@ -31,28 +31,6 @@ class FlameComponentObject({
           p.superComponents!.last == superclass;
     });
   }
-
-  String toCode(String declarationName, Map<String, dynamic> params) {
-    final buffer = StringBuffer();
-
-    buffer.write('$name $declarationName = $name(');
-    buffer.write('key: FlameKey(\'$declarationName\'),');
-
-    for (final parameter in constructorParameters ?? parameters) {
-      final value = params[parameter.name] ?? parameter.defaultValue;
-      if (parameter.isRequired && (value == null || value == 'null')) {
-        throw ArgumentError(
-          'Missing required constructor parameter: ${parameter.name}',
-        );
-      }
-      if (value == null || value == 'null') continue;
-      buffer.write('${parameter.name}: $value, ');
-    }
-
-    buffer.write(');');
-
-    return buffer.toString();
-  }
 }
 
 class const FlameComponentProperty({

@@ -247,6 +247,16 @@ class ComponentCapabilityEvaluator {
         reason: 'This component is planned for Tier 2 and is not addable yet.',
       );
     }
+    if (data['api'] == true && tier == ComponentSupportTier.unsupported) {
+      return ComponentCapability(
+        status: ComponentCapabilityStatus.partiallySupported,
+        tier: tier,
+        group: ComponentSupportGroup.specializedEditorRequired,
+        reason:
+            'Flame Workspace has no component-specific construction and '
+            'property contract for this Flame API yet.',
+      );
+    }
     if (data['abstract'] == true) {
       return ComponentCapability(
         status: ComponentCapabilityStatus.unsupported,

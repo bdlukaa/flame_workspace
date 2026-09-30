@@ -36,6 +36,24 @@ typedef AddIndexedComponent = (
   Map<String, Object?> parameters,
 );
 
+/// Returns the inheritance types that should start the Add Component tree.
+///
+/// A supported component can inherit through an abstract or otherwise
+/// unsupported intermediate class (for example `CircleComponent` through
+/// `ShapeComponent`). Such an intermediate must not hide its addable child.
+Set<String> rootTypesForAddableComponents(
+  Iterable<FlameComponentObject> components,
+) {
+  final addableComponents = components.toList();
+  final addableNames = addableComponents
+      .map((component) => component.name)
+      .toSet();
+  return addableComponents
+      .where((component) => !addableNames.contains(component.type))
+      .map((component) => component.type)
+      .toSet();
+}
+
 WorkspacePaint? _defaultPaint(String? value) {
   if (value == null || value.trim() == 'null') return null;
   try {
@@ -198,8 +216,9 @@ class _AddComponentDialogState extends State<AddComponentDialog> {
           .whereType<TreeNode>();
     }
 
+    final rootTypes = rootTypesForAddableComponents(addableFlameComponents);
     rootComponents = componentsFor(
-      types: ['Component'],
+      types: rootTypes,
       components: addableFlameComponents,
     ).toList()..sort(sorter);
 
@@ -452,11 +471,7 @@ class _ComponentPropertiesPageState extends State<ComponentPropertiesPage> {
   void initState() {
     super.initState();
     for (final parameter in _constructorParameters) {
-      if (parameter.name == 'textRenderer' &&
-          {
-            'TextComponent',
-            'TextBoxComponent',
-          }.contains(widget.selectedComponent.name)) {
+      if (parameter.nonNullableType == 'TextPaint') {
         parameters[parameter.name] = const WorkspaceTextPaint();
       } else if (parameter.nonNullableType == 'TextBoxConfig') {
         parameters[parameter.name] = const WorkspaceTextBoxConfig();

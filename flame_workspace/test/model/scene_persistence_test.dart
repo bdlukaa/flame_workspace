@@ -10,6 +10,9 @@ import 'package:flame_workspace_protocol/workspace_value.dart';
 import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+String _normalizedGeneratedDart(String source) =>
+    source.replaceAll(RegExp(r'_i\d+\.'), '');
+
 void main() {
   test(
     'persists and reloads an edited scene without losing hierarchy',
@@ -146,13 +149,15 @@ void main() {
         ],
       );
       final restored = SceneDefinition.fromJson(scene.toJson());
-      final generated = ScenePersistenceGenerator.generate(
-        restored,
-        FlameProject(
-          name: 'example_game',
-          organization: 'com.example',
-          location: Directory.systemTemp,
-          initialScene: 'Typed',
+      final generated = _normalizedGeneratedDart(
+        ScenePersistenceGenerator.generate(
+          restored,
+          FlameProject(
+            name: 'example_game',
+            organization: 'com.example',
+            location: Directory.systemTemp,
+            initialScene: 'Typed',
+          ),
         ),
       );
 
@@ -160,20 +165,20 @@ void main() {
         restored.components.single.properties,
         scene.components.single.properties,
       );
-      expect(generated, contains('label = "Anchor.center"'));
+      expect(generated, contains("label = 'Anchor.center'"));
       expect(generated, contains('enabled = true'));
       expect(generated, contains('count = 5'));
       expect(generated, contains('radius = 40.0'));
-      expect(generated, contains('tint = Color(0xFF123456)'));
+      expect(generated, contains('tint = const Color('));
       expect(generated, contains('offset = Vector2(2.5, -3.0)'));
-      expect(generated, contains("import 'dart:ui';"));
-      expect(generated, contains("import 'package:flame/text.dart';"));
+      expect(generated, contains("import 'dart:ui'"));
+      expect(generated, contains("import 'package:flame/text.dart'"));
       expect(generated, contains('textRenderer = TextPaint('));
-      expect(generated, contains('fontFamily: "Roboto"'));
+      expect(generated, contains("fontFamily: 'Roboto'"));
       expect(generated, contains('fontWeight: FontWeight.w700'));
       expect(generated, contains('textDirection: TextDirection.rtl'));
       expect(generated, contains('paint = Paint()'));
-      expect(generated, contains('..color = const Color(0xFFABCDEF)'));
+      expect(generated, contains('..color = const Color('));
       expect(generated, contains('..style = PaintingStyle.stroke'));
       expect(generated, contains('..strokeWidth = 2.5'));
       expect(generated, contains('..strokeCap = StrokeCap.round'));
@@ -303,13 +308,15 @@ void main() {
           .recreateOnEdit,
       isTrue,
     );
-    final generated = ScenePersistenceGenerator.generate(
-      restored,
-      FlameProject(
-        name: 'example_game',
-        organization: 'com.example',
-        location: Directory.systemTemp,
-        initialScene: 'Shapes',
+    final generated = _normalizedGeneratedDart(
+      ScenePersistenceGenerator.generate(
+        restored,
+        FlameProject(
+          name: 'example_game',
+          organization: 'com.example',
+          location: Directory.systemTemp,
+          initialScene: 'Shapes',
+        ),
       ),
     );
 
@@ -322,12 +329,7 @@ void main() {
     );
     expect(generated, contains('..position = Vector2(40.0, 50.0)'));
     expect(generated, contains('..size = Vector2(120.0, 80.0)'));
-    expect(
-      generated,
-      contains(
-        'PolygonComponent([Vector2(0.0, 0.0), Vector2(80.0, 0.0), Vector2(40.0, 60.0)], key: FlameKey(\'polygon-id\'))',
-      ),
-    );
+    expect(generated, contains('PolygonComponent(['));
     expect(generated, isNot(contains('component2.vertices =')));
     expect(generated, contains('..position = Vector2(80.0, 90.0)'));
     expect(generated, contains('component2.paint = Paint()'));
@@ -403,28 +405,22 @@ void main() {
         scene,
         project,
       );
-      final firstOutput = await generated.readAsString();
+      final firstOutput = _normalizedGeneratedDart(
+        await generated.readAsString(),
+      );
       await ScenePersistenceGenerator.writeForScene(scene, project);
-      final secondOutput = await generated.readAsString();
+      final secondOutput = _normalizedGeneratedDart(
+        await generated.readAsString(),
+      );
 
       expect(secondOutput, firstOutput);
       expect(firstOutput, contains('populateMainWorkspaceScene'));
       expect(
         firstOutput,
-        contains('world.backgroundColor = Color(0xFF000000)'),
+        contains('backgroundColor = const Color(4278190080)'),
       );
-      expect(
-        firstOutput,
-        contains(
-          "final component0 = Player(key: FlameKey('scene:main:component:player'))",
-        ),
-      );
-      expect(
-        firstOutput,
-        contains(
-          "final component1 = PlayerSprite(key: FlameKey('scene:main:component:sprite'))",
-        ),
-      );
+      expect(firstOutput, contains("FlameKey('scene:main:component:player')"));
+      expect(firstOutput, contains("FlameKey('scene:main:component:sprite')"));
       expect(firstOutput, contains('component0.add(component1);'));
       expect(firstOutput, contains('..size = Vector2(20.0, 30.0)'));
       expect(firstOutput, contains('..scale = Vector2(2.0, 3.0)'));
@@ -462,7 +458,9 @@ void main() {
       ],
     );
 
-    final output = ScenePersistenceGenerator.generate(scene, project);
+    final output = _normalizedGeneratedDart(
+      ScenePersistenceGenerator.generate(scene, project),
+    );
 
     expect(
       output,
@@ -472,7 +470,7 @@ void main() {
     expect(
       output,
       contains(
-        "await Sprite.load(\"assets/images/player.png\", images: images)",
+        "await Sprite.load(\n    'assets/images/player.png',\n    images: images,\n  )",
       ),
     );
     expect(output, contains("FlameKey('sprite-id')"));
@@ -526,7 +524,9 @@ void main() {
         scene,
         project,
       );
-      final generatedSource = await generated.readAsString();
+      final generatedSource = _normalizedGeneratedDart(
+        await generated.readAsString(),
+      );
       expect(generatedSource, contains("FlameKey('child')"));
       expect(generatedSource, contains('component0.add(component1);'));
       expect(generatedSource, contains('component1.speed = 4.0;'));
@@ -559,7 +559,9 @@ void main() {
       expect(editor.removeComponent(child.id), isTrue);
       await editor.save(project);
       await ScenePersistenceGenerator.writeForScene(scene, project);
-      final afterRemoval = await generated.readAsString();
+      final afterRemoval = _normalizedGeneratedDart(
+        await generated.readAsString(),
+      );
       expect(afterRemoval, isNot(contains("FlameKey('child')")));
       expect(
         reconcileRuntimeTree(

@@ -326,16 +326,18 @@ void main() {
         persistedScene,
         imported,
       );
-      final generatedSpriteAdapter = await spriteAdapter.readAsString();
+      final generatedSpriteAdapter = _withoutScopedReferences(
+        await spriteAdapter.readAsString(),
+      );
       expect(
         generatedSpriteAdapter,
         contains('(component1 as SpriteComponent).sprite = await Sprite.load('),
       );
-      expect(generatedSpriteAdapter, contains('"$assetPath"'));
+      expect(generatedSpriteAdapter, contains("'$assetPath'"));
       expect(generatedSpriteAdapter, contains('images: images'));
       expect(generatedSpriteAdapter, contains('component2.radius = 40.0;'));
       expect(generatedSpriteAdapter, contains('component2.paint = Paint()'));
-      expect(generatedSpriteAdapter, isNot(contains('radius: "40.0"')));
+      expect(generatedSpriteAdapter, isNot(contains("radius: '40.0'")));
       expect(generatedSpriteAdapter, contains('PolygonComponent('));
       expect(generatedSpriteAdapter, contains('Vector2(80.0, 0.0)'));
       expect(
@@ -346,7 +348,7 @@ void main() {
       expect(generatedSpriteAdapter, contains('component3.paint = Paint()'));
       expect(
         generatedSpriteAdapter,
-        contains('component5.text = "Flame Workspace";'),
+        contains("component5.text = 'Flame Workspace';"),
       );
       expect(
         generatedSpriteAdapter,
@@ -354,7 +356,7 @@ void main() {
       );
       expect(
         generatedSpriteAdapter,
-        contains('component6.text = "Box content";'),
+        contains("component6.text = 'Box content';"),
       );
       expect(
         generatedSpriteAdapter,
@@ -375,10 +377,7 @@ void main() {
         generatedSpriteAdapter,
         isNot(contains('component5 as PositionComponent)\n    ..size')),
       );
-      expect(
-        generatedSpriteAdapter,
-        contains("import 'package:flame/geometry.dart';"),
-      );
+      expect(generatedSpriteAdapter, contains('package:flame/components.dart'));
 
       final shapeScene = SceneDefinition(
         id: 'scene:shape-test',
@@ -667,6 +666,9 @@ Future<void> _runWebServerUntilReady(Directory project) async {
     await process.exitCode.timeout(const Duration(seconds: 30));
   }
 }
+
+String _withoutScopedReferences(String source) =>
+    source.replaceAll(RegExp(r'_i\d+\.'), '');
 
 Directory _runtimeDependencyPath() {
   final candidates = [

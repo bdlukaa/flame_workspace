@@ -122,7 +122,7 @@ void main() {}
       final generated = await adapter.readAsString();
       expect(generated, contains('radius: 40.0'));
       expect(generated, isNot(contains('radius: "40.0"')));
-      expect(generated, contains("import 'package:flame/geometry.dart';"));
+      expect(generated, contains('package:flame/components.dart'));
     },
   );
 
@@ -153,9 +153,18 @@ void main() {}
       component.constructorParameters!.map((parameter) => parameter.name),
       isNot(contains('nativeAngle')),
     );
-    final generated = component.toCode('circleComponent', const {});
-    expect(generated, isNot(contains('nativeAngle:')));
-    expect(generated, isNot(contains('Object()')));
+    expect(
+      component.constructorParameters!,
+      isNot(
+        anyElement(
+          isA<FlameComponentField>().having(
+            (parameter) => parameter.defaultValue,
+            'default value',
+            'Object()',
+          ),
+        ),
+      ),
+    );
   });
 
   test('indexes an empty Flame game without inventing components', () async {

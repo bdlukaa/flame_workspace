@@ -848,21 +848,17 @@ Object? _parseComponentDefault(FlameComponentField parameter) {
   }
 }
 
-Object? _selectedParameterValue(
+/// Resolves Add Component input to the typed semantic value used by Build
+/// State. Fields already edited by structured controls are semantic values,
+/// not source strings, and must pass through unchanged.
+Object? resolveAddComponentParameterValue(
   FlameComponentField parameter,
   Map<String, Object?> parameters,
 ) {
   final value = parameters.containsKey(parameter.name)
       ? parameters[parameter.name]
       : parameter.defaultValue;
-  if (value == null ||
-      value is WorkspacePaint ||
-      value is List<WorkspaceVectorValue>) {
-    return value;
-  }
-  if (value is! String) {
-    throw FormatException('Invalid value for ${parameter.name}.');
-  }
+  if (value == null || value is! String) return value;
   return ValuesParser.parse(
     parameter.type,
     value,
@@ -877,7 +873,7 @@ ComponentInstance _componentFromSelection(
   final (indexed, declarationName, parameters) = selection;
   final selectedValues = <String, Object?>{
     for (final parameter in indexed.parameters)
-      parameter.name: _selectedParameterValue(parameter, parameters),
+      parameter.name: resolveAddComponentParameterValue(parameter, parameters),
   };
   final isCircle = indexed.name == 'CircleComponent';
   final isRectangle = indexed.name == 'RectangleComponent';

@@ -1,14 +1,14 @@
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:code_builder/code_builder.dart';
 import 'package:flame_workspace_protocol/workspace_value.dart';
 import 'package:path/path.dart' as path;
 import 'package:recase/recase.dart';
 
-import 'imports.dart';
 import '../model/semantic_model.dart';
 import '../parser/writer.dart';
 import '../project/project.dart';
+import 'workspace_dart_emitter.dart';
 
 /// Generates additive Dart adapters for persisted Workspace scenes.
 class ScenePersistenceGenerator {
@@ -16,53 +16,38 @@ class ScenePersistenceGenerator {
 
   static String generate(SceneDefinition scene, FlameProject project) {
     final sceneToken = _sceneToken(scene.name);
-    final imports = <String>{
-      "import 'dart:ui';",
-      "import 'package:flame/components.dart';",
-      "import 'package:flame/text.dart';",
-      "import 'package:flame/geometry.dart';",
-      "import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';",
-    };
-    final componentImports = <String>{};
     final sceneComponents = _components(scene.components).toList();
     final hasAssetComponents = sceneComponents.any(
       (component) => component.assetPath != null,
     );
-    for (final component in sceneComponents) {
-      final import = _componentImport(component, project);
-      if (import != null) componentImports.add(import);
-    }
-    if (hasAssetComponents) {
-      imports.add("import 'package:flame/cache.dart';");
-    }
-
-    final buffer = StringBuffer()
-      ..writeln(generatedFileNotice)
-      ..writeln()
-      ..writeln((imports.toList()..sort()).join('\n'));
-    if (componentImports.isNotEmpty) {
-      buffer.writeln();
-      buffer.writeln((componentImports.toList()..sort()).join('\n'));
-    }
-    buffer
-      ..writeln()
-      ..writeln(
-        'Future<void> populate${sceneToken}WorkspaceScene(World world) async {',
-      )
-      ..writeln('  if (world is FlameScene) {')
-      ..writeln(
-        '    world.backgroundColor = Color(0x${scene.backgroundColor.toRadixString(16).padLeft(8, '0').toUpperCase()});',
-      )
-      ..writeln('  }');
-    if (hasAssetComponents) {
-      buffer.writeln("  final images = Images(prefix: '');");
-    }
-
     var ordinal = 0;
+    final statements = <Code>[];
+
+    statements.add(
+      refer('world')
+          .asA(refer('FlameScene', WorkspaceDartEmitter.runtime))
+          .property('backgroundColor')
+          .assign(
+            WorkspaceDartEmitter.color(WorkspaceColor(scene.backgroundColor)),
+          )
+          .statement,
+    );
+    if (hasAssetComponents) {
+      statements.add(
+        declareFinal('images')
+            .assign(
+              refer(
+                'Images',
+                WorkspaceDartEmitter.flameCache,
+              ).newInstance([], {'prefix': literalString('')}),
+            )
+            .statement,
+      );
+    }
+
     void writeComponent(ComponentInstance component, String parent) {
       final variable = 'component$ordinal';
       ordinal++;
-      final typeName = _identifier(component.type.name);
       if (component.assetPath != null &&
           !_isSpriteLike(component.type.name, component.type.baseType)) {
         throw FormatException(
@@ -97,45 +82,94 @@ class ScenePersistenceGenerator {
           );
         }
       }
-      final constructorArguments = [
-        for (final property in positionalProperties)
-          _literal(
-            component.properties[property.name] ?? property.defaultValue,
-          ),
-        "key: FlameKey('${component.id}')",
-        for (final name in constructorProperties)
-          '$name: ${_literal(component.properties[name])}',
-      ];
-      buffer.writeln(
-        '  final $variable = $typeName(${constructorArguments.join(', ')});',
+
+      final context = _valueContext(scene, component, 'constructor');
+      final constructor = _componentReference(component, project).newInstance(
+        [
+          for (final property in positionalProperties)
+            WorkspaceDartEmitter.value(
+              component.properties[property.name] ?? property.defaultValue,
+              context: '$context ${property.name}',
+            ),
+        ],
+        {
+          'key': refer(
+            'FlameKey',
+            WorkspaceDartEmitter.runtime,
+          ).newInstance([literalString(component.id)]),
+          for (final name in constructorProperties)
+            name: WorkspaceDartEmitter.value(
+              component.properties[name],
+              context: '$context $name',
+            ),
+        },
       );
-      if (component.assetPath != null) {
-        buffer.writeln(
-          '  ($variable as SpriteComponent).sprite = await Sprite.load('
-          '${jsonEncode(component.assetPath)}, images: images);',
+      statements.add(declareFinal(variable).assign(constructor).statement);
+
+      if (component.assetPath case final assetPath?) {
+        statements.add(
+          refer(variable)
+              .asA(
+                refer('SpriteComponent', WorkspaceDartEmitter.flameComponents),
+              )
+              .property('sprite')
+              .assign(
+                refer('Sprite', WorkspaceDartEmitter.flameComponents)
+                    .property('load')
+                    .call(
+                      [literalString(assetPath)],
+                      {'images': refer('images')},
+                    )
+                    .awaited,
+              )
+              .statement,
         );
       }
       if (component.type.isPositionComponent) {
-        buffer
-          ..writeln('  ($variable as PositionComponent)')
-          ..writeln(
-            '    ..position = Vector2(${_number(component.transform.position.x)}, ${_number(component.transform.position.y)})',
-          );
+        var transform = refer(
+          variable,
+        ).asA(refer('PositionComponent', WorkspaceDartEmitter.flameComponents));
+        transform = transform
+            .cascade('position')
+            .assign(
+              WorkspaceDartEmitter.vector2(
+                component.transform.position.x,
+                component.transform.position.y,
+              ),
+            );
         if (component.type.name != 'CircleComponent' &&
             component.type.name != 'TextComponent') {
-          buffer.writeln(
-            '    ..size = Vector2(${_number(component.transform.size.x)}, ${_number(component.transform.size.y)})',
-          );
+          transform = transform
+              .cascade('size')
+              .assign(
+                WorkspaceDartEmitter.vector2(
+                  component.transform.size.x,
+                  component.transform.size.y,
+                ),
+              );
         }
-        buffer
-          ..writeln(
-            '    ..scale = Vector2(${_number(component.transform.scale.x)}, ${_number(component.transform.scale.y)})',
-          )
-          ..writeln('    ..angle = ${_number(component.transform.angle)}')
-          ..writeln(
-            '    ..anchor = ${_anchorLiteral(component.transform.anchor)}',
-          )
-          ..writeln('    ..priority = ${component.priority};');
+        statements.add(
+          transform
+              .cascade('scale')
+              .assign(
+                WorkspaceDartEmitter.vector2(
+                  component.transform.scale.x,
+                  component.transform.scale.y,
+                ),
+              )
+              .cascade('angle')
+              .assign(literalNum(component.transform.angle))
+              .cascade('anchor')
+              .assign(
+                WorkspaceDartEmitter.anchor(
+                  component.transform.anchor.x,
+                  component.transform.anchor.y,
+                ),
+              )
+              .cascade('priority')
+              .assign(literalNum(component.priority))
+              .statement,
+        );
       }
       for (final entry in _orderedProperties(component).entries) {
         if (_transformProperties.contains(entry.key) ||
@@ -148,9 +182,21 @@ class ScenePersistenceGenerator {
           continue;
         }
         if (!_isIdentifier(entry.key)) continue;
-        buffer.writeln('  $variable.${entry.key} = ${_literal(entry.value)};');
+        statements.add(
+          refer(variable)
+              .property(entry.key)
+              .assign(
+                WorkspaceDartEmitter.value(
+                  entry.value,
+                  context: _valueContext(scene, component, entry.key),
+                ),
+              )
+              .statement,
+        );
       }
-      buffer.writeln('  $parent.add($variable);');
+      statements.add(
+        refer(parent).property('add').call([refer(variable)]).statement,
+      );
       for (final child in component.children) {
         writeComponent(child, variable);
       }
@@ -159,8 +205,40 @@ class ScenePersistenceGenerator {
     for (final component in scene.components) {
       writeComponent(component, 'world');
     }
-    buffer.writeln('}');
-    return buffer.toString();
+
+    return Writer.formatDartString(
+      WorkspaceDartEmitter.emit(
+        Library(
+          (builder) => builder
+            ..comments.add('This file is generated by Flame Workspace.')
+            ..comments.add('Do not edit it manually.')
+            ..body.add(
+              Method(
+                (builder) => builder
+                  ..name = 'populate${sceneToken}WorkspaceScene'
+                  ..returns = TypeReference(
+                    (builder) => builder
+                      ..symbol = 'Future'
+                      ..url = 'dart:async'
+                      ..types.add(refer('void')),
+                  )
+                  ..modifier = MethodModifier.async
+                  ..requiredParameters.add(
+                    Parameter(
+                      (builder) => builder
+                        ..name = 'world'
+                        ..type = refer(
+                          'World',
+                          WorkspaceDartEmitter.flameComponents,
+                        ),
+                    ),
+                  )
+                  ..body = Block.of(statements),
+              ),
+            ),
+        ),
+      ),
+    );
   }
 
   static Future<File> writeForScene(
@@ -190,19 +268,26 @@ class ScenePersistenceGenerator {
     }
   }
 
-  static String? _componentImport(
+  static Reference _componentReference(
+    ComponentInstance component,
+    FlameProject project,
+  ) => refer(component.type.name, _componentImportUri(component, project));
+
+  static String? _componentImportUri(
     ComponentInstance component,
     FlameProject project,
   ) {
     final sourcePath = component.sourcePath;
-    if (sourcePath == null) return null;
+    if (sourcePath == null) return WorkspaceDartEmitter.flameComponents;
     final libPath = path.join(project.location.path, 'lib');
     final resolvedSourcePath = path.isAbsolute(sourcePath)
         ? sourcePath
         : path.join(project.location.path, sourcePath);
     final relative = path.relative(resolvedSourcePath, from: libPath);
-    if (relative == '..' || relative.startsWith('../')) return null;
-    return "import 'package:${project.name}/${relative.replaceAll(path.separator, '/')}';";
+    if (relative == '..' || relative.startsWith('../')) {
+      return WorkspaceDartEmitter.flameComponents;
+    }
+    return 'package:${project.name}/${relative.replaceAll(path.separator, '/')}';
   }
 
   static Map<String, Object?> _orderedProperties(ComponentInstance component) {
@@ -238,25 +323,13 @@ class ScenePersistenceGenerator {
     return RegExp(r'^[A-Za-z_][A-Za-z0-9_]*$').hasMatch(value);
   }
 
-  static String _number(num value) => value.toString();
-
-  static String _anchorLiteral(WorkspaceVector2 anchor) {
-    final x = anchor.x;
-    final y = anchor.y;
-    if (x == 0 && y == 0) return 'Anchor.topLeft';
-    if (x == 0.5 && y == 0.5) return 'Anchor.center';
-    if (x == 1 && y == 1) return 'Anchor.bottomRight';
-    if (x == 0.5 && y == 0) return 'Anchor.topCenter';
-    if (x == 1 && y == 0) return 'Anchor.topRight';
-    if (x == 0 && y == 0.5) return 'Anchor.centerLeft';
-    if (x == 1 && y == 0.5) return 'Anchor.centerRight';
-    if (x == 0 && y == 1) return 'Anchor.bottomLeft';
-    if (x == 0.5 && y == 1) return 'Anchor.bottomCenter';
-    return 'Anchor.topLeft';
-  }
-
-  static String _literal(Object? value) =>
-      PropertyTypeAdapterRegistry.emitDart(value);
+  static String _valueContext(
+    SceneDefinition scene,
+    ComponentInstance component,
+    String property,
+  ) =>
+      'scene ${scene.id}, component ${component.id} '
+      '(${component.type.name}), property $property';
 }
 
 const _transformProperties = {

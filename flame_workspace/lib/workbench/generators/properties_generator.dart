@@ -1,42 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:flame_workspace/workbench/generators/imports.dart';
-import 'package:flame_workspace/workbench/parser/writer.dart';
-import 'package:flame_workspace/workbench/project/objects/component.dart';
-import 'package:flame_workspace/workbench/project/project.dart';
+import 'package:code_builder/code_builder.dart';
 import 'package:path/path.dart' as path;
 
-/// This class generates a function that is able to set the properties of a
-/// class dynamically without the need to know the class at compile time.
-///
-/// For example, the following class:
-///
-/// ```dart
-/// class MyClass {
-///
-///   final String name = 'My Name is Bruno';
-///   final int age = 17;
-///
-/// }
-/// ```
-///
-/// With this class, the output function would be:
-///
-/// ```dart
-/// void setPropertyMyClass(MyClass cls, String propertyName, dynamic value) {
-///   switch (propertyName) {
-///     case 'name':
-///       name = value;
-///       break;
-///     case 'age':
-///       age = value;
-///       break;
-///     default:
-///       throw ArgumentError.value(value, 'Property not found');
-///   }
-/// }
-/// ```
-/// ```
+import '../parser/writer.dart';
+import '../project/objects/component.dart';
+import '../project/project.dart';
+import 'workspace_dart_emitter.dart';
+
+/// Generates runtime property dispatchers for the discovered component API.
 class PropertiesGenerator {
   static const _transformProperties = {
     'position',
@@ -53,119 +26,50 @@ class PropertiesGenerator {
   PropertiesGenerator._();
 
   static String generateForFlameComponent(FlameComponentObject component) {
-    final className = component.name;
-    final properties = component.writableProperties
-        .where(
-          (property) =>
-              property.typeAccessible &&
-              !_transformProperties.contains(property.name) &&
-              !_containsPrivateType(property.type) &&
-              !property.type.startsWith('void Function'),
-        )
-        .toList();
-    if (properties.isEmpty) return '';
-
-    final buffer = StringBuffer();
-    buffer.writeln('void setPropertyValue$className(');
-    buffer.writeln('  $className cls,');
-    buffer.writeln('  String propertyName,');
-    buffer.writeln('  dynamic value,');
-    buffer.writeln(') {');
-    buffer.writeln('  switch (propertyName) {');
-    for (final property in properties) {
-      var type = property.type.replaceAll('?', '');
-      if (type.length == 1) type = 'dynamic';
-      buffer.writeln('    case \'${property.name}\':');
-      buffer.writeln('      cls.${property.name} = value as $type;');
-      if (className == 'TextBoxComponent' && property.name == 'align') {
-        buffer.writeln('      unawaited(cls.redraw());');
-      }
-      buffer.writeln('      break;');
-    }
-    buffer.writeln('    default:');
-    buffer.writeln(
-      '      throw ArgumentError.value(propertyName, \'Property not found\');',
+    final method = _componentSetter(component, component.name);
+    if (method == null) return '';
+    return Writer.formatDartString(
+      WorkspaceDartEmitter.emit(
+        Library((builder) => builder..body.add(method)),
+      ),
     );
-    buffer.writeln('  }');
-    buffer.writeln('}');
-
-    return buffer.toString();
   }
 
   static Future<void> writeForComponents(
     Iterable<FlameComponentObject> components,
     FlameProject project,
   ) async {
-    final componentList = components.toList();
-    final buffer = StringBuffer();
-    buffer.writeln(generatedFileNotice);
-    buffer.writeln(
-      '// ignore_for_file: unused_import, unnecessary_import, unnecessary_this',
-    );
-    buffer.writeln(defaultImports);
-    if (componentList.any(
+    final componentList = components.toList()
+      ..sort((first, second) => first.name.compareTo(second.name));
+    final setters = <FlameComponentObject, Method>{};
+    for (final component in componentList) {
+      final setter = _componentSetter(component, component.name);
+      if (setter != null) setters[component] = setter;
+    }
+    final projectImports = <String>{
+      for (final component in componentList)
+        if (component.filePath case final filePath?)
+          _projectImportUri(filePath, project),
+    }.toList()..sort();
+    final needsUnawaited = setters.keys.any(
       (component) => component.name == 'TextBoxComponent',
-    )) {
-      buffer.writeln("import 'dart:async';");
-    }
-    buffer.writeln("import 'package:flame/text.dart';");
-
-    Set<String> imports = {};
-
-    for (final component in componentList) {
-      // component import
-      final componentFilePath = component.filePath;
-      if (componentFilePath == null) continue;
-      final componentPath = componentFilePath
-          .split(path.join(project.name, 'lib'))
-          .last;
-      imports.add(
-        "import 'package:${project.name}${componentPath.replaceAll(r'\', '/')}';",
-      );
-    }
-
-    buffer.writeln(imports.join('\n'));
-
-    // write a function that calls all the classes:
-    // void setPropertyValue(String className, dynamic cls, String propertyName, dynamic value) {
-    //   switch (className) {
-    //     case 'MyClass':
-    //       setPropertyValueMyClass(cls as MyClass, propertyName, value);
-    //       break;
-    //     case 'MyOtherClass':
-    //       setPropertyValueMyOtherClass(cls as MyOtherClass, propertyName, value);
-    //       break;
-    //     default:
-    //       throw ArgumentError.value(className, 'Class not found');
-    //   }
-    // }
-
-    buffer.writeln('void setPropertyValue(');
-    buffer.writeln('  String className,');
-    buffer.writeln('  dynamic cls,');
-    buffer.writeln('  String propertyName,');
-    buffer.writeln('  dynamic value,');
-    buffer.writeln(') {');
-    buffer.writeln('  switch (className) {');
-    for (final component in componentList) {
-      if (generateForFlameComponent(component).isEmpty) continue;
-      buffer.writeln('    case \'${component.name}\':');
-      buffer.writeln(
-        '      setPropertyValue${component.name}(cls as ${component.name}, propertyName, value);',
-      );
-      buffer.writeln('      break;');
-    }
-    buffer.writeln('    default:');
-    buffer.writeln(
-      '      throw ArgumentError.value(className, \'Class not found\');',
     );
-    buffer.writeln('  }');
-    buffer.writeln('}');
-    buffer.writeln();
 
-    for (final component in componentList) {
-      buffer.writeln(generateForFlameComponent(component));
-    }
+    final library = Library(
+      (builder) => builder
+        ..comments.add('This file is generated by Flame Workspace.')
+        ..comments.add('Do not edit it manually.')
+        ..comments.add(
+          'ignore_for_file: unused_import, unnecessary_import, unnecessary_this',
+        )
+        ..directives.add(Directive.import(WorkspaceDartEmitter.runtime))
+        ..directives.addAll([
+          if (needsUnawaited) Directive.import('dart:async'),
+          for (final uri in projectImports) Directive.import(uri),
+        ])
+        ..body.add(_dispatcher(setters.keys))
+        ..body.addAll(setters.values),
+    );
 
     final file = File(
       path.join(
@@ -176,7 +80,130 @@ class PropertiesGenerator {
       ),
     );
     if (!(await file.exists())) file.createSync(recursive: true);
+    await Writer.writeFormatted(file, WorkspaceDartEmitter.emit(library));
+  }
 
-    await Writer.writeFormatted(file, buffer.toString().trim());
+  static Method? _componentSetter(
+    FlameComponentObject component,
+    String className,
+  ) {
+    final properties =
+        component.writableProperties
+            .where(
+              (property) =>
+                  property.typeAccessible &&
+                  !_transformProperties.contains(property.name) &&
+                  !_containsPrivateType(property.type) &&
+                  !property.type.startsWith('void Function'),
+            )
+            .toList()
+          ..sort((first, second) => first.name.compareTo(second.name));
+    if (properties.isEmpty) return null;
+
+    // code_builder intentionally has no switch-statement specification. Keep
+    // this control-flow fragment local while all declarations and imports are
+    // built structurally above.
+    final cases = StringBuffer();
+    for (final property in properties) {
+      final type = _castType(property.type);
+      cases
+        ..writeln('case ${jsonEncode(property.name)}:')
+        ..writeln('  cls.${property.name} = value as $type;');
+      if (className == 'TextBoxComponent' && property.name == 'align') {
+        cases.writeln('  unawaited(cls.redraw());');
+      }
+      cases.writeln('  break;');
+    }
+    cases
+      ..writeln('default:')
+      ..writeln(
+        "  throw ArgumentError.value(propertyName, 'Property not found');",
+      );
+
+    return Method(
+      (builder) => builder
+        ..name = 'setPropertyValue$className'
+        ..returns = refer('void')
+        ..requiredParameters.addAll([
+          Parameter(
+            (builder) => builder
+              ..name = 'cls'
+              ..type = refer(className),
+          ),
+          Parameter(
+            (builder) => builder
+              ..name = 'propertyName'
+              ..type = refer('String'),
+          ),
+          Parameter(
+            (builder) => builder
+              ..name = 'value'
+              ..type = refer('dynamic'),
+          ),
+        ])
+        ..body = Code('switch (propertyName) {\n$cases}'),
+    );
+  }
+
+  static Method _dispatcher(Iterable<FlameComponentObject> components) {
+    final ordered = components.toList()
+      ..sort((first, second) => first.name.compareTo(second.name));
+    // See [_componentSetter] for why this switch remains a compact Code node.
+    final cases = StringBuffer();
+    for (final component in ordered) {
+      cases
+        ..writeln('case ${jsonEncode(component.name)}:')
+        ..writeln(
+          '  setPropertyValue${component.name}(cls as ${component.name}, propertyName, value);',
+        )
+        ..writeln('  break;');
+    }
+    cases
+      ..writeln('default:')
+      ..writeln("  throw ArgumentError.value(className, 'Class not found');");
+    return Method(
+      (builder) => builder
+        ..name = 'setPropertyValue'
+        ..returns = refer('void')
+        ..requiredParameters.addAll([
+          Parameter(
+            (builder) => builder
+              ..name = 'className'
+              ..type = refer('String'),
+          ),
+          Parameter(
+            (builder) => builder
+              ..name = 'cls'
+              ..type = refer('dynamic'),
+          ),
+          Parameter(
+            (builder) => builder
+              ..name = 'propertyName'
+              ..type = refer('String'),
+          ),
+          Parameter(
+            (builder) => builder
+              ..name = 'value'
+              ..type = refer('dynamic'),
+          ),
+        ])
+        ..body = Code('switch (className) {\n$cases}'),
+    );
+  }
+
+  static String _castType(String type) {
+    final normalized = type.replaceAll('?', '');
+    return normalized.length == 1 ? 'dynamic' : normalized;
+  }
+
+  static String _projectImportUri(String filePath, FlameProject project) {
+    final libPath = path.join(project.location.path, 'lib');
+    final relative = path.relative(filePath, from: libPath);
+    if (relative == '..' || relative.startsWith('..${path.separator}')) {
+      throw FormatException(
+        'Component source must be inside the project lib directory: $filePath',
+      );
+    }
+    return 'package:${project.name}/${relative.replaceAll(path.separator, '/')}';
   }
 }
