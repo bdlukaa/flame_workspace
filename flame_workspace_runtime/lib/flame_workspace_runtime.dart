@@ -1,6 +1,5 @@
 library flame_workspace_runtime;
 
-import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 
@@ -11,7 +10,7 @@ export 'package:flame_workspace_protocol/runtime.dart';
 export 'package:flame_workspace_protocol/state.dart';
 export 'package:flame_workspace_runtime/value_parser.dart';
 export 'package:flame_workspace_runtime/exports.dart';
-export 'package:flame_workspace_runtime/game/flame_component.dart';
+
 export 'package:flame_workspace_runtime/game/key.dart';
 export 'package:flame_workspace_runtime/game/scene.dart';
 export 'package:flame_workspace_runtime/vm_service_extensions.dart';
@@ -28,37 +27,17 @@ typedef SetScene = void Function(String scene);
 class FlameWorkspaceCore {
   static FlameWorkspaceCore instance = FlameWorkspaceCore();
 
-  /// Whether the current environment is a game or not.
-  static bool isGame = true;
-
   late FlameGame game;
 
   FlameWorkspaceCore();
 
-  /// Initializes the package server.
+  /// Initializes the runtime VM Service extensions.
   static Future<void> ensureInitialized(FlameGame game) async {
-    assert(isGame);
     instance.game = game;
     registerFlameWorkspaceExtensions(instance);
     if (kDebugMode) {
       debugPrint('Initializing Flame Workspace runtime');
     }
-  }
-
-  String? _currentSelectedComponentKey;
-  String? get currentSelectedComponentKey => _currentSelectedComponentKey;
-  set currentSelectedComponentKey(String? key) {
-    _currentSelectedComponentKey = key;
-    _currentSelectedComponent = game.findByKeyName(
-      currentSelectedComponentKey ?? '__none__',
-    );
-  }
-
-  Component? _currentSelectedComponent;
-  Component? get currentSelectedComponent => _currentSelectedComponent;
-  set currentSelectedComponent(Component? component) {
-    _currentSelectedComponentKey = null;
-    _currentSelectedComponent = component;
   }
 
   FlameScene? _currentScene;

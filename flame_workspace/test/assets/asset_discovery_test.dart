@@ -28,6 +28,10 @@ flutter:
           .writeAsBytes(const [1]);
       await File(path.join(project.path, 'assets', 'images', 'readme.txt'))
           .writeAsString('not an image');
+      await Directory(path.join(project.path, 'assets', 'unlisted'))
+          .create(recursive: true);
+      await File(path.join(project.path, 'assets', 'unlisted', 'loose.png'))
+          .writeAsBytes(const [1]);
       await File(path.join(project.path, 'assets', 'hero.JPG'))
           .writeAsBytes(const [1]);
 
@@ -45,6 +49,7 @@ flutter:
         '.jpg',
       );
       expect(result.missingPaths, ['assets/missing.png']);
+      expect(result.undeclaredPaths, ['assets/unlisted/loose.png']);
       expect(result.diagnostics, isEmpty);
     },
   );

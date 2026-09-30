@@ -60,6 +60,9 @@ class const FlameProject({
 
   /// The dependencies of the project.
   final List<DartDependency> dependencies = const [],
+
+  /// Whether Flame Workspace configuration already exists in this project.
+  final bool workspaceConfigured = true,
 }) {
   /// The list of assets of the project.
   ///

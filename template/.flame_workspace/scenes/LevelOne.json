@@ -1,0 +1,41 @@
+{
+  "id": "scene:template:level-one",
+  "name": "LevelOne",
+  "runtimeClassName": "LevelOne",
+  "backgroundColor": 4278190080,
+  "components": [
+    {
+      "id": "scene:template:level-one:component:my-component",
+      "type": {
+        "id": "MyComponent",
+        "name": "MyComponent",
+        "baseType": "PositionComponent",
+        "isPositionComponent": true
+      },
+      "declarationName": "myComponent",
+      "sourcePath": "lib/components/my_component.dart",
+      "children": [],
+      "properties": {},
+      "transform": {
+        "position": {
+          "x": 64.0,
+          "y": 64.0
+        },
+        "size": {
+          "x": 128.0,
+          "y": 128.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "angle": 0.0,
+        "anchor": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      "priority": 0
+    }
+  ]
+}

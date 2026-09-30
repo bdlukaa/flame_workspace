@@ -11,9 +11,9 @@ import 'package:path/path.dart' as path;
 
 import 'package:flame_workspace/workbench/extensions.dart';
 
-import '../../compilation_unit_helper.dart';
 import 'writer.dart';
 
+import 'indexed_unit.dart';
 import 'type_resolver.dart';
 
 typedef IndexedProject = List<(IndexedUnit indexed, CompilationUnit unit)>;
@@ -222,7 +222,9 @@ class ProjectIndexer {
     for (final (sceneObject, _, _) in scenes) {
       final script = scenes.firstWhereOrNull((candidate) {
         final (candidateObject, _, _) = candidate;
-        return '\$${candidateObject.name}' == sceneObject.name;
+        return candidateObject.name != sceneObject.name &&
+            ('\$${candidateObject.name}' == sceneObject.name ||
+                candidateObject.name == sceneObject.sceneName);
       });
       if (script != null) {
         final (scriptObject, _, _) = script;
@@ -274,6 +276,7 @@ class ProjectIndexer {
             parameters: component.parameters,
             constructorParameters: component.constructorParameters,
             writableProperties: component.writableProperties,
+            filePath: component.filePath,
             declarationName: field['name'],
           )..components.addAll(component.components);
         })

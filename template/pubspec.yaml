@@ -1,12 +1,9 @@
 name: template
+resolution: workspace
 description: "An awesome game created with Flame and Flame Workspace."
 publish_to: 'none'
 
-# The following defines the version and build number for your application.
-# A version number is three numbers separated by dots, like 1.2.43
-# followed by an optional build number separated by a +.
 version: 0.0.1+1
-resolution: workspace
 
 environment:
   sdk: '>=3.13.0 <4.0.0'
@@ -15,40 +12,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-  # Required dependencies
   flame: ^1.38.2
-
   flame_workspace_runtime:
-    path: ../flame_workspace_runtime
-
-
-  # Dependencies used by the app
-  
+    path: '../flame_workspace_runtime'
 
 dev_dependencies:
   flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
 
 flutter:
   uses-material-design: true
-
-
-  # To add custom fonts to your application, add a fonts section here,
-  # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
-  #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/custom-fonts/#from-packages

@@ -5,6 +5,10 @@ import 'package:path/path.dart' as path;
 
 const toggleBoxWidth = 20.0;
 
+enum TreeDropPosition { before, inside, after }
+
+typedef TreeNodeDrop = void Function(Object data, TreeDropPosition position);
+
 class TreeNode<T> {
   final T? value;
 
@@ -14,7 +18,10 @@ class TreeNode<T> {
   final String text;
   final Widget? trailing;
   final bool isSelected;
+  final Object? dragData;
+  final TreeNodeDrop? onDrop;
   final VoidCallback? onTap;
+  final GestureTapUpCallback? onTapUp;
   final GestureTapUpCallback? onSecondaryTapUp;
   List<TreeNode>? children;
 
@@ -26,8 +33,11 @@ class TreeNode<T> {
     required this.text,
     this.trailing,
     this.isSelected = false,
+    this.dragData,
+    this.onDrop,
     this.children,
     this.onTap,
+    this.onTapUp,
     this.onSecondaryTapUp,
   });
 
@@ -38,7 +48,10 @@ class TreeNode<T> {
     String? text,
     Widget? trailing,
     bool? isSelected,
+    Object? dragData,
+    TreeNodeDrop? onDrop,
     VoidCallback? onTap,
+    GestureTapUpCallback? onTapUp,
     GestureTapUpCallback? onSecondaryTapUp,
     List<TreeNode>? children,
   }) {
@@ -50,7 +63,10 @@ class TreeNode<T> {
       text: text ?? this.text,
       trailing: trailing ?? this.trailing,
       isSelected: isSelected ?? this.isSelected,
+      dragData: dragData ?? this.dragData,
+      onDrop: onDrop ?? this.onDrop,
       onTap: onTap ?? this.onTap,
+      onTapUp: onTapUp ?? this.onTapUp,
       onSecondaryTapUp: onSecondaryTapUp ?? this.onSecondaryTapUp,
       children: children ?? this.children,
     );
@@ -71,6 +87,7 @@ class __TreeNodeState extends State<_TreeNode> {
   late bool _isExpanded = widget.initiallyExpanded;
 
   final focusNode = FocusNode();
+  final _rowKey = GlobalKey();
 
   @override
   void initState() {
@@ -92,60 +109,104 @@ class __TreeNodeState extends State<_TreeNode> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final row = InkWell(
+      focusNode: focusNode,
+      onTap: widget.node.onTap ?? toggleExpanded,
+      onTapUp: widget.node.onTapUp,
+      onSecondaryTapUp: widget.node.onSecondaryTapUp,
+      child: DecoratedBox(
+        key: _rowKey,
+        decoration: BoxDecoration(
+          border: Border.all(
+            style: focusNode.hasFocus || widget.node.isSelected
+                ? BorderStyle.solid
+                : BorderStyle.none,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: toggleExpanded,
+              child: Container(
+                width: toggleBoxWidth,
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsetsDirectional.only(start: 4.0),
+                child: Icon(
+                  widget.node.children == null
+                      ? null
+                      : _isExpanded
+                      ? Icons.keyboard_arrow_down
+                      : Icons.keyboard_arrow_right,
+                  size: 12.0,
+                ),
+              ),
+            ),
+            if (widget.node.icon != null)
+              SizedBox(
+                width: toggleBoxWidth,
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Icon(
+                    widget.node.icon,
+                    size: 16.0,
+                    color: widget.node.iconColor,
+                  ),
+                ),
+              ),
+            Expanded(child: Text(widget.node.text)),
+            if (widget.node.trailing != null) widget.node.trailing!,
+          ],
+        ),
+      ),
+    );
+    final rowWithDragAndDrop = widget.node.onDrop == null
+        ? row
+        : DragTarget<Object>(
+            onAcceptWithDetails: (details) {
+              final box =
+                  _rowKey.currentContext!.findRenderObject()! as RenderBox;
+              final y = box.globalToLocal(details.offset).dy / box.size.height;
+
+              final position = y < 0.25
+                  ? TreeDropPosition.before
+                  : y > 0.75
+                  ? TreeDropPosition.after
+                  : TreeDropPosition.inside;
+              widget.node.onDrop!(details.data, position);
+            },
+            builder: (context, candidates, rejected) {
+              final child = widget.node.dragData == null
+                  ? row
+                  : Draggable<Object>(
+                      data: widget.node.dragData!,
+                      dragAnchorStrategy: pointerDragAnchorStrategy,
+                      feedback: Material(
+                        elevation: 4,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Text(widget.node.text),
+                        ),
+                      ),
+                      childWhenDragging: Opacity(opacity: 0.35, child: row),
+                      child: row,
+                    );
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  border: candidates.isEmpty
+                      ? null
+                      : Border.all(color: theme.colorScheme.primary),
+                ),
+                child: child,
+              );
+            },
+          );
+
     return Column(
       key: widget.node.key,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InkWell(
-          focusNode: focusNode,
-          onTap: widget.node.onTap ?? toggleExpanded,
-          onSecondaryTapUp: widget.node.onSecondaryTapUp,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border.all(
-                style: focusNode.hasFocus || widget.node.isSelected
-                    ? BorderStyle.solid
-                    : BorderStyle.none,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            child: Row(
-              children: [
-                // if (widget.node.children != null)
-                GestureDetector(
-                  onTap: toggleExpanded,
-                  child: Container(
-                    width: toggleBoxWidth,
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsetsDirectional.only(start: 4.0),
-                    child: Icon(
-                      widget.node.children == null
-                          ? null
-                          : _isExpanded
-                          ? Icons.keyboard_arrow_down
-                          : Icons.keyboard_arrow_right,
-                      size: 12.0,
-                    ),
-                  ),
-                ),
-                if (widget.node.icon != null)
-                  SizedBox(
-                    width: toggleBoxWidth,
-                    child: Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: Icon(
-                        widget.node.icon,
-                        size: 16.0,
-                        color: widget.node.iconColor,
-                      ),
-                    ),
-                  ),
-                Expanded(child: Text(widget.node.text)),
-                if (widget.node.trailing != null) widget.node.trailing!,
-              ],
-            ),
-          ),
-        ),
+        rowWithDragAndDrop,
         if (_isExpanded && widget.node.children != null)
           for (final child in widget.node.children!)
             IntrinsicHeight(

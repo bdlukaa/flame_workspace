@@ -139,21 +139,82 @@ void main() {}
       expect(names, containsAll(<String>['Player', 'PlayerSprite']));
       expect(names, isNot(contains('NotAComponent')));
 
-      final model = WorkspaceModelMapper.fromIndexed(
+      final model = WorkspaceModelMapper.inspectForMigration(
         indexed,
         resolver: resolver,
         projectName: 'basic_components',
       );
-      expect(model.scenes, hasLength(1));
+      expect(model.canMigrate, isFalse);
+      expect(model.project, isNull);
       expect(
-        model.scenes.single.components.map((component) => component.type.name),
-        containsAll(<String>['Player', 'PlayerSprite']),
+        model.diagnostics,
+        contains(contains('No statically declared FlameScene')),
       );
+    },
+  );
+
+  test('maps legacy scene fields and nested custom components', () async {
+    final (project, resolver, indexed) = await _resolvedFixture(
+      'legacy_workspace_fields',
+    );
+    addTearDown(resolver.dispose);
+    addTearDown(() => project.delete(recursive: true));
+
+    final result = WorkspaceModelMapper.inspectForMigration(
+      indexed,
+      resolver: resolver,
+      projectName: 'legacy_workspace_fields',
+    );
+
+    expect(result.canMigrate, isTrue, reason: result.diagnostics.join('\\n'));
+    final player = result.project!.scenes.single.components.single;
+    expect(player.declarationName, 'player');
+    expect(player.sourcePath, isNotNull);
+    expect(player.children.single.type.name, 'Decoration');
+    expect(player.children.single.sourcePath, isNotNull);
+  });
+
+  test('rejects ordinary Flame projects without scenes', () async {
+    final (project, resolver, indexed) = await _resolvedFixture(
+      'ordinary_flame',
+    );
+    addTearDown(resolver.dispose);
+    addTearDown(() => project.delete(recursive: true));
+
+    final result = WorkspaceModelMapper.inspectForMigration(
+      indexed,
+      resolver: resolver,
+      projectName: 'ordinary_flame',
+    );
+
+    expect(result.canMigrate, isFalse);
+    expect(result.project, isNull);
+    expect(
+      result.diagnostics,
+      contains(contains('No statically declared FlameScene')),
+    );
+  });
+
+  test(
+    'rejects dynamic component composition with an actionable diagnostic',
+    () async {
+      final (project, resolver, indexed) = await _resolvedFixture(
+        'unsupported_dynamic',
+      );
+      addTearDown(resolver.dispose);
+      addTearDown(() => project.delete(recursive: true));
+
+      final result = WorkspaceModelMapper.inspectForMigration(
+        indexed,
+        resolver: resolver,
+        projectName: 'unsupported_dynamic',
+      );
+
+      expect(result.canMigrate, isFalse);
+      expect(result.project, isNull);
       expect(
-        model.scenes.single.components.every((component) {
-          return component.id.isNotEmpty && component.sourcePath != null;
-        }),
-        isTrue,
+        result.diagnostics,
+        contains(contains('adds components dynamically')),
       );
     },
   );

@@ -7,6 +7,7 @@ import 'package:flame_workspace/workbench/extensions.dart';
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
 import 'package:flame_workspace/workbench/model/semantic_property_editor.dart';
 import 'package:flame_workspace/workbench/parser/values.dart';
+import 'package:flame_workspace_protocol/runtime.dart';
 
 import 'scene/scene_properties.dart';
 import '../workbench_view.dart';
@@ -17,6 +18,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
   static const _transformNames = {
     'position',
     'size',
+    'scale',
     'angle',
     'anchor',
     'priority',
@@ -26,8 +28,20 @@ class const ComponentView({super.key}) extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final workbench = Workbench.of(context);
-    final component = workbench.state.selectedComponent;
+    final state = workbench.state;
+    final component = state.selectedComponent;
+    if (state.isGameMode && state.runtimeSelectedComponent != null) {
+      return _RuntimeComponentView(node: state.runtimeSelectedComponent!);
+    }
     if (component == null) return const ScenePropertiesView();
+    final transform = state.runtimeOverrides.resolveTransform(
+      component.id,
+      component.transform,
+    );
+    final priority = state.runtimeOverrides.resolvePriority(
+      component.id,
+      component.priority,
+    );
 
     final definitions = component.type.properties;
     final scriptProperties = definitions
@@ -47,21 +61,15 @@ class const ComponentView({super.key}) extends StatelessWidget {
       if (!definition.editable) return;
       final edit = SemanticPropertyEditor.parse(definition, value);
       if (edit == null) return;
-      workbench.state.updateComponentProperty(
-        component.id,
-        definition.name,
-        edit.modelValue,
+      unawaited(
+        state.editComponentProperty(
+          componentId: component.id,
+          property: definition.name,
+          type: definition.type,
+          runtimeValue: edit.runtimeValue,
+          modelValue: edit.modelValue,
+        ),
       );
-      if (workbench.runner.canControlRuntime) {
-        unawaited(
-          workbench.runner.setProperty(
-            componentId: component.declarationName ?? component.id,
-            property: definition.name,
-            type: definition.type,
-            value: edit.runtimeValue,
-          ),
-        );
-      }
     }
 
     return Padding(
@@ -100,24 +108,24 @@ class const ComponentView({super.key}) extends StatelessWidget {
               for (final property in scriptProperties)
                 _buildPropertyField(
                   property,
-                  component.properties[property.name] ?? property.defaultValue,
-                  updateProperty,
-                  key: ValueKey(
-                    '${component.id}:${property.name}:${component.properties[property.name]}',
+                  state.runtimeOverrides.resolveProperty(
+                    component.id,
+                    property.name,
+                    component.properties[property.name] ??
+                        property.defaultValue,
                   ),
+                  updateProperty,
+                  key: ValueKey('${component.id}:${property.name}'),
                 ),
             ],
           ),
           if (component.type.isPositionComponent)
             ComponentSectionCard(
               title: 'Transform',
-              trailing: '5',
+              trailing: '6',
               children: [
                 PropertyField.vector2(
-                  (
-                    x: component.transform.position.x,
-                    y: component.transform.position.y,
-                  ),
+                  (x: transform.position.x, y: transform.position.y),
                   first: 'pos | x',
                   second: 'pos | y',
                   onChanged: (value) => _updateVectorTransform(
@@ -125,28 +133,40 @@ class const ComponentView({super.key}) extends StatelessWidget {
                     component,
                     definitionFor('position', 'Vector2'),
                     value,
-                    (transform, vector) => transform.copyWith(position: vector),
+                    (currentTransform, vector) =>
+                        currentTransform.copyWith(position: vector),
                   ),
                 ),
                 PropertyField.vector2(
-                  (
-                    x: component.transform.size.x,
-                    y: component.transform.size.y,
-                  ),
-                  first: 's | width',
-                  second: 's | height',
+                  (x: transform.size.x, y: transform.size.y),
+                  first: 'size | width',
+                  second: 'size | height',
                   onChanged: (value) => _updateVectorTransform(
                     workbench,
                     component,
                     definitionFor('size', 'Vector2'),
                     value,
-                    (transform, vector) => transform.copyWith(size: vector),
+                    (currentTransform, vector) =>
+                        currentTransform.copyWith(size: vector),
+                  ),
+                ),
+                PropertyField.vector2(
+                  (x: transform.scale.x, y: transform.scale.y),
+                  first: 'scale | x',
+                  second: 'scale | y',
+                  onChanged: (value) => _updateVectorTransform(
+                    workbench,
+                    component,
+                    definitionFor('scale', 'Vector2'),
+                    value,
+                    (currentTransform, vector) =>
+                        currentTransform.copyWith(scale: vector),
                   ),
                 ),
                 PropertyField(
                   name: 'rotation',
                   description: 'rotation angle',
-                  value: '${component.transform.angle}',
+                  value: '${transform.angle}',
                   type: 'double',
                   onChanged: (value) {
                     final definition = definitionFor('angle', 'double');
@@ -158,16 +178,14 @@ class const ComponentView({super.key}) extends StatelessWidget {
                     _updateTransform(
                       workbench,
                       component,
-                      component.transform.copyWith(
-                        angle: edit!.modelValue! as double,
-                      ),
+                      transform.copyWith(angle: edit!.modelValue! as double),
                     );
                   },
                 ),
                 EnumPropertyField(
                   name: 'anchor',
                   type: 'Anchor',
-                  value: _anchorName(component.transform.anchor),
+                  value: _anchorName(transform.anchor),
                   options: SemanticPropertyEditor.anchorValues,
                   onChanged: (value) {
                     final definition = definitionFor('anchor', 'Anchor');
@@ -179,7 +197,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
                     _updateTransform(
                       workbench,
                       component,
-                      component.transform.copyWith(
+                      transform.copyWith(
                         anchor: SemanticPropertyEditor.anchorVector(value),
                       ),
                     );
@@ -187,7 +205,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
                 ),
                 PropertyField(
                   name: 'priority',
-                  value: '${component.priority}',
+                  value: '$priority',
                   type: 'int',
                   onChanged: (value) {
                     final definition = definitionFor('priority', 'int');
@@ -196,21 +214,10 @@ class const ComponentView({super.key}) extends StatelessWidget {
                       value,
                     );
                     if (edit?.modelValue is! int) return;
-                    workbench.state.setComponentPriority(
-                      component.id,
-                      edit!.modelValue! as int,
+                    final priorityValue = edit!.modelValue! as int;
+                    unawaited(
+                      state.editComponentPriority(component.id, priorityValue),
                     );
-                    if (workbench.runner.canControlRuntime) {
-                      unawaited(
-                        workbench.runner.setProperty(
-                          componentId:
-                              component.declarationName ?? component.id,
-                          property: 'priority',
-                          type: 'int',
-                          value: edit.runtimeValue,
-                        ),
-                      );
-                    }
                   },
                 ),
               ],
@@ -273,7 +280,11 @@ class const ComponentView({super.key}) extends StatelessWidget {
         ? null
         : SemanticPropertyEditor.vectorFromValue(edit.modelValue);
     if (vector == null) return;
-    _updateTransform(workbench, component, update(component.transform, vector));
+    final currentTransform = workbench.state.runtimeOverrides.resolveTransform(
+      component.id,
+      component.transform,
+    );
+    _updateTransform(workbench, component, update(currentTransform, vector));
   }
 
   static void _updateTransform(
@@ -281,15 +292,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
     ComponentInstance component,
     WorkspaceTransform transform,
   ) {
-    workbench.state.updateComponentTransform(component.id, transform);
-    if (workbench.runner.canControlRuntime) {
-      unawaited(
-        workbench.runner.setTransform(
-          componentId: component.declarationName ?? component.id,
-          transform: transform,
-        ),
-      );
-    }
+    unawaited(workbench.state.editComponentTransform(component.id, transform));
   }
 
   static String _anchorName(WorkspaceVector2 anchor) {
@@ -297,6 +300,81 @@ class const ComponentView({super.key}) extends StatelessWidget {
       if (SemanticPropertyEditor.anchorVector(name) == anchor) return name;
     }
     return 'center';
+  }
+}
+
+class _RuntimeComponentView extends StatelessWidget {
+  const _RuntimeComponentView({required this.node});
+
+  final WorkspaceComponentNode node;
+
+  String vector(Map<String, double>? value) =>
+      value == null ? 'Unavailable' : '(${value['x']}, ${value['y']})';
+
+  @override
+  Widget build(BuildContext context) {
+    final transform = node.transform;
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: ListView(
+        children: [
+          const Text('Runtime Component'),
+          ComponentSectionCard(
+            title: 'Runtime',
+            children: [
+              PropertyField(
+                name: 'Component ID',
+                value: node.id,
+                type: 'String',
+                editable: false,
+              ),
+              PropertyField(
+                name: 'Type',
+                value: node.type,
+                type: 'String',
+                editable: false,
+              ),
+            ],
+          ),
+          if (transform != null)
+            ComponentSectionCard(
+              title: 'Runtime Transform',
+              children: [
+                PropertyField(
+                  name: 'Position',
+                  value: vector(transform.position),
+                  type: 'Vector2',
+                  editable: false,
+                ),
+                PropertyField(
+                  name: 'Size',
+                  value: vector(transform.size),
+                  type: 'Vector2',
+                  editable: false,
+                ),
+                PropertyField(
+                  name: 'Scale',
+                  value: vector(transform.scale),
+                  type: 'Vector2',
+                  editable: false,
+                ),
+                PropertyField(
+                  name: 'Angle',
+                  value: transform.angle?.toString() ?? 'Unavailable',
+                  type: 'double',
+                  editable: false,
+                ),
+                PropertyField(
+                  name: 'Priority',
+                  value: transform.priority?.toString() ?? 'Unavailable',
+                  type: 'int',
+                  editable: false,
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
   }
 }
 
@@ -474,6 +552,7 @@ class PropertyFieldState extends State<PropertyField> {
   final focusNode = FocusNode();
 
   bool _isHovering = false;
+  String? _validationError;
 
   @override
   void initState() {
@@ -486,7 +565,10 @@ class PropertyFieldState extends State<PropertyField> {
   @override
   void didUpdateWidget(covariant PropertyField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    controller.text = widget.value;
+    if (oldWidget.value != widget.value) {
+      controller.text = widget.value;
+      _validationError = null;
+    }
   }
 
   @override
@@ -498,19 +580,24 @@ class PropertyFieldState extends State<PropertyField> {
 
   void onSubmit() {
     if (isNumbericField) {
-      if (controller.text.isEmpty) {
-        controller.text = '0.0';
-      } else if (controller.text.endsWith('.')) {
-        controller.text = '${controller.text}0';
-      } else if (controller.text.startsWith('.')) {
-        controller.text = '0${controller.text}';
-      } else if (double.tryParse(controller.text) == null) {
-        controller.text = '0.0';
-      } else {
-        controller.text = double.parse(controller.text).toString();
+      final value = controller.text.trim();
+      final normalized = switch (widget.nonNullableType) {
+        'int' => int.tryParse(value)?.toString(),
+        'double' => double.tryParse(value)?.toString(),
+        'num' => num.tryParse(value)?.toString(),
+        _ => null,
+      };
+      if (normalized == null) {
+        setState(() {
+          _validationError = 'Enter a valid ${widget.nonNullableType} value.';
+        });
+        return;
       }
+      controller.text = normalized;
+      setState(() => _validationError = null);
       widget.onChanged?.call(controller.text);
     } else {
+      setState(() => _validationError = null);
       widget.onChanged?.call("'${controller.text.removeQuoteMarks()}'");
     }
   }
@@ -614,84 +701,97 @@ class PropertyFieldState extends State<PropertyField> {
   Widget buildEditable() {
     final isExpanded =
         widget.editable && !isNumbericField && !widget.forceSingleLine;
-    return SizedBox(
-      height: isExpanded ? kFieldHeight * 3 : kFieldHeight,
-      child: Builder(
-        builder: (context) {
-          final theme = Theme.of(context);
-          return Row(
-            crossAxisAlignment: isExpanded
-                ? CrossAxisAlignment.start
-                : CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: EditableText(
-                  controller: controller,
-                  focusNode: focusNode,
-                  style: theme.textTheme.bodySmall!,
-                  cursorColor: theme.colorScheme.primary,
-                  cursorHeight: 16.0,
-                  readOnly: !widget.editable,
-                  backgroundCursorColor: Colors.transparent,
-                  selectionColor: theme.colorScheme.primary.withValues(
-                    alpha: 0.3,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: isExpanded ? kFieldHeight * 3 : kFieldHeight,
+          child: Builder(
+            builder: (context) {
+              final theme = Theme.of(context);
+              return Row(
+                crossAxisAlignment: isExpanded
+                    ? CrossAxisAlignment.start
+                    : CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: EditableText(
+                      controller: controller,
+                      focusNode: focusNode,
+                      style: theme.textTheme.bodySmall!,
+                      cursorColor: theme.colorScheme.primary,
+                      cursorHeight: 16.0,
+                      readOnly: !widget.editable,
+                      backgroundCursorColor: Colors.transparent,
+                      selectionColor: theme.colorScheme.primary.withValues(
+                        alpha: 0.3,
+                      ),
+                      maxLines: isExpanded ? null : 1,
+                      keyboardType: isNumbericField
+                          ? TextInputType.number
+                          : null,
+                      textInputAction: TextInputAction.done,
+                      onChanged: (text) {
+                        final abcdRegex = RegExp(
+                          r'^[A-B\.]+$',
+                          caseSensitive: false,
+                        );
+                        if (text.contains(abcdRegex)) {
+                          controller.text = text.replaceAll(abcdRegex, '');
+                        }
+                      },
+                      onSubmitted: (text) => onSubmit(),
+                    ),
                   ),
-                  maxLines: isExpanded ? null : 1,
-                  keyboardType: isNumbericField ? TextInputType.number : null,
-                  textInputAction: TextInputAction.done,
-                  onChanged: (text) {
-                    final abcdRegex = RegExp(
-                      r'^[A-B\.]+$',
-                      caseSensitive: false,
-                    );
-                    if (text.contains(abcdRegex)) {
-                      controller.text = text.replaceAll(abcdRegex, '');
-                    }
-                  },
-                  onSubmitted: (text) => onSubmit(),
-                ),
-              ),
-              if (isNumbericField && _isHovering)
-                Builder(
-                  builder: (context) {
-                    final value = double.tryParse(controller.text);
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        InkWell(
-                          onTap: () {
-                            if (value != null) {
-                              widget.onChanged?.call('${value + 1}');
-                            } else {
-                              widget.onChanged?.call('0');
-                            }
-                          },
-                          child: const Icon(
-                            Icons.keyboard_arrow_up,
-                            size: 12.0,
-                          ),
-                        ),
-                        InkWell(
-                          onTap: () {
-                            if (value != null) {
-                              widget.onChanged?.call('${value - 1}');
-                            } else {
-                              widget.onChanged?.call('0');
-                            }
-                          },
-                          child: const Icon(
-                            Icons.keyboard_arrow_down,
-                            size: 12.0,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-            ],
-          );
-        },
-      ),
+                  if (isNumbericField && _isHovering)
+                    Builder(
+                      builder: (context) {
+                        final value = num.tryParse(controller.text);
+                        void adjust(int amount) {
+                          final current = value ?? 0;
+                          controller.text = switch (widget.nonNullableType) {
+                            'int' => '${current.toInt() + amount}',
+                            _ => '${current + amount}',
+                          };
+                          onSubmit();
+                        }
+
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            InkWell(
+                              onTap: () => adjust(1),
+                              child: const Icon(
+                                Icons.keyboard_arrow_up,
+                                size: 12.0,
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () => adjust(-1),
+                              child: const Icon(
+                                Icons.keyboard_arrow_down,
+                                size: 12.0,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                ],
+              );
+            },
+          ),
+        ),
+        if (_validationError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              _validationError!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+      ],
     );
   }
 

@@ -6,6 +6,7 @@ import '../../../widgets/resizable_split_view.dart';
 import '../../../workbench/layout_preferences.dart';
 import '../../../workbench/runner/runner.dart';
 import '../../../workbench/runner/preview.dart';
+import '../../../workbench/runner/state.dart';
 import '../../../workbench/runner/view.dart';
 import '../workbench_view.dart';
 import 'preview_display.dart';
@@ -186,7 +187,7 @@ class _GamePreviewViewState extends State<GamePreviewView> {
   Widget build(BuildContext context) {
     final workbench = Workbench.of(context);
     return ListenableBuilder(
-      listenable: workbench.runner,
+      listenable: Listenable.merge([workbench.runner, workbench.state]),
       builder: (context, child) => Padding(
         padding: const EdgeInsets.all(16.0),
         child: ResizableSplitView(
@@ -199,6 +200,15 @@ class _GamePreviewViewState extends State<GamePreviewView> {
             children: [
               PreviewToolbar(
                 runner: workbench.runner,
+                executionMode: workbench.state.executionMode,
+                canEnterGame: workbench.runner.isPreviewRunning,
+                onExecutionModeChanged: (mode) {
+                  if (mode == WorkspaceExecutionMode.build) {
+                    workbench.state.enterBuildMode();
+                  } else {
+                    workbench.state.enterGameMode();
+                  }
+                },
                 display: _display,
                 customId: _customId,
                 onDisplaySelected: _selectDisplay,
@@ -224,6 +234,27 @@ class _GamePreviewViewState extends State<GamePreviewView> {
                         label: const Text('Reconnect'),
                       ),
                     ],
+                  ),
+                ),
+              if (workbench.state.runtimeTreeDiagnostics.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8.0),
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Runtime synchronization diagnostics',
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                        for (final diagnostic
+                            in workbench.state.runtimeTreeDiagnostics)
+                          Text('• ${diagnostic.displayMessage}'),
+                      ],
+                    ),
                   ),
                 ),
               Expanded(
@@ -288,6 +319,9 @@ class PreviewToolbar extends StatelessWidget {
   const PreviewToolbar({
     super.key,
     required this.runner,
+    required this.executionMode,
+    required this.canEnterGame,
+    required this.onExecutionModeChanged,
     required this.display,
     required this.customId,
     required this.onDisplaySelected,
@@ -295,6 +329,9 @@ class PreviewToolbar extends StatelessWidget {
   });
 
   final FlameProjectRunner runner;
+  final WorkspaceExecutionMode executionMode;
+  final bool canEnterGame;
+  final ValueChanged<WorkspaceExecutionMode> onExecutionModeChanged;
   final PreviewDisplay display;
   final String customId;
   final ValueChanged<String> onDisplaySelected;
@@ -308,25 +345,33 @@ class PreviewToolbar extends StatelessWidget {
         state == PreviewState.failed ||
         state == PreviewState.crashed;
     final canStop =
-        state == PreviewState.running || state == PreviewState.starting;
-    final status = runner.isHotReloading
-        ? 'Hot reloading'
-        : runner.isHotRestarting
-        ? 'Hot restarting'
-        : switch (state) {
-            PreviewState.stopped => 'Stopped',
-            PreviewState.starting => 'Starting',
-            PreviewState.running => 'Running',
-            PreviewState.stopping => 'Stopping',
-            PreviewState.failed => 'Failed',
-            PreviewState.crashed => 'Crashed',
-          };
+        state != PreviewState.stopped ||
+        executionMode == WorkspaceExecutionMode.game;
+    final status = switch (state) {
+      PreviewState.starting => 'Starting',
+      PreviewState.stopping => 'Stopping',
+      PreviewState.failed || PreviewState.crashed => 'Failed',
+      PreviewState.running when runner.isPaused == true => 'Paused',
+      PreviewState.running when executionMode == WorkspaceExecutionMode.game =>
+        'Playing',
+      PreviewState.running || PreviewState.stopped => 'Build',
+    };
     final statusIcon = switch (state) {
+      PreviewState.running when runner.isPaused == true => Icons.pause_circle,
       PreviewState.running => Icons.circle,
       PreviewState.starting || PreviewState.stopping => Icons.pending,
       PreviewState.failed || PreviewState.crashed => Icons.error_outline,
       PreviewState.stopped => Icons.circle_outlined,
     };
+    final canPauseOrResume =
+        state == PreviewState.running && runner.canControlRuntime;
+    final isPaused = runner.isPaused == true;
+    final runtimeAction = isPaused ? 'Resume' : 'Pause';
+    final pauseTooltip = state != PreviewState.running
+        ? '$runtimeAction requires a running preview'
+        : !runner.canControlRuntime
+        ? '$runtimeAction unavailable: runtime debugging is not connected'
+        : runtimeAction;
     final selectedId = display.id;
 
     return SizedBox(
@@ -336,23 +381,48 @@ class PreviewToolbar extends StatelessWidget {
         child: Row(
           children: [
             IconButton(
-              tooltip: 'Start Preview',
+              tooltip: 'Play',
               onPressed: canStart
-                  ? () => unawaited(runner.runPreviewSafely())
+                  ? () {
+                      onExecutionModeChanged(WorkspaceExecutionMode.game);
+                      unawaited(() async {
+                        await runner.runPreviewSafely();
+                        if (!runner.isPreviewRunning) {
+                          onExecutionModeChanged(WorkspaceExecutionMode.build);
+                        }
+                      }());
+                    }
                   : null,
               icon: const Icon(Icons.play_arrow),
               visualDensity: VisualDensity.compact,
             ),
             IconButton(
-              tooltip: 'Stop Preview',
-              onPressed: canStop ? () => unawaited(runner.stop()) : null,
+              tooltip: pauseTooltip,
+              onPressed: canPauseOrResume
+                  ? () => unawaited(
+                      isPaused ? runner.resumeGame() : runner.pauseGame(),
+                    )
+                  : null,
+              icon: Icon(isPaused ? Icons.play_arrow : Icons.pause),
+              visualDensity: VisualDensity.compact,
+            ),
+            IconButton(
+              tooltip: 'Stop',
+              onPressed: canStop
+                  ? () {
+                      onExecutionModeChanged(WorkspaceExecutionMode.build);
+                      unawaited(runner.stop());
+                    }
+                  : null,
               icon: const Icon(Icons.stop),
               visualDensity: VisualDensity.compact,
             ),
             IconButton(
               tooltip: 'Hot reload',
               onPressed: runner.canHotReload
-                  ? () => unawaited(runner.hotReload())
+                  ? () => unawaited(
+                      Workbench.of(context).state.synchronizeSourceCode(),
+                    )
                   : null,
               icon: const Icon(Icons.bolt),
               visualDensity: VisualDensity.compact,
@@ -360,7 +430,10 @@ class PreviewToolbar extends StatelessWidget {
             IconButton(
               tooltip: 'Hot restart',
               onPressed: runner.canHotRestart
-                  ? () => unawaited(runner.hotRestart())
+                  ? () => unawaited(
+                      Workbench.of(context).state
+                          .synchronizeSourceCode(restart: true),
+                    )
                   : null,
               icon: const Icon(Icons.local_fire_department),
               visualDensity: VisualDensity.compact,
@@ -376,6 +449,30 @@ class PreviewToolbar extends StatelessWidget {
             Icon(statusIcon, size: 12),
             const SizedBox(width: 4),
             Text(status, style: Theme.of(context).textTheme.labelSmall),
+            const SizedBox(width: 12),
+            SegmentedButton<WorkspaceExecutionMode>(
+              segments: [
+                ButtonSegment(
+                  value: WorkspaceExecutionMode.build,
+                  label: Text('Build'),
+                  icon: Icon(Icons.edit_outlined),
+                ),
+                ButtonSegment(
+                  value: WorkspaceExecutionMode.game,
+                  label: Text('Game'),
+                  icon: Icon(Icons.play_arrow),
+                  enabled: canEnterGame,
+                  tooltip: canEnterGame
+                      ? null
+                      : 'Game mode requires a running preview.',
+                ),
+              ],
+              selected: {executionMode},
+              showSelectedIcon: false,
+              onSelectionChanged: (selection) {
+                onExecutionModeChanged(selection.first);
+              },
+            ),
             const SizedBox(width: 12),
             Tooltip(
               message: 'Preview display size',

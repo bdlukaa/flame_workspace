@@ -1,5 +1,5 @@
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
-import 'package:flame_workspace/workbench/generators/scene_scaffolder.dart';
+
 import 'package:flutter/material.dart';
 
 Future<void> showCreateSceneDialog(BuildContext context, Workbench workbench) {
@@ -57,6 +57,14 @@ class _CreateSceneDialogState extends State<CreateSceneDialog> {
                     return null;
                   },
                 ),
+                if (widget.workbench.state.operationError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      widget.workbench.state.operationError!,
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
+                  ),
                 const SizedBox(height: 8.0),
                 Text('Options', style: theme.textTheme.labelLarge),
                 CheckboxListTile.adaptive(
@@ -83,14 +91,17 @@ class _CreateSceneDialogState extends State<CreateSceneDialog> {
             onPressed: () async {
               if (_formKey.currentState?.validate() ?? false) {
                 setState(() => _loading = true);
-                await SceneScaffolder.createScene(
-                  widget.workbench.project,
-                  _nameController.text,
-                  _createScript,
-                );
+                final created = await widget.workbench.state
+                    .createWorkspaceScene(
+                      _nameController.text,
+                      createScript: _createScript,
+                    );
                 if (context.mounted) {
-                  setState(() => _loading = false);
-                  Navigator.of(context).pop();
+                  if (created) {
+                    Navigator.of(context).pop();
+                  } else {
+                    setState(() => _loading = false);
+                  }
                 }
               }
             },

@@ -13,21 +13,22 @@ class FlameWorkspaceRuntimeBridge {
     Map<String, dynamic> arguments,
   ) async {
     try {
-      return WorkspaceRuntimeResponse.success(switch (method) {
+      final result = switch (method) {
         WorkspaceExtensionNames.getState => _getState(),
         WorkspaceExtensionNames.getComponentTree => _getComponentTree(),
         WorkspaceExtensionNames.setProperty => _setProperty(arguments),
         WorkspaceExtensionNames.setTransform => _setTransform(arguments),
-        WorkspaceExtensionNames.addComponent => _addComponent(arguments),
-        WorkspaceExtensionNames.removeComponent => _removeComponent(arguments),
-        WorkspaceExtensionNames.setScene => _setScene(arguments),
+        WorkspaceExtensionNames.setSceneBackgroundColor =>
+          _setSceneBackgroundColor(arguments),
+        WorkspaceExtensionNames.setScene => await _setScene(arguments),
         WorkspaceExtensionNames.pause => _pause(),
         WorkspaceExtensionNames.resume => _resume(),
         _ => throw const _RuntimeCommandException(
           'unknown_method',
           'Unknown Flame Workspace VM Service extension',
         ),
-      });
+      };
+      return WorkspaceRuntimeResponse.success(result);
     } on _RuntimeCommandException catch (error) {
       return WorkspaceRuntimeResponse.failure(
         error: WorkspaceRuntimeError(
@@ -201,6 +202,9 @@ class FlameWorkspaceRuntimeBridge {
     if (transform.size case final size?) {
       component.size = Vector2(size['x']!, size['y']!);
     }
+    if (transform.scale case final scale?) {
+      component.scale = Vector2(scale['x']!, scale['y']!);
+    }
     if (transform.angle case final angle?) {
       component.angle = angle;
     }
@@ -223,7 +227,7 @@ class FlameWorkspaceRuntimeBridge {
   }
 
   void _validateTransform(Map<String, dynamic> transform) {
-    for (final field in ['position', 'size']) {
+    for (final field in ['position', 'size', 'scale']) {
       final value = transform[field];
       if (value == null) continue;
       if (value is! Map || value['x'] is! num || value['y'] is! num) {
@@ -255,54 +259,29 @@ class FlameWorkspaceRuntimeBridge {
     }
   }
 
-  dynamic _addComponent(Map<String, dynamic> arguments) {
-    final declarationName = _requiredString(
-      arguments,
-      'declarationName',
-      alternative: 'componentId',
-    );
-    final scene = _currentScene();
-    try {
-      scene.addComponent(declarationName);
-    } on UnimplementedError {
+  dynamic _setSceneBackgroundColor(Map<String, dynamic> arguments) {
+    final sceneName = _requiredString(arguments, 'sceneName');
+    final color = arguments['color'];
+    if (color is! int || color < 0 || color > 0xFFFFFFFF) {
       throw const _RuntimeCommandException(
-        'component_mutation_unavailable',
-        'The current scene does not expose generated component mutation hooks.',
-      );
-    } on ArgumentError {
-      throw _RuntimeCommandException(
-        'component_not_found',
-        'The current scene does not declare "$declarationName".',
+        'invalid_argument',
+        'The scene background color must be a 32-bit ARGB integer.',
       );
     }
-    return <String, dynamic>{};
-  }
-
-  dynamic _removeComponent(Map<String, dynamic> arguments) {
-    final declarationName = _requiredString(
-      arguments,
-      'declarationName',
-      alternative: 'componentId',
-    );
-    final scene = _currentScene();
-    try {
-      scene.removeComponent(declarationName);
-    } on UnimplementedError {
+    final scene = core.currentSceneOrNull;
+    if (scene == null || scene.sceneName != sceneName) {
       throw const _RuntimeCommandException(
-        'component_mutation_unavailable',
-        'The current scene does not expose generated component mutation hooks.',
-      );
-    } on ArgumentError {
-      throw _RuntimeCommandException(
-        'component_not_found',
-        'The current scene does not declare "$declarationName".',
+        'scene_not_found',
+        'The requested scene is not currently loaded.',
       );
     }
-    return <String, dynamic>{};
+    scene.backgroundColor = Color(color);
+    return {'sceneName': sceneName, 'color': color};
   }
 
-  dynamic _setScene(Map<String, dynamic> arguments) {
+  Future<dynamic> _setScene(Map<String, dynamic> arguments) async {
     final sceneName = _requiredString(arguments, 'scene');
+    final previousScene = core.currentSceneOrNull;
     try {
       core.setScene(sceneName);
     } on StateError {
@@ -310,6 +289,12 @@ class FlameWorkspaceRuntimeBridge {
         'scene_handler_unavailable',
         'The game has not registered a scene handler.',
       );
+    }
+
+    final scene = core.currentSceneOrNull;
+    if (scene != null && scene != previousScene && core.game.isMounted) {
+      await scene.loaded;
+      await core.game.ready();
     }
     return <String, dynamic>{'scene': sceneName};
   }
@@ -324,7 +309,7 @@ class FlameWorkspaceRuntimeBridge {
     return _getState();
   }
 
-  FlameScene _currentScene() {
+  Component _findComponent(String componentId) {
     final scene = core.currentSceneOrNull;
     if (scene == null) {
       throw const _RuntimeCommandException(
@@ -332,11 +317,6 @@ class FlameWorkspaceRuntimeBridge {
         'No current Flame Workspace scene is loaded.',
       );
     }
-    return scene;
-  }
-
-  Component _findComponent(String componentId) {
-    final scene = _currentScene();
     final component = _findInTree(scene, componentId, scene.sceneName);
     if (component == null) {
       throw _RuntimeCommandException(
@@ -380,6 +360,7 @@ class FlameWorkspaceRuntimeBridge {
     return WorkspaceTransformData(
       position: {'x': component.x, 'y': component.y},
       size: {'x': component.width, 'y': component.height},
+      scale: {'x': component.scale.x, 'y': component.scale.y},
       angle: component.angle,
       anchor: {
         'name': component.anchor.name,
@@ -395,13 +376,8 @@ class FlameWorkspaceRuntimeBridge {
     return key is FlameKey ? key.name : fallback;
   }
 
-  String _requiredString(
-    Map<String, dynamic> arguments,
-    String key, {
-    String? alternative,
-  }) {
-    final value =
-        arguments[key] ?? (alternative == null ? null : arguments[alternative]);
+  String _requiredString(Map<String, dynamic> arguments, String key) {
+    final value = arguments[key];
     if (value is String && value.isNotEmpty) return value;
     throw _RuntimeCommandException(
       'missing_argument',

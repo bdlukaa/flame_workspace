@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:auto_size_text/auto_size_text.dart';
 
 import 'package:flame_workspace/widgets/inked_icon_button.dart';
-import 'package:flame_workspace/workbench/generators/scene_scaffolder.dart';
+
+import 'package:flame_workspace/workbench/parser/values.dart';
 
 import 'package:flutter/material.dart';
 
@@ -15,8 +18,13 @@ class ScenePropertiesView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final workbench = Workbench.of(context);
-    final scene = workbench.state.currentScene;
-    final script = workbench.state.currentSceneSource?.script;
+    final state = workbench.state;
+    final scene = state.currentScene;
+    final backgroundColor = state.runtimeOverrides.resolveSceneBackgroundColor(
+      scene.id,
+      scene.backgroundColor,
+    );
+    final script = state.currentSceneSource?.script;
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -36,8 +44,14 @@ class ScenePropertiesView extends StatelessWidget {
               PropertyField(
                 name: 'Color',
                 description: 'Background color',
-                value: 'Color(0xFF000000)',
+                value:
+                    'Color(0x${backgroundColor.toRadixString(16).padLeft(8, '0').toUpperCase()})',
                 type: '$Color',
+                editable: state.workspaceConfigured,
+                onChanged: (value) {
+                  final color = ValuesParser.parseColor(value).toARGB32();
+                  unawaited(state.editSceneBackgroundColor(color));
+                },
               ),
             ],
           ),
@@ -91,12 +105,13 @@ class ScenePropertiesView extends StatelessWidget {
                       padding: EdgeInsets.all(2.0),
                       child: Icon(Icons.add, size: 14.0),
                     ),
-                    onTap: () {
-                      SceneScaffolder.createSceneScript(
-                        workbench.project,
-                        scene.name,
-                      );
-                    },
+                    onTap: state.canEditWorkspace
+                        ? () {
+                            unawaited(
+                              state.createWorkspaceSceneScript(scene.id),
+                            );
+                          }
+                        : null,
                   ),
             children: [
               if (script == null)

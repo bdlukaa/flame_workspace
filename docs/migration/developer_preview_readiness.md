@@ -1,129 +1,121 @@
-# Developer Preview readiness report
+# Developer Preview readiness
 
-**Review date:** 2026-09-28
-**Toolchain:** Flutter 3.47.5, Dart 3.13.4, DevTools 2.60.0
-**Scope:** cleanup and readiness review; no major feature work
+**Review date:** 2026-09-29
+**Toolchain:** Flutter 3.47.5, Dart 3.13.4
 
-## Status summary
+This report describes the current implementation, not the earlier migration
+baseline. Capabilities below are limited to workflows present in the editor and
+covered by tests; a model/API alone is not considered user-facing support.
 
-Developer Preview provides project analysis/editing and one game execution
-workflow: the user's actual Flutter Web app embedded via CEF. Embedded Web
-Preview is visual/input-only unless Flutter exposes a usable VM Service. Native
-game execution and native child-window embedding are intentionally unsupported.
+## Status
 
-## Implemented and verified
+Developer Preview supports editing authored scene composition in Build mode and
+running the user's actual Flutter + Flame application in Game mode through the
+embedded Flutter Web Preview. Runtime editing is conditional on a real VM Service
+connection. Native game execution and native game-window embedding are not
+supported.
 
-- Flutter project creation with a minimal Flutter + Flame + Workspace runtime
-  dependency set.
-- Analyzer-backed component and Flame API discovery, including multi-level
-  `PositionComponent` inheritance and broken-source diagnostics.
-- Workspace semantic scene model with stable IDs, hierarchy, transforms,
-  properties, persistence, dirty state, undo/redo, and deterministic generated
-  adapters.
-- Scene View selection/navigation and basic PositionComponent transform editing.
-- Basic asset discovery and semantic asset references.
-- A fixed Web Preview process runner with start, stop, hot reload, hot restart,
-  logs, startup/exit state, and cleanup.
-- Stable VM Service runtime extensions under `ext.flameWorkspace.*` with
-  structured requests and error responses.
-- Compatibility facade in `flame_workspace_core` without an editor/runtime
-  dependency cycle.
-- No active Shelf/WebSocket runtime transport remains. No static
-  `built_in_components.dart`, `built_in_mixins.dart`, or network-backed static
-  Flame catalog remains.
-- Generated source uses synchronous `void update(double dt)` and
-  `void render(Canvas canvas)` lifecycle methods, and controlled code uses
-  `HasGameReference` rather than `HasGameRef`.
+## Verified workflow
 
-## Working end-to-end flows
+- Create a minimal Flutter + Flame project or open a configured Workspace
+  project.
+- Explicitly migrate a compatible existing Flame project when typed scene fields
+  provide a safe scene-composition mapping. Dynamic or ambiguous composition is
+  diagnosed; Workspace does not silently persist an empty scene as a substitute.
+- Edit semantic component hierarchy, transforms, supported properties, priority,
+  scene background, editor visibility/lock metadata, and declared image
+  references in Build mode.
+- Use selection, multi-selection/marquee, group movement, transform gizmos,
+  grid/snapping, viewport framing, and asset drag/drop in Scene View.
+- Undo/redo Build edits, persist scene documents under
+  `.flame_workspace/scenes/`, and regenerate additive adapters under
+  `lib/.generated/`.
+- Start the actual user app in embedded web Preview; use Flutter logs, stop,
+  hot reload/restart, and embedded-surface reload.
+- When VM Service is connected, inspect the live runtime tree, reconcile it with
+  Build State, and mutate supported runtime properties/transforms.
 
-### Generated project workflow
+### Build State and Game State
 
-`project_creator_integration_test.dart` created a fresh temporary project,
-resolved dependencies, ran `flutter analyze` and `flutter test` inside that
-project, reopened it through the importer, and indexed its generated component
-and scene successfully.
+Build mode uses the semantic Workspace model as the authored source of truth.
+Saving writes its scene documents and deterministic generated adapters; editor
+visibility and lock metadata affect the editor, not game rendering. Developer
+behavior remains in developer-owned Dart source.
 
-`developer_preview_e2e_test.dart` additionally verified semantic scene edits,
-persistence, deterministic adapter generation, formatting, generated-project
-analysis, generated-project tests, reopen, and persisted transform/priority
-values.
+Game mode represents the live Flame instance. Successful Inspector mutations are
+stored as editor-side runtime overrides for display, but do not enter Build State
+or its undo history and are not persisted or generated. Stop returns to Build
+mode and clears the overrides; a subsequent Play starts from authored values.
 
-### Runtime workflow
+The hierarchy's **Local** view is the authored scene. **Runtime** is the actual
+component tree obtained from the running game. Runtime-only/dynamically spawned
+components can be selected for inspection when their metadata is available, but
+are never serialized into Build State automatically.
 
-The former native VM Service Run workflow has been removed. The Web Preview
-E2E verifies the supported process/URL/reload/stop workflow; runtime capability
-is treated as unavailable unless a real VM Service connection exists.
+### Structural synchronization
 
-### Web preview workflow
+Component add/remove, reparenting, ordering, and other scene-composition changes
+are Build-State operations. Workspace persists/generates the authored scene,
+then reloads changed code and explicitly reconstructs the selected Flame `World`
+through the registered scene dispatcher. It does not rely on Flutter hot reload
+to rerun `onLoad`. Selection is restored when the semantic component still
+exists, and the runtime tree is reconciled after reconstruction. Runtime-safe
+property/transform edits use VM Service mutation; developer behavior-source
+changes use Flutter hot reload/restart.
 
-The real `flutter run -d web-server` process starts the actual user application,
-reports a localhost URL, and is stopped through `PreviewProjectRunner`. The
-embedded preview contract is intentionally visual/input-only. The Flutter
-web-server can require the Dart Debug Chrome extension for browser debugging
-and does not consistently provide a VM Service endpoint usable by Workspace's
-embedded surface. The editor therefore does not claim runtime introspection when Web Preview
-lacks a VM Service. No native Run target is offered.
+## Preview and VM Service
 
-## Validation results
+Preview starts the real project with `flutter run -d web-server` and displays its
+served URL through the platform-neutral `PreviewSurface` abstraction. Preview
+supports visual/input iteration, logs, stop, hot reload, hot restart, and reload
+of the embedded display. The availability of an embedded surface does not imply
+VM Service availability.
 
-- Full `flame_workspace` test suite: **52 passed, 1 intentional skip**.
-- Developer Preview E2E suite: **2 passed, 1 intentional web VM skip**.
-- Fresh project creator integration test: **passed**.
-- `flame_workspace_runtime` tests: **7 passed**.
-- `flame_workspace_communication_bridge` tests: **3 passed**.
-- `flame_workspace_protocol` tests: **3 passed**.
-- `flame_workspace_core` and checked-in `template` have no test directories.
-- Fixture analysis: `empty_game`, `basic_components`, `inheritance`, and
-  `multiple_worlds` analyze successfully. `broken_project` reports its two
-  intentional syntax errors and remains usable for graceful-failure tests.
-- `flame_workspace_core`, `flame_workspace_runtime`,
-  `flame_workspace_communication_bridge`, and protocol analysis are clean.
-These package-analysis counts above are from the historical review date, not a
-claim about the current checkout. For the current execution contract, the
-editor and generated template no longer use `window_manager` for native game
-window management. Validate maintained packages using their current commands.
+Runtime tree inspection, property/transform/background mutation, scene
+switching, and pause/resume require a working VM Service connection. These
+controls are disabled or reported unavailable without that connection. Runtime
+commands use only the stable `ext.flameWorkspace.*` VM Service protocol; there
+is no Shelf/WebSocket fallback. Single-frame Step is intentionally absent because
+Flame's public game-loop controls do not provide deterministic one-frame
+advancement while paused.
 
-## Unsupported or limited areas
+## Import and project safety
 
-- Embedded CEF preview host support and platform toolchain requirements are
-  documented separately; verify rendering and input on each host before release.
-- Embedded Web Preview is visual/input-only unless a real VM Service is
-  connected. Native game execution is intentionally unsupported. See
-  [`../decisions/embedded-preview-runtime-debugging.md`](../decisions/embedded-preview-runtime-debugging.md).
+A project with Workspace configuration and scene documents is loaded as a
+Workspace project. For an existing Flutter + Flame project without Workspace
+configuration, migration is an explicit operation offered only when the Analyzer
+mapping is reliable (for example, supported typed scene fields). Composition
+constructed dynamically in arbitrary game code is not inferred. Workspace
+reports an actionable ambiguity diagnostic and avoids destructive persistence;
+opening/indexing remains static and does not execute project code.
 
-- Generic add/remove component operations require generated scene hooks, and
-  generic property mutation requires generated property callbacks.
-- Multi-selection, snapping, animation/tilemap/physics editors, visual
-  scripting, full asset import, and source-code IDE features are not part of
-  Developer Preview.
-- The broken fixture is intentionally not expected to pass `flutter analyze`.
+Migration and scene editing preserve developer-owned Dart sources. Workspace
+persists authored composition separately and writes clearly separated generated
+adapters. Scene scaffolding creates new files only as an explicit operation.
 
+## Host support and limitations
 
-## Cleanup findings
+- Embedded CEF Preview is implemented for Windows and macOS. macOS toolchain and
+  manual validation requirements are in [`../macos_host.md`](../macos_host.md).
+  Linux editor/preview integration still requires validation.
+- Native game execution and native child-window embedding are intentionally
+  unsupported; Flutter desktop hosts run the editor, not the game.
+- VM Service attachment from embedded web-server Preview is not guaranteed and
+  may require browser tooling that Workspace cannot assume is installed.
+- Scene View does not run arbitrary user `update()` logic. Unsupported component
+  renderers use a visible placeholder; built-in editor render adapters cover
+  selected common component types only.
+- Animation, tilemap, physics, particles, shaders, visual scripting, plugin
+  marketplaces, arbitrary custom inspectors, a complete asset-import pipeline,
+  and a full source-code IDE are not implemented.
+- The `flame_workspace_core` package remains as a compatibility facade for
+  existing imports; newly generated projects use `flame_workspace_runtime`.
 
-- No live Shelf, WebSocket, `WorkbenchMessages`, or `IOWebSocketChannel` code
-  was found.
-- No static built-in Flame metadata files or consumers were found.
-- No `HasGameRef` usage or asynchronous `update`/`render` lifecycle method was
-  found in controlled source or generated output. Historical migration text
-  still mentions the old forms as baseline findings.
-- Native game-window embedding, target discovery, and the `flutter_native_view`
-  dependency have been removed. Standard Windows/macOS/Linux editor hosts remain.
-- The compatibility-only `flame_workspace_core` facade remains intentionally
-  because removing it would break existing imports; new projects use
-  `flame_workspace_runtime`.
-- Remaining TODOs concern non-Developer-Preview conveniences such as opening
-  settings/docs/external editors, multiple-constructor support, and scaffolded
-  developer behavior. They do not conceal a required path in the validated
-  preview workflow.
+## Validation
 
-## Recommended next three tasks
-
-1. Revisit web runtime debugging only if Flutter supports a reliable external
-   attachment path for the embedded target; preserve VM Service as the single
-   runtime protocol.
-2. Validate the CEF Preview surface's rendering, focus, and process cleanup on
-   each supported desktop host.
-3. Extend Preview E2E coverage for host-level input and process cleanup where
-   those behaviors can be automated reliably.
+On 2026-09-29, the `flame_workspace` package passed `flutter analyze` and its
+full `flutter test` suite (128 tests). The `flame_workspace_runtime` package
+passed `flutter analyze` and its full suite (12 tests). These checks include
+generated-project and visual-editing/runtime scenarios. They do not replace
+manual validation of CEF rendering, keyboard/pointer focus, and process cleanup
+on each supported desktop host.

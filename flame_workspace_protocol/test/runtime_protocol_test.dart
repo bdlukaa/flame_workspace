@@ -40,6 +40,33 @@ void main() {
     expect(decoded.error!.details, {'componentId': 'missing'});
   });
 
+  test('component tree nodes parse nested runtime data', () {
+    final node = WorkspaceComponentNode.fromMap({
+      'id': 'scene/component',
+      'type': 'SpriteComponent',
+      'transform': {
+        'position': {'x': 2, 'y': 3},
+        'scale': {'x': 1.5, 'y': 0.5},
+      },
+      'children': [
+        {'id': 'scene/component/child', 'type': 'TextComponent'},
+      ],
+    });
+
+    expect(node.id, 'scene/component');
+    expect(node.transform!.position, {'x': 2.0, 'y': 3.0});
+    expect(node.transform!.scale, {'x': 1.5, 'y': 0.5});
+    expect(node.toMap()['transform']['scale'], {'x': 1.5, 'y': 0.5});
+    expect(node.children.single.id, 'scene/component/child');
+  });
+
+  test('invalid component tree nodes are rejected', () {
+    expect(
+      () => WorkspaceComponentNode.fromMap({'id': 1, 'type': 'Component'}),
+      throwsFormatException,
+    );
+  });
+
   test('invalid request JSON is rejected', () {
     expect(
       () => WorkspaceRuntimeRequest.fromJsonString('[]'),

@@ -25,6 +25,7 @@ class const WorkspaceAsset({
 class const AssetDiscoveryResult({
   final List<WorkspaceAsset> assets = const [],
   final List<String> missingPaths = const [],
+  final List<String> undeclaredPaths = const [],
   final List<String> diagnostics = const [],
 }) {}
 
@@ -94,13 +95,62 @@ class WorkspaceAssetDiscovery {
 
     final sortedAssets = assets.values.toList()
       ..sort((first, second) => first.path.compareTo(second.path));
+    final undeclaredPaths = await _findUndeclaredImages(
+      projectRoot,
+      assets.keys,
+    );
     missingPaths.sort();
     diagnostics.sort();
     return AssetDiscoveryResult(
       assets: sortedAssets,
       missingPaths: missingPaths,
+      undeclaredPaths: undeclaredPaths,
       diagnostics: diagnostics,
     );
+  }
+
+  static Future<List<String>> _findUndeclaredImages(
+    Directory projectRoot,
+    Iterable<String> declaredPaths,
+  ) async {
+    const ignoredDirectories = {
+      '.dart_tool',
+      '.flame_workspace',
+      '.git',
+      '.idea',
+      '.vscode',
+      'android',
+      'build',
+      'ios',
+      'linux',
+      'macos',
+      'node_modules',
+      'windows',
+    };
+    final declared = declaredPaths.toSet();
+    final undeclared = <String>{};
+
+    Future<void> visit(Directory directory) async {
+      await for (final entity in directory.list(followLinks: false)) {
+        final name = p.basename(entity.path);
+        if (entity is Directory) {
+          if (!ignoredDirectories.contains(name) && !name.startsWith('.')) {
+            await visit(entity);
+          }
+          continue;
+        }
+        if (entity is! File ||
+            !imageExtensions.contains(p.extension(entity.path).toLowerCase())) {
+          continue;
+        }
+        final relative = p.relative(entity.path, from: projectRoot.path);
+        final assetPath = relative.split(p.separator).join('/');
+        if (!declared.contains(assetPath)) undeclared.add(assetPath);
+      }
+    }
+
+    await visit(projectRoot);
+    return undeclared.toList()..sort();
   }
 
   static void _addFile(

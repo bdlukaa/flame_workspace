@@ -3,8 +3,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flame_workspace/workbench/generators/properties_generator.dart';
+import 'package:flame_workspace/workbench/generators/scene_persistence_generator.dart';
 import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/parser/type_resolver.dart';
+import 'package:flame_workspace/workbench/model/scene_persistence.dart';
+import 'package:flame_workspace/workbench/model/semantic_model.dart';
+import 'package:flame_workspace/workbench/parser/workspace_model_mapper.dart';
 import 'package:flame_workspace/workbench/project/import.dart';
 import 'package:flame_workspace/workbench/project/project_creator.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -74,6 +78,61 @@ void main() {
       expect(imported.name, 'generated_game');
       expect(imported.initialScene, 'LevelOne');
 
+      final assetPath = 'assets/images/player.png';
+      final assetFile = File(
+        path.join(creator.projectDirectory.path, assetPath),
+      );
+      await assetFile.parent.create(recursive: true);
+      await assetFile.writeAsBytes(const [0]);
+      final pubspecFile = File(
+        path.join(creator.projectDirectory.path, 'pubspec.yaml'),
+      );
+      final pubspec = await pubspecFile.readAsString();
+      await pubspecFile.writeAsString(
+        pubspec.replaceFirst(
+          'flutter:\n  uses-material-design: true',
+          'flutter:\n  assets:\n    - $assetPath\n  uses-material-design: true',
+        ),
+      );
+      final persistedScene = await WorkspaceScenePersistence.load(
+        File(
+          path.join(
+            creator.projectDirectory.path,
+            '.flame_workspace',
+            'scenes',
+            'LevelOne.json',
+          ),
+        ),
+      );
+      persistedScene.components.add(
+        ComponentInstance(
+          id: 'scene:level-one:component:sprite',
+          type: const ComponentType(
+            id: 'SpriteComponent',
+            name: 'SpriteComponent',
+            baseType: 'PositionComponent',
+            isPositionComponent: true,
+          ),
+          assetPath: assetPath,
+          transform: const WorkspaceTransform(size: WorkspaceVector2(64, 64)),
+        ),
+      );
+      await WorkspaceScenePersistence.save(
+        file: WorkspaceScenePersistence.fileFor(imported, persistedScene),
+        scene: persistedScene,
+      );
+      final spriteAdapter = await ScenePersistenceGenerator.writeForScene(
+        persistedScene,
+        imported,
+      );
+      final generatedSpriteAdapter = await spriteAdapter.readAsString();
+      expect(
+        generatedSpriteAdapter,
+        contains('(component1 as SpriteComponent).sprite = await Sprite.load('),
+      );
+      expect(generatedSpriteAdapter, contains('"$assetPath"'));
+      expect(generatedSpriteAdapter, contains('images: images'));
+
       final resolver = await FlameTypeResolver.forProject(
         creator.projectDirectory,
       );
@@ -92,13 +151,22 @@ void main() {
         }),
         contains('MyComponent'),
       );
+      final indexedScenes = ProjectIndexer.scenesFrom(
+        indexed,
+        resolver: resolver,
+      ).toList();
       expect(
-        ProjectIndexer.scenesFrom(indexed, resolver: resolver).map((scene) {
-          final (sceneObject, _, _) = scene;
-          return sceneObject.name;
-        }),
+        indexedScenes.map((scene) => scene.$1.name),
         contains(r'$SceneLevelOne'),
       );
+      final mappedScene = WorkspaceModelMapper.fromIndexed(
+        indexed,
+        resolver: resolver,
+        projectName: 'generated_game',
+      ).scenes.single;
+      expect(mappedScene.name, 'LevelOne');
+      expect(mappedScene.runtimeClassName, 'LevelOne');
+      expect(mappedScene.runtimeSourcePath, sceneSource.path);
 
       final generatedComponents = ProjectIndexer.componentsFrom(
         indexed,

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../../workbench/assets/asset_discovery.dart';
+import '../../../workbench/assets/asset_drag_data.dart';
 import '../workbench_view.dart';
 
 class AssetsView extends StatefulWidget {
@@ -23,6 +24,7 @@ class _AssetsViewState extends State<AssetsView> {
     final selectedComponentId = selectedComponent?.id;
     final selectedAsset = _findSelectedAsset(state.assets);
     final canAssign =
+        state.canEditWorkspace &&
         selectedComponentId != null &&
         _isSpriteLike(
           selectedComponent!.type.name,
@@ -48,6 +50,15 @@ class _AssetsViewState extends State<AssetsView> {
             const SizedBox(height: 4),
             Text(
               state.assetDiagnostics.join('\n'),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+          if (state.undeclaredAssetPaths.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Images not declared in pubspec.yaml: '
+              '${state.undeclaredAssetPaths.join(', ')}. '
+              'Add them to flutter.assets before using them in the game.',
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
@@ -82,12 +93,10 @@ class _AssetsViewState extends State<AssetsView> {
                 Expanded(child: Text('Selected: ${selectedAsset.path}')),
                 FilledButton.icon(
                   onPressed: canAssign
-                      ? () {
-                          state.updateComponentAsset(
-                            selectedComponentId,
-                            selectedAsset.path,
-                          );
-                        }
+                      ? () => state.editComponentAsset(
+                          selectedComponentId,
+                          selectedAsset.path,
+                        )
                       : null,
                   icon: const Icon(Icons.image),
                   label: const Text('Use for selected sprite'),
@@ -120,45 +129,65 @@ class const _AssetTile({
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
+    final dragData = WorkspaceAssetDragData(asset.path);
     return Semantics(
       button: true,
       selected: selected,
       label: asset.path,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Card(
-          margin: EdgeInsets.zero,
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(
-            side: BorderSide(
-              color: selected ? color.primary : Colors.transparent,
-              width: selected ? 2 : 0,
+      child: Draggable<WorkspaceAssetDragData>(
+        data: dragData,
+        onDragUpdate: (details) {
+          dragData.globalPosition = details.globalPosition;
+        },
+        dragAnchorStrategy: pointerDragAnchorStrategy,
+        feedback: Material(
+          elevation: 4,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Text(asset.path),
+          ),
+        ),
+        childWhenDragging: Opacity(opacity: 0.45, child: _tile(color)),
+        child: _tile(color),
+      ),
+    );
+  }
+
+  Widget _tile(ColorScheme color) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Card(
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          side: BorderSide(
+            color: selected ? color.primary : Colors.transparent,
+            width: selected ? 2 : 0,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Image.file(
+                File(asset.absolutePath),
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Center(child: Icon(Icons.broken_image_outlined)),
+              ),
             ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: Image.file(
-                  File(asset.absolutePath),
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Center(child: Icon(Icons.broken_image_outlined)),
-                ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                asset.path,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
-              Padding(
-                padding: const EdgeInsets.all(8),
-                child: Text(
-                  asset.path,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

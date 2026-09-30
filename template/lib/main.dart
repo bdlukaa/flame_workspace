@@ -1,8 +1,8 @@
 import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
-import 'game.dart';
 import '.generated/properties.dart';
 import '.generated/scenes.dart';
+import 'game.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,5 +12,5 @@ Future<void> main() async {
   FlameWorkspaceCore.instance.setScene = setScene;
   await FlameWorkspaceCore.ensureInitialized(game);
 
-  runApp(GameWidget<MyGame>(game: FlameWorkspaceCore.instance.game as MyGame));
+  runApp(GameWidget<MyGame>(game: game));
 }

@@ -4,6 +4,29 @@ import 'package:flame_workspace/workbench/model/workspace_editor_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('classifies edits by their required preview synchronization', () {
+    expect(
+      classifyWorkspaceChange(WorkspaceChangeKind.property),
+      WorkspaceChangeStrategy.runtimeMutation,
+    );
+    expect(
+      classifyWorkspaceChange(WorkspaceChangeKind.transform),
+      WorkspaceChangeStrategy.runtimeMutation,
+    );
+    expect(
+      classifyWorkspaceChange(WorkspaceChangeKind.priority),
+      WorkspaceChangeStrategy.runtimeMutation,
+    );
+    expect(
+      classifyWorkspaceChange(WorkspaceChangeKind.structure),
+      WorkspaceChangeStrategy.sceneRecreation,
+    );
+    expect(
+      classifyWorkspaceChange(WorkspaceChangeKind.sourceCode),
+      WorkspaceChangeStrategy.hotReload,
+    );
+  });
+
   test(
     'undoes and redoes a property edit and clears redo after a new edit',
     () {
@@ -24,6 +47,21 @@ void main() {
       expect(component.properties['speed'], 4);
     },
   );
+
+  test('scene background edits are undoable and redoable', () {
+    final scene = SceneDefinition(id: 'scene', name: 'Main');
+    final editor = WorkspaceEditorModel(
+      WorkspaceProject(id: 'project', name: 'Game', scenes: [scene]),
+    );
+
+    expect(editor.updateSceneBackgroundColor(scene.id, 0xFF123456), isTrue);
+    expect(scene.backgroundColor, 0xFF123456);
+    expect(editor.isDirty, isTrue);
+    expect(editor.undo(), isTrue);
+    expect(scene.backgroundColor, 0xFF000000);
+    expect(editor.redo(), isTrue);
+    expect(scene.backgroundColor, 0xFF123456);
+  });
 
   test('coalesces one transform drag into a single history entry', () {
     final component = _component('player');

@@ -41,6 +41,7 @@ void main() {
     final output = ComponentGenerator.generateComponent('player');
 
     expect(output, isNot(contains('void render(Canvas canvas)')));
+    expect(output, isNot(contains('FlameComponent')));
   });
 
   test(
@@ -92,7 +93,7 @@ void main() {
       ).readAsString();
 
       expect(output, isNot(contains('HasGameReference<FlameGame>')));
-      expect(output, contains(r'class SceneLevelOne extends $SceneLevelOne'));
+      expect(output, contains(r'class LevelOne extends $SceneLevelOne'));
       expect(output, isNot(matches(RegExp(r'\bHasGameRef\b'))));
       expect(output, isNot(contains('void update(double dt)')));
     },

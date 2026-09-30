@@ -26,8 +26,6 @@ preview is a product feature. The host intentionally disables App Sandbox so it
 can launch Flutter from an external SDK and operate on developer project files.
 This is a developer-tool security tradeoff: user code is run only through
 explicit actions such as Preview or Test; opening/indexing remains static.
-See [`platform_requirements.md`](platform_requirements.md) for the security
-implications and requirements for any future sandboxed distribution.
 
 From `flame_workspace/`:
 
@@ -58,8 +56,10 @@ and compiles both architecture slices and needs substantially more disk space.
 - `PreviewProjectRunner` owns the Flutter web-server process. Stopping Preview
   stops that process and disposes the surface controller. The CEF manager is
   shut down when the editor exits, so CEF helper processes are not left behind.
-- Runtime inspection and mutation are not provided by embedded web Preview;
-  see [`decisions/embedded-preview-runtime-debugging.md`](decisions/embedded-preview-runtime-debugging.md).
+- Runtime inspection and mutation are available only if Flutter exposes a live
+  usable VM Service connection to the embedded preview. Without it, Preview
+  remains available for visual/input iteration; see
+  [`decisions/embedded-preview-runtime-debugging.md`](decisions/embedded-preview-runtime-debugging.md).
 
 
 The editor code does not call macOS APIs directly. macOS-specific CEF setup is

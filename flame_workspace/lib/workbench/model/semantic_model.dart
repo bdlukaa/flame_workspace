@@ -30,12 +30,20 @@ class SceneDefinition {
   final String id;
   final String name;
   final String? sourcePath;
+  String? runtimeClassName;
+  String? runtimeSourcePath;
+  final bool workspaceOwnedSource;
   final List<ComponentInstance> components;
+  int backgroundColor;
 
   SceneDefinition({
     required this.id,
     required this.name,
     this.sourcePath,
+    this.runtimeClassName,
+    this.runtimeSourcePath,
+    this.workspaceOwnedSource = false,
+    this.backgroundColor = 0xFF000000,
     Iterable<ComponentInstance> components = const [],
   }) : components = List<ComponentInstance>.of(components);
 
@@ -44,6 +52,10 @@ class SceneDefinition {
       id: _requiredString(json, 'id'),
       name: _requiredString(json, 'name'),
       sourcePath: json['sourcePath'] as String?,
+      runtimeClassName: json['runtimeClassName'] as String?,
+      runtimeSourcePath: json['runtimeSourcePath'] as String?,
+      workspaceOwnedSource: json['workspaceOwnedSource'] as bool? ?? false,
+      backgroundColor: (json['backgroundColor'] as num?)?.toInt() ?? 0xFF000000,
       components: _list(json['components'])
           .map((component) => ComponentInstance.fromJson(_object(component))),
     );
@@ -53,6 +65,10 @@ class SceneDefinition {
     'id': id,
     'name': name,
     if (sourcePath != null) 'sourcePath': sourcePath,
+    if (runtimeClassName != null) 'runtimeClassName': runtimeClassName,
+    if (runtimeSourcePath != null) 'runtimeSourcePath': runtimeSourcePath,
+    if (workspaceOwnedSource) 'workspaceOwnedSource': true,
+    'backgroundColor': backgroundColor,
     'components': components.map((component) => component.toJson()).toList(),
   };
 }
@@ -120,6 +136,36 @@ class const ComponentType({
   };
 }
 
+class const WorkspaceEditorMetadata({
+  final bool visible = true,
+  final bool locked = false,
+}) {
+  factory WorkspaceEditorMetadata.fromJson(Map<String, Object?> json) {
+    return WorkspaceEditorMetadata(
+      visible: json['visible'] as bool? ?? true,
+      locked: json['locked'] as bool? ?? false,
+    );
+  }
+
+  Map<String, Object?> toJson() => {'visible': visible, 'locked': locked};
+
+  WorkspaceEditorMetadata copyWith({bool? visible, bool? locked}) {
+    return WorkspaceEditorMetadata(
+      visible: visible ?? this.visible,
+      locked: locked ?? this.locked,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is WorkspaceEditorMetadata &&
+      other.visible == visible &&
+      other.locked == locked;
+
+  @override
+  int get hashCode => Object.hash(visible, locked);
+}
+
 class ComponentInstance {
   final String id;
   final ComponentType type;
@@ -132,6 +178,7 @@ class ComponentInstance {
   final Map<String, Object?> properties;
   WorkspaceTransform transform;
   int priority;
+  WorkspaceEditorMetadata editorMetadata;
 
   ComponentInstance({
     required this.id,
@@ -143,6 +190,7 @@ class ComponentInstance {
     Map<String, Object?> properties = const {},
     WorkspaceTransform? transform,
     this.priority = 0,
+    this.editorMetadata = const WorkspaceEditorMetadata(),
   }) : children = List<ComponentInstance>.of(children),
        properties = Map<String, Object?>.of(properties),
        transform = transform ?? const WorkspaceTransform();
@@ -159,6 +207,9 @@ class ComponentInstance {
       properties: _object(json['properties'] ?? const {}),
       transform: WorkspaceTransform.fromJson(_object(json['transform'])),
       priority: (json['priority'] as num?)?.toInt() ?? 0,
+      editorMetadata: json['editor'] == null
+          ? const WorkspaceEditorMetadata()
+          : WorkspaceEditorMetadata.fromJson(_object(json['editor'])),
     );
   }
 
@@ -167,6 +218,9 @@ class ComponentInstance {
   void setAssetPath(String? value) => assetPath = value;
 
   void setTransform(WorkspaceTransform value) => transform = value;
+
+  void setEditorMetadata(WorkspaceEditorMetadata value) =>
+      editorMetadata = value;
 
   Map<String, Object?> toJson() => {
     'id': id,
@@ -178,12 +232,19 @@ class ComponentInstance {
     'properties': _sortedObject(properties),
     'transform': transform.toJson(),
     'priority': priority,
+    if (editorMetadata != const WorkspaceEditorMetadata())
+      'editor': editorMetadata.toJson(),
   };
 }
 
 class const WorkspaceTransform({
   final WorkspaceVector2 position = const WorkspaceVector2.zero(),
+
+  /// Logical component dimensions; distinct from the multiplicative scale.
   final WorkspaceVector2 size = const WorkspaceVector2.zero(),
+
+  /// Multiplicative scale applied to [size]. Defaults preserve legacy scenes.
+  final WorkspaceVector2 scale = const WorkspaceVector2(1, 1),
   final double angle = 0,
   final WorkspaceVector2 anchor = const WorkspaceVector2.zero(),
 }) {
@@ -193,6 +254,9 @@ class const WorkspaceTransform({
         _object(json['position'] ?? const {}),
       ),
       size: WorkspaceVector2.fromJson(_object(json['size'] ?? const {})),
+      scale: WorkspaceVector2.fromJson(
+        _object(json['scale'] ?? const {'x': 1, 'y': 1}),
+      ),
       angle: (json['angle'] as num?)?.toDouble() ?? 0,
       anchor: WorkspaceVector2.fromJson(_object(json['anchor'] ?? const {})),
     );
@@ -201,12 +265,14 @@ class const WorkspaceTransform({
   WorkspaceTransform copyWith({
     WorkspaceVector2? position,
     WorkspaceVector2? size,
+    WorkspaceVector2? scale,
     double? angle,
     WorkspaceVector2? anchor,
   }) {
     return WorkspaceTransform(
       position: position ?? this.position,
       size: size ?? this.size,
+      scale: scale ?? this.scale,
       angle: angle ?? this.angle,
       anchor: anchor ?? this.anchor,
     );
@@ -215,6 +281,7 @@ class const WorkspaceTransform({
   Map<String, Object?> toJson() => {
     'position': position.toJson(),
     'size': size.toJson(),
+    'scale': scale.toJson(),
     'angle': angle,
     'anchor': anchor.toJson(),
   };
@@ -224,12 +291,13 @@ class const WorkspaceTransform({
     return other is WorkspaceTransform &&
         other.position == position &&
         other.size == size &&
+        other.scale == scale &&
         other.angle == angle &&
         other.anchor == anchor;
   }
 
   @override
-  int get hashCode => Object.hash(position, size, angle, anchor);
+  int get hashCode => Object.hash(position, size, scale, angle, anchor);
 }
 
 class const WorkspaceVector2(final double x, final double y) {

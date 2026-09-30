@@ -38,6 +38,7 @@ class Workbench extends InheritedWidget {
   final ValueChanged<ComponentInstance?> onComponentSelected;
 
   final VoidCallback onEditScript;
+  final ValueChanged<String> onEditScene;
 
   const Workbench({
     super.key,
@@ -46,6 +47,7 @@ class Workbench extends InheritedWidget {
     required this.state,
     required this.onComponentSelected,
     required this.onEditScript,
+    required this.onEditScene,
     required super.child,
   });
 
@@ -109,7 +111,13 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   @override
   void initState() {
     super.initState();
-    runner = FlameProjectRunner(widget.project);
+    runner = FlameProjectRunner(
+      widget.project,
+      onRuntimeConnected: state.onRuntimeConnected,
+      onRuntimeTreeChanged: state.updateRuntimeTreeDiagnostics,
+      onHotRestartCompleted: state.clearRuntimeOverridesAfterRestart,
+    );
+    state.attachRunner(runner);
 
     state.addListener(_updateListener);
     runner.addListener(_updateListener);
@@ -153,17 +161,8 @@ class _WorkbenchViewState extends State<WorkbenchView> {
       );
     }
 
-    return CallbackShortcuts(
-      bindings: {
-        SingleActivator(LogicalKeyboardKey.keyZ, control: true):
-            state.undoWorkspace,
-        SingleActivator(LogicalKeyboardKey.keyZ, meta: true):
-            state.undoWorkspace,
-        SingleActivator(LogicalKeyboardKey.keyZ, control: true, shift: true):
-            state.redoWorkspace,
-        SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true):
-            state.redoWorkspace,
-      },
+    return Focus(
+      onKeyEvent: _handleEditorShortcut,
       child: Workbench(
         project: widget.project,
         runner: runner,
@@ -173,6 +172,13 @@ class _WorkbenchViewState extends State<WorkbenchView> {
         },
         onEditScript: () {
           setState(() => _editingScript = !_editingScript);
+        },
+        onEditScene: (sceneId) {
+          state.editWorkspaceScene(sceneId);
+          setState(() {
+            mode = WorkbenchViewMode.design;
+            _editingScript = false;
+          });
         },
         child: Scaffold(
           body: Column(
@@ -205,10 +211,61 @@ class _WorkbenchViewState extends State<WorkbenchView> {
     );
   }
 
+  KeyEventResult _handleEditorShortcut(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent || _isTextInputFocused) {
+      return KeyEventResult.ignored;
+    }
+
+    final keyboard = HardwareKeyboard.instance;
+    final commandPressed = keyboard.isControlPressed || keyboard.isMetaPressed;
+    final key = event.logicalKey;
+    if (commandPressed) {
+      if (key == LogicalKeyboardKey.keyZ) {
+        unawaited(
+          keyboard.isShiftPressed
+              ? state.redoWorkspace()
+              : state.undoWorkspace(),
+        );
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.keyY) {
+        unawaited(state.redoWorkspace());
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.keyC) {
+        state.copyWorkspaceComponent();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.keyV) {
+        unawaited(state.pasteWorkspaceComponentAndSync());
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.keyD) {
+        unawaited(state.duplicateWorkspaceComponentAndSync());
+        return KeyEventResult.handled;
+      }
+    } else if (key == LogicalKeyboardKey.delete ||
+        key == LogicalKeyboardKey.backspace) {
+      final componentId = state.selectedComponent?.id;
+      if (componentId != null) {
+        unawaited(state.removeWorkspaceComponentAndSync(componentId));
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  bool get _isTextInputFocused {
+    final focusedWidget = FocusManager.instance.primaryFocus?.context?.widget;
+    return focusedWidget is EditableText || focusedWidget is TextField;
+  }
+
   bool get _hasProjectIssue {
-    return state.indexError != null ||
+    return !state.workspaceConfigured ||
+        state.indexError != null ||
         state.analysisDiagnostics.isNotEmpty ||
         state.operationError != null ||
+        state.migrationDiagnostics.isNotEmpty ||
         state.assetError != null ||
         runner.executionError != null;
   }
@@ -216,18 +273,15 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   Widget _buildProjectIssueBanner(BuildContext context) {
     final theme = Theme.of(context);
     final messages = <String>[
-      ...?(state.indexError == null ? null : <String>[state.indexError!]),
-      ...?(state.operationError == null
-          ? null
-          : <String>[state.operationError!]),
-      ...?(state.assetError == null ? null : <String>[state.assetError!]),
-
+      ...state.projectDiagnostics.map(
+        (diagnostic) => diagnostic.displayMessage,
+      ),
+      if (!state.workspaceConfigured && state.canMigrateWorkspace) 'This Flame project has not been migrated. Workspace can safely map its typed scene fields without rewriting developer Dart files.',
       ...?(runner.executionError == null
           ? null
           : <String>[runner.executionError!]),
-      if (state.analysisDiagnostics.isNotEmpty)
-        'Analyzer diagnostics:\n${state.analysisDiagnostics.take(5).join('\n')}'
-            '${state.analysisDiagnostics.length > 5 ? '\n…and ${state.analysisDiagnostics.length - 5} more.' : ''}',
+      if (state.analysisDiagnostics.length > 5)
+        '…and ${state.analysisDiagnostics.length - 5} additional analyzer diagnostics.',
     ];
 
     return MaterialBanner(
@@ -242,6 +296,11 @@ class _WorkbenchViewState extends State<WorkbenchView> {
             child: const Text('Retry analysis'),
           ),
 
+        if (state.canMigrateWorkspace)
+          TextButton(
+            onPressed: () => unawaited(state.migrateWorkspace()),
+            child: const Text('Migrate to Flame Workspace'),
+          ),
         if (runner.executionError != null)
           TextButton(
             onPressed: runner.retryPreview,
@@ -274,7 +333,9 @@ class _WorkbenchViewState extends State<WorkbenchView> {
               ),
               const SizedBox(width: 8.0),
               InkedIconButton(
-                onTap: state.isDirty ? state.saveWorkspace : null,
+                onTap: state.isBuildMode && state.isDirty
+                    ? state.saveWorkspace
+                    : null,
                 tooltip: 'Save scene',
                 icon: const Icon(Icons.save),
               ),
@@ -321,13 +382,23 @@ class _WorkbenchViewState extends State<WorkbenchView> {
                         ),
                         const SizedBox(width: 8.0),
                         InkedIconButton(
-                          onTap: editor?.isSaved ?? false ? null : editor?.save,
+                          onTap: editor?.isSaved ?? false
+                              ? null
+                              : () {
+                                  editor?.save();
+                                  unawaited(state.synchronizeSourceCode());
+                                },
                           icon: const Icon(Icons.save, size: 16.0),
                           tooltip: 'Save',
                         ),
                         const SizedBox(width: 8.0),
                         InkedIconButton(
-                          onTap: editor?.format,
+                          onTap: editor == null
+                              ? null
+                              : () async {
+                                  await editor.format();
+                                  await state.synchronizeSourceCode();
+                                },
                           icon: const Icon(Icons.segment, size: 16.0),
                           tooltip: 'Format',
                         ),

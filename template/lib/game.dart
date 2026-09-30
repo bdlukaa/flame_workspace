@@ -1,18 +1,14 @@
-import 'package:flame/components.dart';
-import 'package:flame/game.dart';
-import 'package:flame/palette.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 
-class MyGame extends FlameGame with SingleGameInstance {
-  MyGame() : super();
+import '.generated/scenes.dart';
 
-  @override
-  Color backgroundColor() => const Color(0xFF000000);
-
+class MyGame extends FlameGame {
   @override
   Future<void> onLoad() async {
+    setInitialScene();
     await super.onLoad();
 
-    camera = CameraComponent();
+    camera = CameraComponent(world: world);
     camera.viewfinder.anchor = Anchor.topLeft;
     add(camera);
   }

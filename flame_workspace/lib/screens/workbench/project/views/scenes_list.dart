@@ -1,6 +1,5 @@
 import 'package:flame_workspace/screens/workbench/workbench_view.dart';
-import 'package:flame_workspace/workbench/generators/scene_scaffolder.dart';
-import 'package:flame_workspace/workbench/parser/scene.dart';
+
 import 'package:flutter/material.dart';
 
 class ScenesListView extends StatelessWidget {
@@ -29,17 +28,12 @@ class ScenesListView extends StatelessWidget {
             LayoutBuilder(
               builder: (context, constraints) {
                 return Padding(
-                  padding: const EdgeInsetsDirectional.only(
-                    top: 8.0,
-                    bottom: 8.0,
-                    start: 8.0,
-                    end: 8.0,
-                  ),
+                  padding: const EdgeInsetsDirectional.all(8),
                   child: ToggleButtons(
                     isSelected: const [false, false, false, true],
                     constraints: BoxConstraints(
                       minWidth: constraints.maxWidth / 5,
-                      minHeight: 40.0,
+                      minHeight: 40,
                     ),
                     children: [
                       buildOption(Icons.edit, 'Edit'),
@@ -47,52 +41,109 @@ class ScenesListView extends StatelessWidget {
                       buildOption(Icons.content_copy, 'Duplicate'),
                       buildOption(Icons.play_arrow, 'Run'),
                     ],
-                    onPressed: (i) {
-                      final helper = SceneHelper.fromWorkbench(
-                        scene,
-                        workbench,
-                      );
-                      switch (i) {
-                        case 0: // Edit
+                    onPressed: (index) async {
+                      final semanticScene = workbench
+                          .state
+                          .workspaceProject
+                          .scenes
+                          .where(
+                            (candidate) => candidate.name == scene.sceneName,
+                          )
+                          .firstOrNull;
+                      if (semanticScene == null) return;
+                      switch (index) {
+                        case 0:
+                          workbench.onEditScene(semanticScene.id);
                           break;
-                        case 1: // Delete
-                          if (scenes.length == 1) {
+                        case 1:
+                          if (workbench.state.workspaceProject.scenes.length <=
+                              1) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Can not delete the only scene.'),
                               ),
                             );
-                          } else {
-                            final otherSceneResult = scenes.firstWhere((s) {
-                              final (otherScene, _, _) = s;
-                              return otherScene.name != scene.name;
-                            });
-                            final (otherScene, _, _) = otherSceneResult;
-                            helper.delete(otherScene);
+                            return;
+                          }
+                          if (!semanticScene.workspaceOwnedSource) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'This scene uses developer-owned source files and cannot be deleted from Workspace.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: Text('Delete ${semanticScene.name}?'),
+                              content: const Text(
+                                'Workspace scene data, generated adapters, and its Workspace-created '
+                                'Dart scaffolding will be removed. This cannot be undone.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirmed != true || !context.mounted) return;
+                          final deleted = await workbench.state
+                              .deleteWorkspaceScene(
+                                semanticScene.id,
+                                deleteOwnedSource: true,
+                              );
+                          if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  'Scene ${scene.sceneName} deleted.',
-                                ),
-                                action: SnackBarAction(
-                                  label: 'Undo',
-                                  onPressed: () {
-                                    SceneScaffolder.createScene(
-                                      workbench.project,
-                                      scene.sceneName,
-                                      true,
-                                    );
-                                  },
+                                  deleted
+                                      ? 'Scene ${semanticScene.name} deleted.'
+                                      : workbench.state.operationError ??
+                                            'Could not delete scene.',
                                 ),
                               ),
                             );
                           }
                           break;
-                        case 2: // Duplicate
+                        case 2:
+                          final duplicated = await workbench.state
+                              .duplicateWorkspaceScene(semanticScene.id);
+                          if (!duplicated && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  workbench.state.operationError ??
+                                      'Could not duplicate scene.',
+                                ),
+                              ),
+                            );
+                          }
                           break;
-                        case 3: // Run
+                        case 3:
+                          final ran = await workbench.state.runWorkspaceScene(
+                            semanticScene.id,
+                          );
+                          if (!ran && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  workbench.state.operationError ??
+                                      'Could not run scene.',
+                                ),
+                              ),
+                            );
+                          }
                           break;
-                        default:
                       }
                     },
                   ),
@@ -110,11 +161,11 @@ class ScenesListView extends StatelessWidget {
       builder: (context) {
         final theme = Theme.of(context);
         return Padding(
-          padding: const EdgeInsetsDirectional.symmetric(horizontal: 12.0),
+          padding: const EdgeInsetsDirectional.symmetric(horizontal: 12),
           child: Row(
             children: [
-              Icon(icon, size: 20.0),
-              const SizedBox(width: 8.0),
+              Icon(icon, size: 20),
+              const SizedBox(width: 8),
               Text(text.toUpperCase(), style: theme.textTheme.labelMedium),
             ],
           ),

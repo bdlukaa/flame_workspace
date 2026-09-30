@@ -6,8 +6,9 @@ abstract final class WorkspaceExtensionNames {
   static const getComponentTree = 'ext.flameWorkspace.getComponentTree';
   static const setProperty = 'ext.flameWorkspace.setProperty';
   static const setTransform = 'ext.flameWorkspace.setTransform';
-  static const addComponent = 'ext.flameWorkspace.addComponent';
-  static const removeComponent = 'ext.flameWorkspace.removeComponent';
+  static const setSceneBackgroundColor =
+      'ext.flameWorkspace.setSceneBackgroundColor';
+
   static const setScene = 'ext.flameWorkspace.setScene';
   static const pause = 'ext.flameWorkspace.pause';
   static const resume = 'ext.flameWorkspace.resume';
@@ -17,8 +18,7 @@ abstract final class WorkspaceExtensionNames {
     getComponentTree,
     setProperty,
     setTransform,
-    addComponent,
-    removeComponent,
+    setSceneBackgroundColor,
     setScene,
     pause,
     resume,
@@ -130,6 +130,7 @@ class WorkspaceRuntimeResponse {
 class const WorkspaceTransformData({
   final Map<String, double>? position,
   final Map<String, double>? size,
+  final Map<String, double>? scale,
   final double? angle,
   final Map<String, dynamic>? anchor,
   final int? priority,
@@ -138,6 +139,7 @@ class const WorkspaceTransformData({
     return WorkspaceTransformData(
       position: _readVector(map['position']),
       size: _readVector(map['size']),
+      scale: _readVector(map['scale']),
       angle: _readDouble(map['angle']),
       anchor: map['anchor'] is Map
           ? Map<String, dynamic>.from(map['anchor'] as Map)
@@ -149,6 +151,7 @@ class const WorkspaceTransformData({
   Map<String, dynamic> toMap() => {
     if (position != null) 'position': position,
     if (size != null) 'size': size,
+    if (scale != null) 'scale': scale,
     if (angle != null) 'angle': angle,
     if (anchor != null) 'anchor': anchor,
     if (priority != null) 'priority': priority,
@@ -161,6 +164,34 @@ class const WorkspaceComponentNode({
   final WorkspaceTransformData? transform,
   final List<WorkspaceComponentNode> children = const [],
 }) {
+  factory WorkspaceComponentNode.fromMap(Map<String, dynamic> map) {
+    final id = map['id'];
+    final type = map['type'];
+    final rawChildren = map['children'] ?? const [];
+    if (id is! String || type is! String || rawChildren is! List) {
+      throw const FormatException('Invalid runtime component node');
+    }
+    final rawTransform = map['transform'];
+    if (rawTransform != null && rawTransform is! Map) {
+      throw const FormatException('Invalid runtime component transform');
+    }
+    return WorkspaceComponentNode(
+      id: id,
+      type: type,
+      transform: rawTransform == null
+          ? null
+          : WorkspaceTransformData.fromMap(
+              Map<String, dynamic>.from(rawTransform),
+            ),
+      children: rawChildren.map((child) {
+        if (child is! Map) {
+          throw const FormatException('Invalid runtime component child');
+        }
+        return WorkspaceComponentNode.fromMap(Map<String, dynamic>.from(child));
+      }).toList(),
+    );
+  }
+
   Map<String, dynamic> toMap() => {
     'id': id,
     'type': type,

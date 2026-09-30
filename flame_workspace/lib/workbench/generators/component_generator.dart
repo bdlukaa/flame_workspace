@@ -22,7 +22,7 @@ class ComponentGenerator {
       '// ignore_for_file: unused_import',
       defaultImports,
       '',
-      'class $name extends PositionComponent with FlameComponent {',
+      'class $name extends PositionComponent {',
       '',
       '  $name({',
       '    required FlameKey super.key,',

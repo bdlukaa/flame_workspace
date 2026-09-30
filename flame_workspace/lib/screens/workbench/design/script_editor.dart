@@ -53,8 +53,12 @@ class ScriptEditorState extends State<ScriptEditor> {
     file.writeAsStringSync(controller.text);
   }
 
-  void format() {
-    if (content != null) Writer.writeFormatted(file, content!);
+  Future<void> format() async {
+    final source = content;
+    if (source == null) return;
+    await Writer.writeFormatted(file, source);
+    content = await file.readAsString();
+    controller.text = content!;
   }
 
   bool get isSaved {

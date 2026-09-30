@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flame_workspace/workbench/project/project_template.dart'
     as template;
+import 'package:flame_workspace/workbench/generators/scene_dispatcher_generator.dart';
 import 'package:flame_workspace/workbench/generators/scene_persistence_generator.dart';
 import 'package:flame_workspace/workbench/model/scene_persistence.dart';
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
@@ -88,7 +89,7 @@ class ProjectCreator {
     await _runFlutter(['pub', 'get']);
   }
 
-  Future<void> _writeInitialWorkspaceScene() async {
+  SceneDefinition get initialWorkspaceScene {
     final scenePath = path.join(
       projectDirectory.path,
       'lib',
@@ -100,10 +101,12 @@ class ProjectCreator {
       sourcePath: scenePath,
       name: dartSceneName,
     );
-    final scene = SceneDefinition(
+    return SceneDefinition(
       id: sceneId,
       name: dartSceneName,
       sourcePath: scenePath,
+      runtimeClassName: dartSceneName,
+      runtimeSourcePath: scenePath,
       components: [
         ComponentInstance(
           id: WorkspaceIds.component(
@@ -131,6 +134,10 @@ class ProjectCreator {
         ),
       ],
     );
+  }
+
+  Future<void> _writeInitialWorkspaceScene() async {
+    final scene = initialWorkspaceScene;
     final project = FlameProject(
       name: dartProjectName,
       organization: org,
@@ -142,6 +149,7 @@ class ProjectCreator {
       scene: scene,
     );
     await ScenePersistenceGenerator.writeForScene(scene, project);
+    await SceneDispatcherGenerator.writeForScenes([scene], project);
   }
 
   Future<void> _prepareProjectDirectory() async {
@@ -192,9 +200,7 @@ class ProjectCreator {
   Future<void> _writeGame() async {
     final gameFile = File(path.join(projectDirectory.path, 'lib', 'game.dart'));
     await gameFile.create(recursive: true);
-    await gameFile.writeAsString(
-      template.game$dart(dartGameName, dartSceneName),
-    );
+    await gameFile.writeAsString(template.game$dart(dartGameName));
   }
 
   Future<void> writeScene(String sceneName) {
@@ -279,8 +285,6 @@ class ProjectCreator {
     await File(
       path.join(generatedDirectory.path, 'properties.dart'),
     ).writeAsString(template.properties$dart(dartProjectName, 'MyComponent'));
-    await File(path.join(generatedDirectory.path, 'scenes.dart'))
-        .writeAsString(template.scenes$dart(dartProjectName, dartSceneName));
   }
 
   Future<void> _removeFlutterSampleTest() async {

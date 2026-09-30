@@ -1,3 +1,5 @@
+import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
 import 'package:flame_workspace/workbench/parser/parser.dart';
 import 'package:flame_workspace/workbench/parser/type_resolver.dart';
@@ -11,57 +13,32 @@ class WorkspaceModelMapper {
     required FlameTypeResolver resolver,
     String? projectName,
   }) {
-    final components = ProjectIndexer.componentsFrom(
-      indexed,
-      resolver: resolver,
-    ).toList()..sort(_compareComponents);
-    final scenes = ProjectIndexer.scenesFrom(
-      indexed,
-      resolver: resolver,
-    ).toList();
+    final scenes = ProjectIndexer.scenesFrom(indexed, resolver: resolver);
     final semanticScenes = <SceneDefinition>[];
-
-    if (scenes.isEmpty) {
-      final sourcePath = components.isEmpty
-          ? null
-          : (() {
-              final (_, indexedUnit, _) = components.first;
-              return indexedUnit['source'] as String?;
-            })();
+    for (final sceneResult in scenes) {
+      final (scene, _, _) = sceneResult;
+      final script = scene.script;
+      final scriptIsPart =
+          script?.unit.$2.directives.any(
+            (directive) => directive is PartOfDirective,
+          ) ??
+          false;
       final sceneId = WorkspaceIds.scene(
-        sourcePath: sourcePath ?? projectName ?? 'main',
-        name: 'Main',
+        sourcePath: scene.filePath,
+        name: scene.sceneName,
       );
       semanticScenes.add(
         SceneDefinition(
           id: sceneId,
-          name: 'Main',
-          sourcePath: sourcePath,
-          components: _mapComponents(components, sceneId),
+          name: scene.sceneName,
+          sourcePath: scene.filePath,
+          runtimeClassName: script?.name ?? scene.name,
+          runtimeSourcePath: script == null || scriptIsPart
+              ? scene.filePath
+              : script.filePath,
+          components: _mapComponents(scene.components, sceneId),
         ),
       );
-    } else {
-      for (final sceneResult in scenes) {
-        final (scene, _, _) = sceneResult;
-        final sceneId = WorkspaceIds.scene(
-          sourcePath: scene.filePath,
-          name: scene.sceneName,
-        );
-        semanticScenes.add(
-          SceneDefinition(
-            id: sceneId,
-            name: scene.sceneName,
-            sourcePath: scene.filePath,
-            components: _mapComponents(
-              components.where((component) {
-                final (_, indexedUnit, _) = component;
-                return indexedUnit['source'] == scene.filePath;
-              }).toList(),
-              sceneId,
-            ),
-          ),
-        );
-      }
     }
 
     return WorkspaceProject(
@@ -71,28 +48,73 @@ class WorkspaceModelMapper {
     );
   }
 
-  static int _compareComponents(
-    IndexedComponent first,
-    IndexedComponent second,
-  ) {
-    final (firstComponent, _, _) = first;
-    final (secondComponent, _, _) = second;
-    final firstPath = firstComponent.filePath ?? '';
-    final secondPath = secondComponent.filePath ?? '';
-    final pathComparison = firstPath.compareTo(secondPath);
-    if (pathComparison != 0) return pathComparison;
-    return firstComponent.name.compareTo(secondComponent.name);
+  static WorkspaceModelMappingResult inspectForMigration(
+    IndexedProject indexed, {
+    required FlameTypeResolver resolver,
+    String? projectName,
+  }) {
+    final components = ProjectIndexer.componentsFrom(
+      indexed,
+      resolver: resolver,
+    ).toList();
+    final scenes = ProjectIndexer.scenesFrom(indexed, resolver: resolver);
+    final diagnostics = <String>[];
+
+    if (scenes.isEmpty) {
+      diagnostics.add(
+        'No statically declared FlameScene was found. Scene composition cannot be inferred safely.',
+      );
+    }
+
+    for (final (scene, _, unit) in scenes) {
+      if (scene.components.isEmpty && components.isNotEmpty) {
+        diagnostics.add(
+          'Scene "${scene.sceneName}" has no typed component fields, while Flame components exist in the project. Its composition may be dynamic.',
+        );
+      }
+      final knownFields = scene.components
+          .map((component) => component.declarationName)
+          .whereType<String>()
+          .toSet();
+      final declaration = unit.declarations
+          .whereType<ClassDeclaration>()
+          .where(
+            (declaration) => declaration.namePart.typeName.lexeme == scene.name,
+          )
+          .firstOrNull;
+      final onLoad = declaration == null || declaration.body is! BlockClassBody
+          ? null
+          : (declaration.body as BlockClassBody).members
+                .whereType<MethodDeclaration>()
+                .where((method) => method.name.lexeme == 'onLoad')
+                .firstOrNull;
+      if (onLoad != null) {
+        final visitor = _SceneCompositionVisitor(knownFields);
+        onLoad.accept(visitor);
+        if (visitor.hasUnmappedComposition) {
+          diagnostics.add(
+            'Scene "${scene.sceneName}" adds components dynamically in onLoad; migrate it to explicit typed scene fields first.',
+          );
+        }
+      }
+    }
+
+    return WorkspaceModelMappingResult(
+      project: diagnostics.isEmpty
+          ? fromIndexed(indexed, resolver: resolver, projectName: projectName)
+          : null,
+      diagnostics: diagnostics,
+    );
   }
 
   static List<ComponentInstance> _mapComponents(
-    Iterable<IndexedComponent> indexedComponents,
+    Iterable<FlameComponentObject> components,
     String sceneId,
   ) {
     var ordinal = 0;
-    return indexedComponents.map((indexedComponent) {
-      final (component, _, _) = indexedComponent;
-      return _mapComponent(component, sceneId, ordinal++);
-    }).toList();
+    return components
+        .map((component) => _mapComponent(component, sceneId, ordinal++))
+        .toList();
   }
 
   static ComponentInstance _mapComponent(
@@ -148,5 +170,42 @@ class WorkspaceModelMapper {
         );
       }),
     );
+  }
+}
+
+class WorkspaceModelMappingResult {
+  const WorkspaceModelMappingResult({
+    required this.project,
+    required this.diagnostics,
+  });
+
+  final WorkspaceProject? project;
+  final List<String> diagnostics;
+
+  bool get canMigrate => project != null && diagnostics.isEmpty;
+}
+
+class _SceneCompositionVisitor extends RecursiveAstVisitor<void> {
+  _SceneCompositionVisitor(this.knownFields);
+
+  final Set<String> knownFields;
+  bool hasUnmappedComposition = false;
+
+  @override
+  void visitMethodInvocation(MethodInvocation node) {
+    final methodName = node.methodName.name;
+    if (methodName == 'add') {
+      final arguments = node.argumentList.arguments;
+      if (arguments.length != 1 ||
+          arguments.single is! SimpleIdentifier ||
+          !knownFields.contains((arguments.single as SimpleIdentifier).name)) {
+        hasUnmappedComposition = true;
+      }
+    } else if (methodName == 'addAll' ||
+        (node.target == null && methodName != 'onLoad') ||
+        node.target is ThisExpression) {
+      hasUnmappedComposition = true;
+    }
+    super.visitMethodInvocation(node);
   }
 }

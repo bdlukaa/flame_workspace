@@ -19,22 +19,52 @@ class ScenePersistenceGenerator {
       "import 'package:flame/components.dart';",
       "import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';",
     };
-    for (final component in _components(scene.components)) {
+    final componentImports = <String>{};
+    final sceneComponents = _components(scene.components).toList();
+    final hasAssetComponents = sceneComponents.any(
+      (component) => component.assetPath != null,
+    );
+    for (final component in sceneComponents) {
       final import = _componentImport(component, project);
-      if (import != null) imports.add(import);
+      if (import != null) componentImports.add(import);
+    }
+    if (hasAssetComponents) {
+      imports.add("import 'package:flame/cache.dart';");
     }
 
     final buffer = StringBuffer()
       ..writeln(generatedFileNotice)
-      ..writeln((imports.toList()..sort()).join('\n'))
       ..writeln()
-      ..writeln('void populate${sceneToken}WorkspaceScene(World world) {');
+      ..writeln((imports.toList()..sort()).join('\n'));
+    if (componentImports.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln((componentImports.toList()..sort()).join('\n'));
+    }
+    buffer
+      ..writeln()
+      ..writeln(
+        'Future<void> populate${sceneToken}WorkspaceScene(World world) async {',
+      )
+      ..writeln('  if (world is FlameScene) {')
+      ..writeln(
+        '    world.backgroundColor = Color(0x${scene.backgroundColor.toRadixString(16).padLeft(8, '0').toUpperCase()});',
+      )
+      ..writeln('  }');
+    if (hasAssetComponents) {
+      buffer.writeln("  final images = Images(prefix: '');");
+    }
 
     var ordinal = 0;
     void writeComponent(ComponentInstance component, String parent) {
       final variable = 'component$ordinal';
       ordinal++;
       final typeName = _identifier(component.type.name);
+      if (component.assetPath != null &&
+          !_isSpriteLike(component.type.name, component.type.baseType)) {
+        throw FormatException(
+          'Component "${component.id}" has an image asset but is not sprite-like.',
+        );
+      }
       final constructorProperties =
           component.type.properties
               .where((property) => !property.editable)
@@ -50,6 +80,12 @@ class ScenePersistenceGenerator {
       buffer.writeln(
         '  final $variable = $typeName(${constructorArguments.join(', ')});',
       );
+      if (component.assetPath != null) {
+        buffer.writeln(
+          '  ($variable as SpriteComponent).sprite = await Sprite.load('
+          '${jsonEncode(component.assetPath)}, images: images);',
+        );
+      }
       if (component.type.isPositionComponent) {
         buffer
           ..writeln('  ($variable as PositionComponent)')
@@ -58,6 +94,9 @@ class ScenePersistenceGenerator {
           )
           ..writeln(
             '    ..size = Vector2(${_number(component.transform.size.x)}, ${_number(component.transform.size.y)})',
+          )
+          ..writeln(
+            '    ..scale = Vector2(${_number(component.transform.scale.x)}, ${_number(component.transform.scale.y)})',
           )
           ..writeln('    ..angle = ${_number(component.transform.angle)}')
           ..writeln(
@@ -123,7 +162,10 @@ class ScenePersistenceGenerator {
     final sourcePath = component.sourcePath;
     if (sourcePath == null) return null;
     final libPath = path.join(project.location.path, 'lib');
-    final relative = path.relative(sourcePath, from: libPath);
+    final resolvedSourcePath = path.isAbsolute(sourcePath)
+        ? sourcePath
+        : path.join(project.location.path, sourcePath);
+    final relative = path.relative(resolvedSourcePath, from: libPath);
     if (relative == '..' || relative.startsWith('../')) return null;
     return "import 'package:${project.name}/${relative.replaceAll(path.separator, '/')}';";
   }
@@ -134,6 +176,9 @@ class ScenePersistenceGenerator {
     final keys = properties.keys.toList()..sort();
     return {for (final key in keys) key: properties[key]};
   }
+
+  static bool _isSpriteLike(String name, String? baseType) =>
+      name.contains('Sprite') || baseType?.contains('Sprite') == true;
 
   static String _sceneToken(String name) =>
       _identifier(ReCase(name).pascalCase);
@@ -185,6 +230,7 @@ class ScenePersistenceGenerator {
 const _transformProperties = {
   'position',
   'size',
+  'scale',
   'angle',
   'anchor',
   'priority',

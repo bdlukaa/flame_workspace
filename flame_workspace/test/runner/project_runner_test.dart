@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:flame_workspace/workbench/runner/preview.dart';
+import 'package:flame_workspace/workbench/runner/runner.dart';
 import 'package:flame_workspace/workbench/runner/project_runner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -40,6 +42,31 @@ void main() {
     expect(runner.state, ProjectRunnerState.stopped);
     expect(launcher.process.commands, ['r', 'R', 'q']);
     expect(launcher.process.killCount, 1);
+  });
+
+  test(
+    'dispose completes preview cleanup before disposing its notifier',
+    () async {
+      final lifecycleRunner = FlameProjectRunner(
+        FlameProject(
+          name: 'dispose_preview',
+          organization: 'com.example',
+          location: Directory.current,
+          initialScene: 'Main',
+        ),
+        previewSurface: UnavailablePreviewSurface(),
+      );
+
+      lifecycleRunner.dispose();
+      await Future<void>.delayed(Duration.zero);
+    },
+  );
+
+  test('scene recreation stops when hot reload fails', () async {
+    final recreationRunner = _ReloadFailureRunner();
+
+    expect(await recreationRunner.recreateScene('Main'), isFalse);
+    expect(recreationRunner.setSceneCalled, isFalse);
   });
 
   test('moves to failed when the process exits unsuccessfully', () async {
@@ -127,6 +154,32 @@ void main() {
     expect(runner.state, ProjectRunnerState.failed);
     expect(runner.error, isA<StateError>());
   });
+}
+
+class _ReloadFailureRunner extends FlameProjectRunner {
+  _ReloadFailureRunner()
+    : super(
+        FlameProject(
+          name: 'reload_failure',
+          organization: 'com.example',
+          location: Directory.current,
+          initialScene: 'Main',
+        ),
+      );
+
+  bool setSceneCalled = false;
+
+  @override
+  bool get isPreviewRunning => true;
+
+  @override
+  Future<bool> hotReload() async => false;
+
+  @override
+  Future<bool> setScene(String sceneName) async {
+    setSceneCalled = true;
+    return true;
+  }
 }
 
 class FakeLauncher implements ProjectProcessLauncher {

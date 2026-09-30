@@ -7,21 +7,15 @@ import '../../fixtures/empty_game/lib/main.dart' as fixture_game;
 import 'package:flame_workspace_runtime/flame_workspace_runtime.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+const runtimeComponentId = 'scene:main:component:player';
+
 class TestScene extends FlameScene {
-  TestScene() : super(sceneName: 'test_scene', backgroundColor: const Color(0));
-
-  String? lastAdded;
-  String? lastRemoved;
-
-  @override
-  void addComponent(String declarationName) {
-    lastAdded = declarationName;
-  }
-
-  @override
-  void removeComponent(String declarationName) {
-    lastRemoved = declarationName;
-  }
+  TestScene({String sceneName = 'test_scene', Iterable<Component>? children})
+    : super(
+        sceneName: sceneName,
+        backgroundColor: const Color(0),
+        children: children,
+      );
 }
 
 void main() {
@@ -36,10 +30,11 @@ void main() {
   setUp(() {
     game = fixture_game.EmptyGame();
     core = FlameWorkspaceCore()..game = game;
+    FlameWorkspaceCore.instance = core;
     scene = TestScene();
     core.currentScene = scene;
     component = fixture_components.Player(
-      key: FlameKey('player'),
+      key: FlameKey(runtimeComponentId),
       position: Vector2(1, 2),
       size: Vector2(3, 4),
     );
@@ -62,7 +57,26 @@ void main() {
     expect(tree.ok, isTrue);
     final treeMap = tree.result as Map<String, dynamic>;
     expect(treeMap['id'], 'test_scene');
-    expect(treeMap['children'], isNotEmpty);
+    expect(treeMap['children'], hasLength(1));
+    expect(treeMap['children'].first['id'], runtimeComponentId);
+    expect(treeMap['children'].first['type'], 'Player');
+  });
+
+  test('mutates the currently loaded scene background', () async {
+    final response = await bridge.dispatch(
+      WorkspaceExtensionNames.setSceneBackgroundColor,
+      const {'sceneName': 'test_scene', 'color': 0xFF123456},
+    );
+
+    expect(response.ok, isTrue);
+    expect(scene.backgroundColor, const Color(0xFF123456));
+
+    final wrongScene = await bridge.dispatch(
+      WorkspaceExtensionNames.setSceneBackgroundColor,
+      const {'sceneName': 'other_scene', 'color': 0xFF000000},
+    );
+    expect(wrongScene.ok, isFalse);
+    expect(wrongScene.error?.code, 'scene_not_found');
   });
 
   test(
@@ -71,10 +85,11 @@ void main() {
       final response = await bridge.dispatch(
         WorkspaceExtensionNames.setTransform,
         const {
-          'componentId': 'player',
+          'componentId': runtimeComponentId,
           'transform': {
             'position': {'x': 20, 'y': 30},
             'size': {'x': 40, 'y': 50},
+            'scale': {'x': 2, 'y': 0.5},
             'angle': 1.5,
             'priority': 4,
           },
@@ -84,10 +99,58 @@ void main() {
       expect(response.ok, isTrue);
       expect(component.position, Vector2(20, 30));
       expect(component.size, Vector2(40, 50));
+      expect(component.scale, Vector2(2, 0.5));
       expect(component.angle, 1.5);
       expect(component.priority, 4);
     },
   );
+
+  test('finds and mutates nested components by their semantic IDs', () async {
+    const childId = 'scene:main:component:parent:child';
+    final child = fixture_components.Player(
+      key: FlameKey(childId),
+      position: Vector2.zero(),
+    );
+    component.add(child);
+
+    final response = await bridge.dispatch(
+      WorkspaceExtensionNames.setTransform,
+      const {
+        'componentId': childId,
+        'transform': {
+          'position': {'x': 12, 'y': 24},
+          'scale': {'x': 1.5, 'y': 0.5},
+        },
+      },
+    );
+
+    expect(response.ok, isTrue);
+    expect(child.position, Vector2(12, 24));
+    expect(child.scale, Vector2(1.5, 0.5));
+    final tree = await bridge.dispatch(
+      WorkspaceExtensionNames.getComponentTree,
+      const {},
+    );
+    expect(tree.ok, isTrue);
+    expect(jsonEncode(tree.result), contains(childId));
+    expect(jsonEncode(tree.result), contains('"scale":{"x":1.5,"y":0.5}'));
+  });
+
+  test('declaration names are not runtime component IDs', () async {
+    const sourceName = 'textComponent';
+    final response = await bridge.dispatch(
+      WorkspaceExtensionNames.setTransform,
+      const {
+        'componentId': sourceName,
+        'transform': {
+          'position': {'x': 12, 'y': 24},
+        },
+      },
+    );
+
+    expect(response.ok, isFalse);
+    expect(response.error?.code, 'component_not_found');
+  });
 
   test('delegates scene and property mutations to game hooks', () async {
     Object? changedValue;
@@ -101,7 +164,11 @@ void main() {
 
     final propertyResponse = await bridge.dispatch(
       WorkspaceExtensionNames.setProperty,
-      const {'componentId': 'player', 'property': 'enabled', 'value': true},
+      const {
+        'componentId': runtimeComponentId,
+        'property': 'enabled',
+        'value': true,
+      },
     );
     final sceneResponse = await bridge.dispatch(
       WorkspaceExtensionNames.setScene,
@@ -139,20 +206,116 @@ void main() {
     expect(payload['error']['code'], 'invalid_request');
   });
 
-  test('component mutations use generated scene hooks', () async {
-    final added = await bridge.dispatch(
-      WorkspaceExtensionNames.addComponent,
-      const {'declarationName': 'player'},
-    );
-    final removed = await bridge.dispatch(
-      WorkspaceExtensionNames.removeComponent,
-      const {'declarationName': 'player'},
-    );
+  testWidgets(
+    'scene replacement rebuilds a nested component tree for mutation',
+    (tester) async {
+      Future<T> pumpUntilComplete<T>(Future<T> future) async {
+        var completed = false;
+        future.then((_) => completed = true);
+        for (var frame = 0; frame < 100 && !completed; frame++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+        expect(completed, isTrue, reason: 'Flame lifecycle should complete.');
+        return future;
+      }
 
-    expect(added.ok, isTrue);
-    expect(removed.ok, isTrue);
-    expect(scene.lastAdded, 'player');
-    expect(scene.lastRemoved, 'player');
+      await tester.pumpWidget(GameWidget(game: game));
+      await pumpUntilComplete(game.ready());
+      const parentId = 'scene:main:component:parent';
+      const childId = 'scene:main:component:parent:child';
+      final child = fixture_components.Player(
+        key: FlameKey(childId),
+        position: Vector2.zero(),
+      );
+      final parent = fixture_components.Player(
+        key: FlameKey(parentId),
+        position: Vector2.zero(),
+      )..add(child);
+
+      core.setScene = (_) {
+        core.currentScene = TestScene(
+          sceneName: 'test_scene',
+          children: [parent],
+        );
+      };
+
+      final recreated = await pumpUntilComplete(
+        bridge.dispatch(WorkspaceExtensionNames.setScene, const {
+          'scene': 'test_scene',
+        }),
+      );
+      final tree = await bridge.dispatch(
+        WorkspaceExtensionNames.getComponentTree,
+        const {},
+      );
+
+      expect(recreated.ok, isTrue);
+      expect(jsonEncode(tree.result), contains(parentId));
+      expect(jsonEncode(tree.result), contains(childId));
+
+      var changedProperty = false;
+      core.setPropertyValue = (_, target, property, value) {
+        expect(target, child);
+        expect(property, 'enabled');
+        expect(value, isTrue);
+        changedProperty = true;
+      };
+      final property = await bridge.dispatch(
+        WorkspaceExtensionNames.setProperty,
+        const {'componentId': childId, 'property': 'enabled', 'value': true},
+      );
+      final transform = await bridge.dispatch(
+        WorkspaceExtensionNames.setTransform,
+        const {
+          'componentId': childId,
+          'transform': {
+            'position': {'x': 12, 'y': 24},
+          },
+        },
+      );
+
+      expect(property.ok, isTrue);
+      expect(changedProperty, isTrue);
+      expect(transform.ok, isTrue);
+      expect(child.position, Vector2(12, 24));
+
+      core.setScene = (_) {
+        core.currentScene = TestScene(sceneName: 'test_scene');
+      };
+      final removed = await pumpUntilComplete(
+        bridge.dispatch(WorkspaceExtensionNames.setScene, const {
+          'scene': 'test_scene',
+        }),
+      );
+      final removedTree = await bridge.dispatch(
+        WorkspaceExtensionNames.getComponentTree,
+        const {},
+      );
+      final missingMutation = await bridge.dispatch(
+        WorkspaceExtensionNames.setTransform,
+        const {
+          'componentId': childId,
+          'transform': {
+            'position': {'x': 1, 'y': 1},
+          },
+        },
+      );
+
+      expect(removed.ok, isTrue);
+      expect(jsonEncode(removedTree.result), isNot(contains(childId)));
+      expect(missingMutation.error?.code, 'component_not_found');
+    },
+  );
+
+  test('obsolete structural mutation extensions are unknown', () async {
+    for (final method in [
+      'ext.flameWorkspace.addComponent',
+      'ext.flameWorkspace.removeComponent',
+    ]) {
+      final response = await bridge.dispatch(method, const {});
+      expect(response.ok, isFalse);
+      expect(response.error?.code, 'unknown_method');
+    }
   });
 
   test('mutation failures return stable structured codes', () async {
@@ -172,13 +335,13 @@ void main() {
       'value': true,
     }, 'component_not_found');
     await expectCode(WorkspaceExtensionNames.setTransform, const {
-      'componentId': 'player',
+      'componentId': runtimeComponentId,
       'transform': {
         'position': {'x': 'bad', 'y': 2},
       },
     }, 'invalid_transform');
     await expectCode(WorkspaceExtensionNames.setProperty, const {
-      'componentId': 'player',
+      'componentId': runtimeComponentId,
       'property': 'enabled',
       'value': true,
     }, 'property_handler_unavailable');
@@ -186,13 +349,13 @@ void main() {
     core.setPropertyValue = (_, __, ___, ____) =>
         throw ArgumentError('Unknown property');
     await expectCode(WorkspaceExtensionNames.setProperty, const {
-      'componentId': 'player',
+      'componentId': runtimeComponentId,
       'property': 'unknown',
       'value': true,
     }, 'property_not_found');
     core.setPropertyValue = (_, __, ___, ____) => throw TypeError();
     await expectCode(WorkspaceExtensionNames.setProperty, const {
-      'componentId': 'player',
+      'componentId': runtimeComponentId,
       'property': 'enabled',
       'value': 'not a bool',
     }, 'invalid_property_value');
@@ -203,17 +366,5 @@ void main() {
       'componentId': 'plain',
       'transform': {},
     }, 'not_position_component');
-
-    final baseScene = FlameScene(
-      sceneName: 'base',
-      backgroundColor: const Color(0),
-    );
-    core.currentScene = baseScene;
-    await expectCode(WorkspaceExtensionNames.addComponent, const {
-      'declarationName': 'missingHook',
-    }, 'component_mutation_unavailable');
-    await expectCode(WorkspaceExtensionNames.removeComponent, const {
-      'declarationName': 'missingHook',
-    }, 'component_mutation_unavailable');
   });
 }
