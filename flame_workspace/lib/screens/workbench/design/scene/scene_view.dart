@@ -483,218 +483,111 @@ class _SceneViewState extends State<SceneView> {
                                 ],
                               ),
                             Expanded(
-                              child: state.isGameMode && _showRuntimeHierarchy
-                                  ? _buildRuntimeTree(state)
-                                  : TreeView(
-                                      nodes: scene.components.indexed.map((
-                                        entry,
-                                      ) {
-                                        final (index, component) = entry;
-
-                                        TreeNode buildNode(
-                                          ComponentInstance component,
-                                          String? parentId,
-                                          List<ComponentInstance> siblings,
-                                          int index,
+                              child: SingleChildScrollView(
+                                child: state.isGameMode && _showRuntimeHierarchy
+                                    ? _buildRuntimeTree(state)
+                                    : TreeView(
+                                        nodes: scene.components.indexed.map((
+                                          entry,
                                         ) {
-                                          final isSelected = state
-                                              .workspaceModel
-                                              .selectedComponentIds
-                                              .contains(component.id);
-                                          return TreeNode(
-                                            key: ValueKey(component.id),
-                                            value: component,
-                                            dragData: state.canEditWorkspace
-                                                ? component.id
-                                                : null,
-                                            onDrop: state.canEditWorkspace
-                                                ? (data, position) {
-                                                    if (data is! String ||
-                                                        data == component.id) {
-                                                      return;
+                                          final (index, component) = entry;
+
+                                          TreeNode buildNode(
+                                            ComponentInstance component,
+                                            String? parentId,
+                                            List<ComponentInstance> siblings,
+                                            int index,
+                                          ) {
+                                            final isSelected = state
+                                                .workspaceModel
+                                                .selectedComponentIds
+                                                .contains(component.id);
+                                            return TreeNode(
+                                              key: ValueKey(component.id),
+                                              value: component,
+                                              dragData: state.canEditWorkspace
+                                                  ? component.id
+                                                  : null,
+                                              onDrop: state.canEditWorkspace
+                                                  ? (data, position) {
+                                                      if (data is! String ||
+                                                          data ==
+                                                              component.id) {
+                                                        return;
+                                                      }
+                                                      final targetParent =
+                                                          position ==
+                                                              TreeDropPosition
+                                                                  .inside
+                                                          ? component.id
+                                                          : parentId;
+                                                      final targetSiblings =
+                                                          position ==
+                                                              TreeDropPosition
+                                                                  .inside
+                                                          ? component.children
+                                                          : siblings;
+                                                      final targetIndex =
+                                                          switch (position) {
+                                                            TreeDropPosition
+                                                                .before =>
+                                                              index,
+                                                            TreeDropPosition
+                                                                .inside =>
+                                                              targetSiblings
+                                                                  .length,
+                                                            TreeDropPosition
+                                                                .after =>
+                                                              index + 1,
+                                                          };
+                                                      unawaited(
+                                                        state
+                                                            .moveWorkspaceComponentAndSync(
+                                                              data,
+                                                              parentId:
+                                                                  targetParent,
+                                                              index:
+                                                                  targetIndex,
+                                                            ),
+                                                      );
                                                     }
-                                                    final targetParent =
-                                                        position ==
-                                                            TreeDropPosition
-                                                                .inside
-                                                        ? component.id
-                                                        : parentId;
-                                                    final targetSiblings =
-                                                        position ==
-                                                            TreeDropPosition
-                                                                .inside
-                                                        ? component.children
-                                                        : siblings;
-                                                    final targetIndex =
-                                                        switch (position) {
-                                                          TreeDropPosition
-                                                              .before =>
-                                                            index,
-                                                          TreeDropPosition
-                                                              .inside =>
-                                                            targetSiblings
-                                                                .length,
-                                                          TreeDropPosition
-                                                              .after =>
-                                                            index + 1,
-                                                        };
-                                                    unawaited(
-                                                      state
-                                                          .moveWorkspaceComponentAndSync(
-                                                            data,
-                                                            parentId:
-                                                                targetParent,
-                                                            index: targetIndex,
-                                                          ),
-                                                    );
-                                                  }
-                                                : null,
-                                            icon:
-                                                iconForComponent(
+                                                  : null,
+                                              icon:
+                                                  iconForComponent(
+                                                    component.type.name,
+                                                  ) ??
+                                                  iconForComponent(
+                                                    component.type.baseType ??
+                                                        '',
+                                                  ) ??
+                                                  Icons.square,
+                                              text:
+                                                  component.declarationName ??
                                                   component.type.name,
-                                                ) ??
-                                                iconForComponent(
-                                                  component.type.baseType ?? '',
-                                                ) ??
-                                                Icons.square,
-                                            text:
-                                                component.declarationName ??
-                                                component.type.name,
-                                            isSelected: isSelected,
-                                            trailing: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                IconButton(
-                                                  visualDensity:
-                                                      VisualDensity.compact,
-                                                  tooltip:
-                                                      component
-                                                          .editorMetadata
-                                                          .visible
-                                                      ? 'Hide in editor'
-                                                      : 'Show in editor',
-                                                  icon: Icon(
-                                                    component
+                                              isSelected: isSelected,
+                                              trailing: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  IconButton(
+                                                    visualDensity:
+                                                        VisualDensity.compact,
+                                                    tooltip:
+                                                        component
                                                             .editorMetadata
                                                             .visible
-                                                        ? Icons
-                                                              .visibility_outlined
-                                                        : Icons
-                                                              .visibility_off_outlined,
-                                                    size: 16,
-                                                  ),
-                                                  onPressed: state.isBuildMode
-                                                      ? () => state.setComponentEditorMetadata(
-                                                          component.id,
-                                                          component
-                                                              .editorMetadata
-                                                              .copyWith(
-                                                                visible: !component
-                                                                    .editorMetadata
-                                                                    .visible,
-                                                              ),
-                                                        )
-                                                      : null,
-                                                ),
-                                                IconButton(
-                                                  visualDensity:
-                                                      VisualDensity.compact,
-                                                  tooltip:
+                                                        ? 'Hide in editor'
+                                                        : 'Show in editor',
+                                                    icon: Icon(
                                                       component
-                                                          .editorMetadata
-                                                          .locked
-                                                      ? 'Unlock selection'
-                                                      : 'Lock selection',
-                                                  icon: Icon(
-                                                    component
-                                                            .editorMetadata
-                                                            .locked
-                                                        ? Icons.lock_outline
-                                                        : Icons
-                                                              .lock_open_outlined,
-                                                    size: 16,
-                                                  ),
-                                                  onPressed: state.isBuildMode
-                                                      ? () => state.setComponentEditorMetadata(
-                                                          component.id,
-                                                          component
                                                               .editorMetadata
-                                                              .copyWith(
-                                                                locked: !component
-                                                                    .editorMetadata
-                                                                    .locked,
-                                                              ),
-                                                        )
-                                                      : null,
-                                                ),
-                                              ],
-                                            ),
-                                            onTapUp: (details) {
-                                              final keyboard =
-                                                  HardwareKeyboard.instance;
-                                              state.workspaceModel
-                                                  .selectComponent(
-                                                    component.id,
-                                                    toggle:
-                                                        keyboard
-                                                            .isControlPressed ||
-                                                        keyboard.isMetaPressed,
-                                                    extend:
-                                                        keyboard.isShiftPressed,
-                                                  );
-                                            },
-                                            onSecondaryTapUp: (d) {
-                                              state.selectComponent(
-                                                component.id,
-                                              );
-                                              showMenu(
-                                                context: context,
-                                                position: RelativeRect.fromRect(
-                                                  d.globalPosition &
-                                                      const Size(40, 40),
-                                                  Offset.zero &
-                                                      MediaQuery.sizeOf(
-                                                        context,
-                                                      ),
-                                                ),
-                                                items: <PopupMenuEntry<void>>[
-                                                  PopupMenuItem<void>(
-                                                    enabled: state.isBuildMode,
-                                                    onTap: state.isBuildMode
-                                                        ? () => unawaited(
-                                                            state
-                                                                .duplicateWorkspaceComponentAndSync(),
-                                                          )
-                                                        : null,
-                                                    child: const Text(
-                                                      'Duplicate',
+                                                              .visible
+                                                          ? Icons
+                                                                .visibility_outlined
+                                                          : Icons
+                                                                .visibility_off_outlined,
+                                                      size: 16,
                                                     ),
-                                                  ),
-                                                  PopupMenuItem<void>(
-                                                    enabled: state.isBuildMode,
-                                                    onTap: state.isBuildMode
-                                                        ? state
-                                                              .copyWorkspaceComponent
-                                                        : null,
-                                                    child: const Text('Copy'),
-                                                  ),
-                                                  PopupMenuItem<void>(
-                                                    enabled: state
-                                                        .canPasteWorkspaceComponent,
-                                                    onTap:
-                                                        state
-                                                            .canPasteWorkspaceComponent
-                                                        ? () => unawaited(
-                                                            state
-                                                                .pasteWorkspaceComponentAndSync(),
-                                                          )
-                                                        : null,
-                                                    child: const Text('Paste'),
-                                                  ),
-                                                  const PopupMenuDivider(),
-                                                  PopupMenuItem<void>(
-                                                    enabled: state.isBuildMode,
-                                                    onTap: state.isBuildMode
+                                                    onPressed: state.isBuildMode
                                                         ? () => state.setComponentEditorMetadata(
                                                             component.id,
                                                             component
@@ -706,17 +599,26 @@ class _SceneViewState extends State<SceneView> {
                                                                 ),
                                                           )
                                                         : null,
-                                                    child: Text(
+                                                  ),
+                                                  IconButton(
+                                                    visualDensity:
+                                                        VisualDensity.compact,
+                                                    tooltip:
+                                                        component
+                                                            .editorMetadata
+                                                            .locked
+                                                        ? 'Unlock selection'
+                                                        : 'Lock selection',
+                                                    icon: Icon(
                                                       component
                                                               .editorMetadata
-                                                              .visible
-                                                          ? 'Hide in editor'
-                                                          : 'Show in editor',
+                                                              .locked
+                                                          ? Icons.lock_outline
+                                                          : Icons
+                                                                .lock_open_outlined,
+                                                      size: 16,
                                                     ),
-                                                  ),
-                                                  PopupMenuItem<void>(
-                                                    enabled: state.isBuildMode,
-                                                    onTap: state.isBuildMode
+                                                    onPressed: state.isBuildMode
                                                         ? () => state.setComponentEditorMetadata(
                                                             component.id,
                                                             component
@@ -728,52 +630,168 @@ class _SceneViewState extends State<SceneView> {
                                                                 ),
                                                           )
                                                         : null,
-                                                    child: Text(
-                                                      component
-                                                              .editorMetadata
-                                                              .locked
-                                                          ? 'Unlock selection'
-                                                          : 'Lock selection',
-                                                    ),
-                                                  ),
-                                                  PopupMenuItem<void>(
-                                                    enabled: state.isBuildMode,
-                                                    onTap: state.isBuildMode
-                                                        ? () => unawaited(
-                                                            state
-                                                                .removeWorkspaceComponentAndSync(
-                                                                  component.id,
-                                                                ),
-                                                          )
-                                                        : null,
-                                                    child: const Text('Delete'),
                                                   ),
                                                 ],
-                                              );
-                                            },
-                                            children: component.children.isEmpty
-                                                ? null
-                                                : component.children.indexed
-                                                      .map(
-                                                        (entry) => buildNode(
-                                                          entry.$2,
-                                                          component.id,
-                                                          component.children,
-                                                          entry.$1,
-                                                        ),
-                                                      )
-                                                      .toList(),
-                                          );
-                                        }
+                                              ),
+                                              onTapUp: (details) {
+                                                final keyboard =
+                                                    HardwareKeyboard.instance;
+                                                state.workspaceModel
+                                                    .selectComponent(
+                                                      component.id,
+                                                      toggle:
+                                                          keyboard
+                                                              .isControlPressed ||
+                                                          keyboard
+                                                              .isMetaPressed,
+                                                      extend: keyboard
+                                                          .isShiftPressed,
+                                                    );
+                                              },
+                                              onSecondaryTapUp: (d) {
+                                                state.selectComponent(
+                                                  component.id,
+                                                );
+                                                showMenu(
+                                                  context: context,
+                                                  position:
+                                                      RelativeRect.fromRect(
+                                                        d.globalPosition &
+                                                            const Size(40, 40),
+                                                        Offset.zero &
+                                                            MediaQuery.sizeOf(
+                                                              context,
+                                                            ),
+                                                      ),
+                                                  items: <PopupMenuEntry<void>>[
+                                                    PopupMenuItem<void>(
+                                                      enabled:
+                                                          state.isBuildMode,
+                                                      onTap: state.isBuildMode
+                                                          ? () => unawaited(
+                                                              state
+                                                                  .duplicateWorkspaceComponentAndSync(),
+                                                            )
+                                                          : null,
+                                                      child: const Text(
+                                                        'Duplicate',
+                                                      ),
+                                                    ),
+                                                    PopupMenuItem<void>(
+                                                      enabled:
+                                                          state.isBuildMode,
+                                                      onTap: state.isBuildMode
+                                                          ? state
+                                                                .copyWorkspaceComponent
+                                                          : null,
+                                                      child: const Text('Copy'),
+                                                    ),
+                                                    PopupMenuItem<void>(
+                                                      enabled: state
+                                                          .canPasteWorkspaceComponent,
+                                                      onTap:
+                                                          state
+                                                              .canPasteWorkspaceComponent
+                                                          ? () => unawaited(
+                                                              state
+                                                                  .pasteWorkspaceComponentAndSync(),
+                                                            )
+                                                          : null,
+                                                      child: const Text(
+                                                        'Paste',
+                                                      ),
+                                                    ),
+                                                    const PopupMenuDivider(),
+                                                    PopupMenuItem<void>(
+                                                      enabled:
+                                                          state.isBuildMode,
+                                                      onTap: state.isBuildMode
+                                                          ? () => state.setComponentEditorMetadata(
+                                                              component.id,
+                                                              component
+                                                                  .editorMetadata
+                                                                  .copyWith(
+                                                                    visible: !component
+                                                                        .editorMetadata
+                                                                        .visible,
+                                                                  ),
+                                                            )
+                                                          : null,
+                                                      child: Text(
+                                                        component
+                                                                .editorMetadata
+                                                                .visible
+                                                            ? 'Hide in editor'
+                                                            : 'Show in editor',
+                                                      ),
+                                                    ),
+                                                    PopupMenuItem<void>(
+                                                      enabled:
+                                                          state.isBuildMode,
+                                                      onTap: state.isBuildMode
+                                                          ? () => state.setComponentEditorMetadata(
+                                                              component.id,
+                                                              component
+                                                                  .editorMetadata
+                                                                  .copyWith(
+                                                                    locked: !component
+                                                                        .editorMetadata
+                                                                        .locked,
+                                                                  ),
+                                                            )
+                                                          : null,
+                                                      child: Text(
+                                                        component
+                                                                .editorMetadata
+                                                                .locked
+                                                            ? 'Unlock selection'
+                                                            : 'Lock selection',
+                                                      ),
+                                                    ),
+                                                    PopupMenuItem<void>(
+                                                      enabled:
+                                                          state.isBuildMode,
+                                                      onTap: state.isBuildMode
+                                                          ? () => unawaited(
+                                                              state
+                                                                  .removeWorkspaceComponentAndSync(
+                                                                    component
+                                                                        .id,
+                                                                  ),
+                                                            )
+                                                          : null,
+                                                      child: const Text(
+                                                        'Delete',
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                              children:
+                                                  component.children.isEmpty
+                                                  ? null
+                                                  : component.children.indexed
+                                                        .map(
+                                                          (entry) => buildNode(
+                                                            entry.$2,
+                                                            component.id,
+                                                            component.children,
+                                                            entry.$1,
+                                                          ),
+                                                        )
+                                                        .toList(),
+                                            );
+                                          }
 
-                                        return buildNode(
-                                          component,
-                                          null,
-                                          scene.components,
-                                          index,
-                                        );
-                                      }).toList(),
-                                    ),
+                                          return buildNode(
+                                            component,
+                                            null,
+                                            scene.components,
+                                            index,
+                                          );
+                                        }).toList(),
+                                      ),
+                              ),
                             ),
                           ],
                         ),

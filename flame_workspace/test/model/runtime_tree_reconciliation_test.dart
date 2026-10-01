@@ -70,6 +70,42 @@ void main() {
     },
   );
 
+  test('accepts runtime types with resolved generic arguments', () {
+    final textScene = SceneDefinition(
+      id: 'text-scene',
+      name: 'text-level',
+      components: [
+        ComponentInstance(
+          id: 'label',
+          type: const ComponentType(id: 'text', name: 'TextComponent'),
+        ),
+        ComponentInstance(
+          id: 'box',
+          type: const ComponentType(id: 'text-box', name: 'TextBoxComponent'),
+        ),
+      ],
+    );
+    final diagnostics = reconcileRuntimeTree(
+      expectedScene: textScene,
+      runtimeRoot: const WorkspaceComponentNode(
+        id: 'text-level',
+        type: 'TextLevel',
+        children: [
+          WorkspaceComponentNode(
+            id: 'label',
+            type: 'TextComponent<TextRenderer>',
+          ),
+          WorkspaceComponentNode(
+            id: 'box',
+            type: 'TextBoxComponent<TextRenderer>',
+          ),
+        ],
+      ),
+    );
+
+    expect(diagnostics, isEmpty);
+  });
+
   test('reports a dynamically spawned runtime-only child', () {
     const runtimeOnlyId = 'spawned-enemy';
     final diagnostics = reconcileRuntimeTree(

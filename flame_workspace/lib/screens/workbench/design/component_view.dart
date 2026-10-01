@@ -895,6 +895,7 @@ class PropertyFieldState extends State<PropertyField> {
                 children: [
                   Expanded(
                     child: TextField(
+                      key: ValueKey('workspace.propertyField.${widget.name}'),
                       controller: controller,
                       focusNode: focusNode,
                       style: theme.textTheme.bodySmall,

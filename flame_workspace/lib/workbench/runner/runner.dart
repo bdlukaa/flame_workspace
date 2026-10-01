@@ -98,7 +98,8 @@ class FlameProjectRunner with ChangeNotifier {
   bool get isPreviewRunning => previewRunner.isRunning;
 
   bool get canControlRuntime =>
-      runtimeClientOverride != null || runtimeClient != null;
+      runtimeClientOverride != null ||
+      (_runtimeServiceUri != null && runtimeClient != null);
   bool get canHotReload => isPreviewRunning;
   bool get canHotRestart => isPreviewRunning;
   bool? get isPaused => _isPaused;
@@ -491,6 +492,7 @@ class FlameProjectRunner with ChangeNotifier {
     _isRunning = false;
     _runtimeServiceUri = null;
     _isPaused = null;
+    _runtimeDiagnostic = null;
 
     if (stopError != null) {
       _reportExecutionError('Project cleanup failed: $stopError');

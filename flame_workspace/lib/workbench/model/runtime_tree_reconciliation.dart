@@ -47,6 +47,11 @@ class RuntimeTreeDiagnostic {
   String get displayMessage => diagnostic.displayMessage;
 }
 
+String _runtimeBaseType(String type) {
+  final genericStart = type.indexOf('<');
+  return genericStart == -1 ? type : type.substring(0, genericStart).trim();
+}
+
 List<RuntimeTreeDiagnostic> reconcileRuntimeTree({
   required SceneDefinition? expectedScene,
   required WorkspaceComponentNode runtimeRoot,
@@ -118,7 +123,7 @@ List<RuntimeTreeDiagnostic> reconcileRuntimeTree({
       continue;
     }
     final expectedComponent = entry.value.component;
-    if (actual.node.type != expectedComponent.type.name) {
+    if (_runtimeBaseType(actual.node.type) != expectedComponent.type.name) {
       diagnostics.add(
         RuntimeTreeDiagnostic(
           kind: RuntimeTreeDiagnosticKind.typeMismatch,
