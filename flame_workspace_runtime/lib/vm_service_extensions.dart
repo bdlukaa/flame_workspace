@@ -119,12 +119,37 @@ class FlameWorkspaceRuntimeBridge {
         'The game has not registered a property handler.',
       );
     }
+    final runtimeValue = _propertyValue(arguments);
+    if (component is PositionComponent &&
+        _applyPositionProperty(component, property, runtimeValue)) {
+      return <String, dynamic>{};
+    }
+    if (component is TextComponent && property == 'text') {
+      component.text = runtimeValue as String;
+      return <String, dynamic>{};
+    }
+    if (component is TextComponent &&
+        property == 'textRenderer' &&
+        runtimeValue is TextPaint) {
+      component.textRenderer = runtimeValue;
+      return <String, dynamic>{};
+    }
+    if (component is TextBoxComponent && property == 'text') {
+      component.text = runtimeValue as String;
+      return <String, dynamic>{};
+    }
+    if (component is TextBoxComponent &&
+        property == 'textRenderer' &&
+        runtimeValue is TextPaint) {
+      component.textRenderer = runtimeValue;
+      return <String, dynamic>{};
+    }
     try {
       handler(
         component.runtimeType.toString(),
         component,
         property,
-        _propertyValue(arguments),
+        runtimeValue,
       );
     } on ArgumentError {
       throw const _RuntimeCommandException(
@@ -138,6 +163,30 @@ class FlameWorkspaceRuntimeBridge {
       );
     }
     return <String, dynamic>{};
+  }
+
+  bool _applyPositionProperty(
+    PositionComponent component,
+    String property,
+    dynamic value,
+  ) {
+    switch (property) {
+      case 'position' when value is Vector2:
+        component.position = value;
+      case 'size' when value is Vector2:
+        component.size = value;
+      case 'scale' when value is Vector2:
+        component.scale = value;
+      case 'angle' when value is double:
+        component.angle = value;
+      case 'priority' when value is int:
+        component.priority = value;
+      case 'anchor' when value is Anchor:
+        component.anchor = value;
+      default:
+        return false;
+    }
+    return true;
   }
 
   dynamic _propertyValue(Map<String, dynamic> arguments) {
@@ -317,12 +366,22 @@ class FlameWorkspaceRuntimeBridge {
       children.add(_componentNode(child, childId));
     }
 
+    WorkspaceTransformData? transform;
+    if (component is PositionComponent) {
+      // Runtime inspection must remain available even when a user component
+      // exposes an unusual or transient transform value during reconstruction.
+      // The component tree is still useful without that optional metadata.
+      try {
+        transform = _transformFor(component);
+      } on Object {
+        transform = null;
+      }
+    }
+
     return WorkspaceComponentNode(
       id: id,
       type: component.runtimeType.toString(),
-      transform: component is PositionComponent
-          ? _transformFor(component)
-          : null,
+      transform: transform,
       children: children,
     );
   }

@@ -123,7 +123,7 @@ class PropertiesGenerator {
     cases
       ..writeln('default:')
       ..writeln(
-        "  throw ArgumentError.value(propertyName, 'Property not found');",
+        "  throw ArgumentError('Property \\'$className.\$propertyName\\' is not supported by the generated runtime adapter.');",
       );
 
     return Method(

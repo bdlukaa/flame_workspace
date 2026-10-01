@@ -272,6 +272,31 @@ class WorkspaceEditorModel extends ChangeNotifier {
     return true;
   }
 
+  bool renameComponent(String componentId, String requestedName) {
+    final component = _componentInCurrentScene(componentId);
+    final scene = currentScene;
+    if (component == null || scene == null) return false;
+    final name = requestedName.trim();
+    if (name.isEmpty || name == component.declarationName) return false;
+    final duplicate = _allComponents(
+      scene.components,
+    ).any((other) => other.id != componentId && other.declarationName == name);
+    if (duplicate) return false;
+    final previous = component.declarationName;
+    final command = EditorCommand(
+      description: 'Rename component',
+      changeKind: WorkspaceChangeKind.structure,
+      componentId: componentId,
+      sceneId: scene.id,
+      redoAction: () => component.declarationName = name,
+      undoAction: () => component.declarationName = previous,
+    );
+    command.redo();
+    _history.record(command);
+    _markDirty();
+    return true;
+  }
+
   bool updateProperty(
     String componentId,
     String name,

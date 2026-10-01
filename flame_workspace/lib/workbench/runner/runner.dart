@@ -155,6 +155,15 @@ class FlameProjectRunner with ChangeNotifier {
     final client = runtimeClientOverride ?? runtimeClient;
     if (client == null) return;
     try {
+      // During hot restart Flame briefly has no active Workspace scene. Avoid
+      // querying the component tree in that window: DWDS can surface the
+      // transient extension failure as an uncaught null-value error.
+      final gameState = await client.invoke(WorkspaceExtensionNames.getState);
+      final decodedState = gameState is String
+          ? jsonDecode(gameState)
+          : gameState;
+      if (decodedState is Map && decodedState['scene'] == null) return;
+
       final result = await client.invoke(
         WorkspaceExtensionNames.getComponentTree,
       );
@@ -169,6 +178,11 @@ class FlameProjectRunner with ChangeNotifier {
         null,
       );
     } catch (error) {
+      if (_isTransientRuntimeRestartError(error)) {
+        // DWDS may surface the short hot-restart window as a failed service
+        // extension even though the next runtime refresh will succeed.
+        return;
+      }
       await onRuntimeTreeChanged?.call(null, error);
       _reportRuntimeDiagnostic(
         WorkspaceDiagnostic(
@@ -181,6 +195,12 @@ class FlameProjectRunner with ChangeNotifier {
         ),
       );
     }
+  }
+
+  bool _isTransientRuntimeRestartError(Object error) {
+    final message = '$error';
+    return message.contains('Unexpected null value') ||
+        message.contains('Service extension failed in some clients');
   }
 
   Future<bool> setProperty({
@@ -255,6 +275,12 @@ class FlameProjectRunner with ChangeNotifier {
       }
       return true;
     } on WorkspaceRuntimeException catch (error) {
+      if (error.code == 'component_not_found') {
+        // Build edits can reconstruct the World between a selection and the
+        // runtime command. Refresh before leaving the editor with a stale
+        // runtime hierarchy and selection.
+        await _refreshRuntimeTree();
+      }
       _reportRuntimeDiagnostic(
         WorkspaceDiagnostic(
           category:

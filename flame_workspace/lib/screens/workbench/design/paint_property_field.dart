@@ -24,6 +24,34 @@ class PaintPropertyField extends StatefulWidget {
   State<PaintPropertyField> createState() => _PaintPropertyFieldState();
 }
 
+class _CompactSwitch extends StatelessWidget {
+  const _CompactSwitch({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(label),
+      Transform.scale(
+        scale: 0.8,
+        child: Switch.adaptive(
+          value: value,
+          onChanged: onChanged,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
+    ],
+  );
+}
+
 class _PaintPropertyFieldState extends State<PaintPropertyField> {
   late final widthController = TextEditingController(
     text: (widget.value?.strokeWidth ?? 0).toString(),
@@ -56,10 +84,8 @@ class _PaintPropertyFieldState extends State<PaintPropertyField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (widget.nullable)
-          SwitchListTile.adaptive(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Use Paint'),
+          _CompactSwitch(
+            label: 'Use Paint',
             value: widget.value != null,
             onChanged: widget.editable
                 ? (enabled) => widget.onChanged(
@@ -175,10 +201,8 @@ class _PaintPropertyFieldState extends State<PaintPropertyField> {
             enabled: widget.editable,
             labelBuilder: (value) => value.name,
           ),
-          SwitchListTile.adaptive(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Anti-alias'),
+          _CompactSwitch(
+            label: 'Anti-alias',
             value: value.antiAlias,
             onChanged: widget.editable
                 ? (antiAlias) => update(value.copyWith(antiAlias: antiAlias))

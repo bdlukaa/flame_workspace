@@ -136,7 +136,10 @@ class const ComponentView({super.key}) extends StatelessWidget {
                 value: component.declarationName ?? component.id,
                 type: '$String',
                 forceSingleLine: true,
-                editable: false,
+                onChanged: state.canEditWorkspace
+                    ? (name) =>
+                          unawaited(state.renameComponent(component.id, name))
+                    : null,
               ),
               PropertyField(
                 name: 'Type',

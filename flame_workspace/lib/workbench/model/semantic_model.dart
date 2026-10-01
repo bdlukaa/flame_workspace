@@ -197,7 +197,7 @@ class const WorkspaceEditorMetadata({
 class ComponentInstance {
   final String id;
   final ComponentType type;
-  final String? declarationName;
+  String? declarationName;
   final String? sourcePath;
 
   /// A project-relative image asset used by sprite-like components.

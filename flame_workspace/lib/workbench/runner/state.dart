@@ -794,6 +794,22 @@ class FlameProjectState with ChangeNotifier {
     workspaceModel.selectComponents(componentIds);
   }
 
+  Future<bool> renameComponent(String componentId, String name) async {
+    if (!canEditWorkspace ||
+        !workspaceModel.renameComponent(componentId, name)) {
+      return false;
+    }
+    if (!isGameMode && await saveWorkspace()) {
+      final scene = workspaceModel.currentScene;
+      final runner = _runner;
+      if (scene != null && runner?.isPreviewRunning == true) {
+        await runner!.recreateScene(scene.name);
+      }
+    }
+    notifyListeners();
+    return true;
+  }
+
   bool updateComponentProperty(String componentId, String name, Object? value) {
     if (!canEditWorkspace) return false;
     return workspaceModel.updateProperty(componentId, name, value);

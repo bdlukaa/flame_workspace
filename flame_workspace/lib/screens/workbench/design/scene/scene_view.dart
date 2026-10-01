@@ -163,20 +163,17 @@ class _SceneViewState extends State<SceneView> {
                             context.mounted &&
                             state.isBuildMode) {
                           final (_, declarationName, _) = result;
-                          if (!state.hasWorkspaceComponent(declarationName)) {
-                            await state.addWorkspaceComponentAndSync(
-                              _componentFromSelection(result, scene),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Could not add $declarationName to ${scene.name} '
-                                  'because the element already exists',
-                                ),
-                              ),
-                            );
-                          }
+                          final uniqueName = _nextDeclarationName(
+                            scene,
+                            declarationName,
+                          );
+                          await state.addWorkspaceComponentAndSync(
+                            _componentFromSelection(
+                              result,
+                              scene,
+                              declarationName: uniqueName,
+                            ),
+                          );
                         }
                       },
                     ),
@@ -865,11 +862,28 @@ Object? resolveAddComponentParameterValue(
   );
 }
 
+String _nextDeclarationName(SceneDefinition scene, String requested) {
+  final used = <String>{
+    for (final component in SceneCanvasGeometry.frames(
+      scene,
+    ).map((frame) => frame.component))
+      if (component.declarationName != null) component.declarationName!,
+  };
+  if (!used.contains(requested)) return requested;
+  var suffix = 2;
+  while (used.contains('$requested$suffix')) {
+    suffix++;
+  }
+  return '$requested$suffix';
+}
+
 ComponentInstance _componentFromSelection(
   AddIndexedComponent selection,
-  SceneDefinition scene,
-) {
-  final (indexed, declarationName, parameters) = selection;
+  SceneDefinition scene, {
+  String? declarationName,
+}) {
+  final (indexed, selectedDeclarationName, parameters) = selection;
+  declarationName ??= selectedDeclarationName;
   final selectedValues = <String, Object?>{
     for (final parameter in indexed.parameters)
       parameter.name: resolveAddComponentParameterValue(parameter, parameters),
