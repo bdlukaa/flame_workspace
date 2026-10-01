@@ -67,6 +67,7 @@ class PreviewProjectRunner {
   Object? error;
 
   Completer<Uri>? _ready;
+  int _operationGeneration = 0;
 
   PreviewProjectRunner({required this.runner, required this.surface});
 
@@ -83,6 +84,7 @@ class PreviewProjectRunner {
       throw StateError('Preview is already running.');
     }
 
+    final generation = ++_operationGeneration;
     state = PreviewState.starting;
     url = null;
     error = null;
@@ -94,11 +96,14 @@ class PreviewProjectRunner {
           onOutput?.call(line);
           final detected = PreviewUrlDetector.find(line);
           if (detected != null && !ready.isCompleted) {
-            unawaited(_loadSurface(detected, ready));
+            unawaited(_loadSurface(detected, ready, generation));
           }
         },
         onStderr: onError,
         onExit: (exitCode) {
+          if (generation != _operationGeneration) {
+            return;
+          }
           if (!ready.isCompleted) {
             state = PreviewState.failed;
             _completeError(
@@ -135,9 +140,18 @@ class PreviewProjectRunner {
     }
   }
 
-  Future<void> _loadSurface(Uri detected, Completer<Uri> ready) async {
+  Future<void> _loadSurface(
+    Uri detected,
+    Completer<Uri> ready,
+    int generation,
+  ) async {
     try {
       await surface.load(detected);
+      if (generation != _operationGeneration ||
+          !identical(_ready, ready) ||
+          state != PreviewState.starting) {
+        return;
+      }
       url = detected;
       state = PreviewState.running;
       ready.complete(detected);
@@ -150,9 +164,15 @@ class PreviewProjectRunner {
     }
   }
 
-  Future<void> hotReload() => runner.hotReload();
+  Future<void> hotReload() async {
+    _ensureRunning('Hot reload');
+    await runner.hotReload();
+  }
 
-  Future<void> hotRestart() => runner.hotRestart();
+  Future<void> hotRestart() async {
+    _ensureRunning('Hot restart');
+    await runner.hotRestart();
+  }
 
   Future<void> reload() async {
     if (state != PreviewState.running) {
@@ -169,6 +189,7 @@ class PreviewProjectRunner {
   }
 
   Future<void> stop() async {
+    ++_operationGeneration;
     final ready = _ready;
     if (ready != null && !ready.isCompleted) {
       _completeError(ready, StateError('Preview stopped before it was ready.'));
@@ -196,6 +217,12 @@ class PreviewProjectRunner {
       await surface.dispose();
     } catch (exception) {
       error = StateError('Could not dispose the preview surface: $exception');
+    }
+  }
+
+  void _ensureRunning(String operation) {
+    if (state != PreviewState.running) {
+      throw StateError('$operation requires a running preview.');
     }
   }
 

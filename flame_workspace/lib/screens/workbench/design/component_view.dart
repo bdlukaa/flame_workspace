@@ -19,6 +19,7 @@ import 'text_paint_property_field.dart';
 
 import 'scene/scene_properties.dart';
 import '../workbench_view.dart';
+import '../../../widgets/workspace_inline.dart';
 
 const kFieldHeight = 28.0;
 
@@ -567,39 +568,13 @@ class const EnumPropertyField({
 }) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final selectedValue = options.contains(value) ? value : null;
-    return SizedBox(
-      height: kFieldHeight,
-      child: Row(
-        children: [
-          SizedBox(
-            width: 24.0,
-            child: Icon(Icons.list_alt, size: 18.0, color: theme.hintColor),
-          ),
-          const SizedBox(width: 6.0),
-          Expanded(child: Text(name, style: theme.textTheme.labelSmall)),
-          const VerticalDivider(indent: 0.0, endIndent: 0.0),
-          const SizedBox(width: 4.0),
-          Expanded(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              value: selectedValue,
-              hint: Text(type, style: theme.textTheme.bodySmall),
-              underline: const SizedBox.shrink(),
-              onChanged: !editable || onChanged == null
-                  ? null
-                  : (next) {
-                      if (next != null) onChanged!(next);
-                    },
-              items: [
-                for (final option in options)
-                  DropdownMenuItem(value: option, child: Text(option)),
-              ],
-            ),
-          ),
-        ],
-      ),
+    final selectedValue = options.contains(value) ? value! : options.first;
+    return WorkspaceInlineSelect<String>(
+      label: name,
+      value: selectedValue,
+      values: options,
+      enabled: editable && onChanged != null,
+      onChanged: (next) => onChanged?.call(next),
     );
   }
 }
@@ -613,30 +588,14 @@ class const ComponentSectionCard({
 }) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      margin: const EdgeInsetsDirectional.only(top: 8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(6.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(title, style: theme.textTheme.labelMedium),
-                if (trailing != null)
-                  Text(trailing!, style: theme.textTheme.labelSmall),
-                if (trailingWidget != null)
-                  DefaultTextStyle(
-                    style: theme.textTheme.labelSmall!,
-                    child: trailingWidget!,
-                  ),
-              ],
-            ),
-            ...children,
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: WorkspaceExpander(
+        title: title,
+        summary: trailing,
+        trailing: trailingWidget,
+        initiallyExpanded: true,
+        child: Column(children: children),
       ),
     );
   }
@@ -858,8 +817,7 @@ class PropertyFieldState extends State<PropertyField> {
                     ],
                   ),
                 ),
-                const VerticalDivider(indent: 0.0, endIndent: 0.0),
-                const SizedBox(width: 4.0),
+                const SizedBox(width: 8.0),
                 Expanded(
                   child: switch (widget.nonNullableType) {
                     'String' || 'int' || 'double' || 'num' => buildEditable(),

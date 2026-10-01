@@ -70,6 +70,67 @@ void main() {
     });
   });
 
+  group('Component support contract', () {
+    test('classifies supported and deferred built-ins centrally', () {
+      expect(
+        ComponentSupportMatrix.categoryFor('CircleComponent'),
+        ComponentSupportCategory.basicVisual,
+      );
+      expect(
+        ComponentSupportMatrix.categoryFor('SpriteAnimationComponent'),
+        ComponentSupportCategory.intermediateVisual,
+      );
+      expect(
+        ComponentSupportMatrix.categoryFor('TimerComponent'),
+        ComponentSupportCategory.utility,
+      );
+      final timer = ComponentCapabilityEvaluator.evaluate(
+        component(name: 'TimerComponent'),
+      );
+      expect(timer.kind, ComponentSupportKind.nonvisualSceneComponent);
+      expect(
+        ComponentSupportMatrix.categoryFor('World'),
+        ComponentSupportCategory.sceneInfrastructure,
+      );
+    });
+
+    test('behavior-oriented components report their semantic boundary', () {
+      final capability = ComponentCapabilityEvaluator.evaluate(
+        component(name: 'ButtonComponent'),
+      );
+
+      expect(capability.addable, isFalse);
+      expect(capability.reason, contains('callbacks remain developer-owned'));
+    });
+
+    test('scene infrastructure is never an ordinary addable component', () {
+      final capability = ComponentCapabilityEvaluator.evaluate(
+        component(name: 'World'),
+      );
+
+      expect(capability.category, ComponentSupportCategory.sceneInfrastructure);
+      expect(capability.addable, isFalse);
+      expect(
+        capability.group,
+        ComponentSupportGroup.notAppropriateForVisualConstruction,
+      );
+    });
+
+    test('support report exposes explicit capability metadata', () {
+      final report = ComponentSupportReport.fromCatalog([
+        component(name: 'CircleComponent'),
+        component(name: 'World'),
+      ]).toJson();
+      final entries = report['components']! as List<Object?>;
+      final circle = entries.singleWhere(
+        (entry) => (entry as Map<String, Object?>)['name'] == 'CircleComponent',
+      ) as Map<String, Object?>;
+
+      expect(circle['category'], 'Basic visual');
+      expect(circle['capabilities'], isA<Map<String, Object?>>());
+    });
+  });
+
   group('ComponentCapabilityEvaluator', () {
     test('rejects abstract components', () {
       final capability = ComponentCapabilityEvaluator.evaluate(

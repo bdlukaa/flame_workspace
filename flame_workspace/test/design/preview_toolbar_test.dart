@@ -73,10 +73,11 @@ void main() {
       find.byType(SegmentedButton<WorkspaceExecutionMode>),
     );
     expect(modeSelector.segments[1].enabled, isFalse);
-    await tester.ensureVisible(find.byType(DropdownButton<String>));
-    await tester.tap(find.byType(DropdownButton<String>));
+    await tester.tap(find.textContaining('Display:').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Phone Portrait · 390 × 844').last);
+    final phoneOption = find.byKey(const ValueKey('Display.phone-portrait'));
+    await tester.ensureVisible(phoneOption);
+    await tester.tap(phoneOption);
     await tester.pumpAndSettle();
     expect(selectedDisplays, ['phone-portrait']);
     expect(runner.previewState, PreviewState.stopped);

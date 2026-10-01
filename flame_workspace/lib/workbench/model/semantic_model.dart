@@ -29,6 +29,8 @@ class WorkspaceProject {
 }
 
 class SceneDefinition {
+  static const currentSchemaVersion = 1;
+
   final String id;
   final String name;
   final String? sourcePath;
@@ -50,6 +52,13 @@ class SceneDefinition {
   }) : components = List<ComponentInstance>.of(components);
 
   factory SceneDefinition.fromJson(Map<String, Object?> json) {
+    final schemaVersion = json['schemaVersion'];
+    if (schemaVersion is num && schemaVersion.toInt() != currentSchemaVersion) {
+      throw FormatException(
+        'Unsupported scene schema version ${schemaVersion.toInt()}; '
+        'this Workspace supports version $currentSchemaVersion.',
+      );
+    }
     return SceneDefinition(
       id: _requiredString(json, 'id'),
       name: _requiredString(json, 'name'),
@@ -64,6 +73,7 @@ class SceneDefinition {
   }
 
   Map<String, Object?> toJson() => {
+    'schemaVersion': currentSchemaVersion,
     'id': id,
     'name': name,
     if (sourcePath != null) 'sourcePath': sourcePath,

@@ -1,0 +1,60 @@
+name: Flame Workspace CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    name: Workspace quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: make pub-get
+
+      - name: Check formatting
+        run: make format
+
+      - name: Analyze packages and fixtures
+        run: make analyze
+
+      - name: Run package and fixture tests
+        run: make test
+
+  generated-project:
+    name: Generated project validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: make pub-get
+
+      - name: Analyze generated-project scenarios
+        working-directory: flame_workspace
+        run: flutter test test/developer_preview_e2e_test.dart --concurrency=1
+
+      - name: Analyze representative fixtures
+        run: |
+          flutter analyze fixtures/basic_components
+          flutter analyze fixtures/inheritance
+          flutter analyze fixtures/multiple_worlds

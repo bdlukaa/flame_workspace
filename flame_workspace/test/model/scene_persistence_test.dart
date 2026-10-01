@@ -14,6 +14,29 @@ String _normalizedGeneratedDart(String source) =>
     source.replaceAll(RegExp(r'_i\d+\.'), '');
 
 void main() {
+  test('accepts legacy unversioned scenes and rejects newer schemas', () {
+    final legacy = <String, Object?>{
+      'id': 'legacy',
+      'name': 'Legacy',
+      'components': const <Object?>[],
+    };
+    expect(SceneDefinition.fromJson(legacy).name, 'Legacy');
+
+    expect(
+      () => SceneDefinition.fromJson({
+        ...legacy,
+        'schemaVersion': SceneDefinition.currentSchemaVersion + 1,
+      }),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('Unsupported scene schema version'),
+        ),
+      ),
+    );
+  });
+
   test(
     'persists and reloads an edited scene without losing hierarchy',
     () async {

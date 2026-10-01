@@ -101,6 +101,34 @@ void main() {
     expect(surface.disposed, isTrue);
   });
 
+  test('stale URL after stop cannot revive the preview', () async {
+    final surface = FakePreviewSurface();
+    final preview = PreviewProjectRunner(runner: runner, surface: surface);
+    final start = preview.start();
+
+    final startError = expectLater(start, throwsStateError);
+    await Future<void>.delayed(Duration.zero);
+    await preview.stop();
+    launcher.process.stdoutController.add(
+      utf8.encode('Web Server is available at http://127.0.0.1:4567\\n'),
+    );
+
+    await startError;
+    expect(preview.state, PreviewState.stopped);
+    expect(preview.url, isNull);
+    expect(surface.loaded, isNull);
+  });
+
+  test('hot commands reject non-running previews', () async {
+    final preview = PreviewProjectRunner(
+      runner: runner,
+      surface: FakePreviewSurface(),
+    );
+
+    await expectLater(preview.hotReload(), throwsStateError);
+    await expectLater(preview.hotRestart(), throwsStateError);
+  });
+
   test('fails preview startup when the process exits before its URL', () async {
     launcher.process.stdoutController.onListen = () {
       launcher.process.exitCompleter.complete(1);

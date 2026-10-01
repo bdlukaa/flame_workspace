@@ -11,7 +11,7 @@ import 'package:flame_workspace_runtime/flame_workspace_runtime.dart' as _i3;
 import 'package:template/components/my_component.dart' as _i5;
 
 _i1.Future<void> populateLevelOneWorkspaceScene(_i2.World world) async {
-  (world as _i3.FlameScene).backgroundColor = const _i4.Color(4278190080);
+  (world as _i3.FlameScene).backgroundColor = const _i4.Color(0xff000000);
   final component0 = _i5.MyComponent(
     key: _i3.FlameKey('scene:template:level-one:component:my-component'),
   );

@@ -10,6 +10,7 @@ import '../../../workbench/runner/state.dart';
 import '../../../workbench/runner/view.dart';
 import '../workbench_view.dart';
 import 'preview_display.dart';
+import '../../../widgets/workspace_inline.dart';
 
 class GamePreviewView extends StatefulWidget {
   const GamePreviewView({super.key});
@@ -374,8 +375,8 @@ class PreviewToolbar extends StatelessWidget {
         : runtimeAction;
     final selectedId = display.id;
 
-    return SizedBox(
-      height: 42,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 42),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -484,30 +485,28 @@ class PreviewToolbar extends StatelessWidget {
               },
             ),
             const SizedBox(width: 12),
-            Tooltip(
-              message: 'Preview display size',
-              child: DropdownButton<String>(
+            SizedBox(
+              width: 190,
+              child: WorkspaceInlineSelect<String>(
+                label: 'Display',
                 value: selectedId,
-                underline: const SizedBox.shrink(),
-                isDense: true,
-                items: [
-                  for (final preset in PreviewDisplay.presets)
-                    DropdownMenuItem(
-                      value: preset.id,
-                      child: Text(_displayLabel(preset)),
-                    ),
-                  DropdownMenuItem(
-                    value: customId,
-                    child: Text(
-                      display.id == customId
-                          ? _displayLabel(display)
-                          : 'Custom dimensions…',
-                    ),
-                  ),
+                values: [
+                  ...PreviewDisplay.presets.map((preset) => preset.id),
+                  customId,
                 ],
-                onChanged: (id) {
-                  if (id != null) onDisplaySelected(id);
+                labelBuilder: (id) {
+                  if (id == customId) {
+                    return display.id == customId
+                        ? _displayLabel(display)
+                        : 'Custom dimensions…';
+                  }
+                  return _displayLabel(
+                    PreviewDisplay.presets.firstWhere(
+                      (preset) => preset.id == id,
+                    ),
+                  );
                 },
+                onChanged: onDisplaySelected,
               ),
             ),
             if (!display.isResponsive)

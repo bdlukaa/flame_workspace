@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flame_workspace_protocol/workspace_value.dart';
 
+import '../../../widgets/workspace_inline.dart';
+
 class PaintPropertyField extends StatefulWidget {
   const PaintPropertyField({
     super.key,
@@ -27,6 +29,7 @@ class _PaintPropertyFieldState extends State<PaintPropertyField> {
     text: (widget.value?.strokeWidth ?? 0).toString(),
   );
   String? validationError;
+  bool colorExpanded = false;
 
   @override
   void didUpdateWidget(covariant PaintPropertyField oldWidget) {
@@ -48,7 +51,6 @@ class _PaintPropertyFieldState extends State<PaintPropertyField> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final value = widget.value ?? const WorkspacePaint();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,13 +78,14 @@ class _PaintPropertyFieldState extends State<PaintPropertyField> {
                   key: widget.semanticKey == null
                       ? null
                       : ValueKey('${widget.semanticKey}.color'),
-                  onTap: widget.editable ? _pickColor : null,
+                  onTap: widget.editable
+                      ? () => setState(() => colorExpanded = !colorExpanded)
+                      : null,
                   child: Container(
                     width: 34,
                     height: 22,
                     decoration: BoxDecoration(
                       color: Color(value.color.argb),
-                      border: Border.all(color: theme.dividerColor),
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
@@ -90,11 +93,29 @@ class _PaintPropertyFieldState extends State<PaintPropertyField> {
               ),
             ],
           ),
-          _dropdown<WorkspacePaintStyle>(
-            'Style',
-            value.style,
-            WorkspacePaintStyle.values,
-            (style) => update(value.copyWith(style: style)),
+          if (colorExpanded)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final pickerWidth = constraints.maxWidth.clamp(160.0, 300.0);
+                return ColorPicker(
+                  pickerColor: Color(value.color.argb),
+                  paletteType: PaletteType.hsv,
+                  labelTypes: const [ColorLabelType.rgb],
+                  portraitOnly: true,
+                  colorPickerWidth: pickerWidth,
+                  onColorChanged: (color) => update(
+                    value.copyWith(color: WorkspaceColor(color.toARGB32())),
+                  ),
+                );
+              },
+            ),
+          WorkspaceInlineSelect<WorkspacePaintStyle>(
+            label: 'Style',
+            value: value.style,
+            values: WorkspacePaintStyle.values,
+            onChanged: (style) => update(value.copyWith(style: style)),
+            enabled: widget.editable,
+            labelBuilder: (style) => style.name,
           ),
           if (value.style == WorkspacePaintStyle.stroke)
             Row(
@@ -127,23 +148,32 @@ class _PaintPropertyFieldState extends State<PaintPropertyField> {
                 ),
               ],
             ),
-          _dropdown<WorkspaceStrokeCap>(
-            'Stroke cap',
-            value.strokeCap,
-            WorkspaceStrokeCap.values,
-            (strokeCap) => update(value.copyWith(strokeCap: strokeCap)),
+          WorkspaceInlineSelect<WorkspaceStrokeCap>(
+            label: 'Stroke cap',
+            value: value.strokeCap,
+            values: WorkspaceStrokeCap.values,
+            onChanged: (strokeCap) =>
+                update(value.copyWith(strokeCap: strokeCap)),
+            enabled: widget.editable,
+            labelBuilder: (value) => value.name,
           ),
-          _dropdown<WorkspaceStrokeJoin>(
-            'Stroke join',
-            value.strokeJoin,
-            WorkspaceStrokeJoin.values,
-            (strokeJoin) => update(value.copyWith(strokeJoin: strokeJoin)),
+          WorkspaceInlineSelect<WorkspaceStrokeJoin>(
+            label: 'Stroke join',
+            value: value.strokeJoin,
+            values: WorkspaceStrokeJoin.values,
+            onChanged: (strokeJoin) =>
+                update(value.copyWith(strokeJoin: strokeJoin)),
+            enabled: widget.editable,
+            labelBuilder: (value) => value.name,
           ),
-          _dropdown<WorkspaceBlendMode>(
-            'Blend mode',
-            value.blendMode,
-            WorkspaceBlendMode.values,
-            (blendMode) => update(value.copyWith(blendMode: blendMode)),
+          WorkspaceInlineSelect<WorkspaceBlendMode>(
+            label: 'Blend mode',
+            value: value.blendMode,
+            values: WorkspaceBlendMode.values,
+            onChanged: (blendMode) =>
+                update(value.copyWith(blendMode: blendMode)),
+            enabled: widget.editable,
+            labelBuilder: (value) => value.name,
           ),
           SwitchListTile.adaptive(
             dense: true,
@@ -157,61 +187,5 @@ class _PaintPropertyFieldState extends State<PaintPropertyField> {
         ],
       ],
     );
-  }
-
-  Widget _dropdown<T extends Enum>(
-    String label,
-    T value,
-    List<T> values,
-    ValueChanged<T> onChanged,
-  ) => Row(
-    children: [
-      Expanded(child: Text(label)),
-      Expanded(
-        child: DropdownButton<T>(
-          isExpanded: true,
-          value: value,
-          underline: const SizedBox.shrink(),
-          onChanged: widget.editable
-              ? (next) {
-                  if (next != null) onChanged(next);
-                }
-              : null,
-          items: [
-            for (final option in values)
-              DropdownMenuItem(value: option, child: Text(option.name)),
-          ],
-        ),
-      ),
-    ],
-  );
-
-  Future<void> _pickColor() async {
-    final value = widget.value ?? const WorkspacePaint();
-    var selected = Color(value.color.argb);
-    final applied = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        content: ColorPicker(
-          pickerColor: selected,
-          paletteType: PaletteType.hsv,
-          labelTypes: const [ColorLabelType.rgb],
-          onColorChanged: (color) => selected = color,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Apply'),
-          ),
-        ],
-      ),
-    );
-    if (applied == true) {
-      update(value.copyWith(color: WorkspaceColor(selected.toARGB32())));
-    }
   }
 }

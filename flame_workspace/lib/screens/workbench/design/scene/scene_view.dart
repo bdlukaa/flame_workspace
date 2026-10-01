@@ -15,6 +15,7 @@ import 'package:flame_workspace_protocol/workspace_value.dart';
 import '../../../../workbench/parser/values.dart';
 
 import '../../../../widgets/tree_view.dart';
+import '../../../../widgets/workspace_inline.dart';
 import '../../workbench_view.dart';
 import 'add_component.dart';
 import 'create_scene.dart';
@@ -197,22 +198,12 @@ class _SceneViewState extends State<SceneView> {
                     _showGrid ? Icons.grid_on_rounded : Icons.grid_off_rounded,
                   ),
                 ),
-                Text('Grid', style: theme.textTheme.labelSmall),
-                DropdownButton<double>(
+                WorkspaceInlineSelect<double>(
+                  label: 'Grid',
                   value: _gridSize,
-                  isDense: true,
-                  underline: const SizedBox.shrink(),
-                  items: const [16.0, 32.0, 64.0, 128.0]
-                      .map(
-                        (size) => DropdownMenuItem(
-                          value: size,
-                          child: Text('${size.toInt()} px'),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (size) {
-                    if (size != null) setState(() => _gridSize = size);
-                  },
+                  values: const [16.0, 32.0, 64.0, 128.0],
+                  labelBuilder: (size) => '${size.toInt()} px',
+                  onChanged: (size) => setState(() => _gridSize = size),
                 ),
                 FilterChip(
                   label: const Text('Move snap'),
@@ -236,23 +227,13 @@ class _SceneViewState extends State<SceneView> {
                   visualDensity: VisualDensity.compact,
                 ),
                 if (_snapRotation)
-                  DropdownButton<double>(
+                  WorkspaceInlineSelect<double>(
+                    label: 'Angle',
                     value: _rotationSnapDegrees,
-                    isDense: true,
-                    underline: const SizedBox.shrink(),
-                    items: const [15.0, 30.0, 45.0, 90.0]
-                        .map(
-                          (degrees) => DropdownMenuItem(
-                            value: degrees,
-                            child: Text('${degrees.toInt()}°'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (degrees) {
-                      if (degrees != null) {
-                        setState(() => _rotationSnapDegrees = degrees);
-                      }
-                    },
+                    values: const [15.0, 30.0, 45.0, 90.0],
+                    labelBuilder: (degrees) => '${degrees.toInt()}°',
+                    onChanged: (degrees) =>
+                        setState(() => _rotationSnapDegrees = degrees),
                   ),
               ],
             ),

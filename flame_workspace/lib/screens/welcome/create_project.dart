@@ -8,13 +8,8 @@ import 'package:path/path.dart' as path;
 import 'package:recase/recase.dart';
 
 void showCreateProjectView(BuildContext context) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    builder: (context) {
-      return const CreateProjectView();
-    },
-  );
+  Navigator.of(context)
+      .push(MaterialPageRoute<void>(builder: (_) => const CreateProjectView()));
 }
 
 class CreateProjectView extends StatefulWidget {
@@ -34,176 +29,177 @@ class _CreateProjectViewState extends State<CreateProjectView> {
   final _sceneController = TextEditingController(text: 'Scene1');
 
   bool _loading = false;
+  String? _error;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return DraggableScrollableSheet(
-      expand: false,
-      maxChildSize: 0.9,
-      initialChildSize: 0.9,
-      builder: (context, controller) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  controller: controller,
-                  padding: const EdgeInsetsDirectional.all(16.0),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Form(
+          key: _formKey,
+          child: Padding(
+            padding: const EdgeInsetsDirectional.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Create new project',
-                            style: theme.textTheme.titleMedium,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          tooltip: MaterialLocalizations.of(context)
-                              .closeButtonTooltip,
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            enabled: !_loading,
-                            autofocus: true,
-                            key: const ValueKey('workspace.createProject.name'),
-                            decoration: const InputDecoration(
-                              labelText: 'Project name',
-                              hintText: 'My Awesome Game',
-                              border: InputBorder.none,
-                            ),
-                            textInputAction: TextInputAction.next,
-                            maxLength: 30,
-                            controller: _nameController,
-                            onChanged: (text) {
-                              if (text.trim().isEmpty) {
-                                _nameController.text = '';
-                              } else if (text.trimLeft().contains(' ')) {
-                                _nameController.text = text.replaceAll(
-                                  ' ',
-                                  '_',
-                                );
-                              }
-                            },
-                            validator: (text) {
-                              if (text == null || text.trim().isEmpty) {
-                                return 'Please enter a project name';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextFormField(
-                            enabled: !_loading,
-                            autofocus: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Organization name',
-                              hintText: 'com.example.my_awesome_game',
-                              border: InputBorder.none,
-                            ),
-                            textInputAction: TextInputAction.next,
-                            maxLength: 30,
-                            key: const ValueKey(
-                              'workspace.createProject.organization',
-                            ),
-                            controller: _organizationController,
-                            validator: (text) {
-                              if (text == null || text.trim().isEmpty) {
-                                return 'Please enter an organization name';
-                              } else if (text.trim().contains(' ')) {
-                                return 'Organization name must not contain spaces';
-                              }
-                              return null;
-                            },
-                            onChanged: (text) {
-                              if (text.contains(' ')) {
-                                _organizationController.text = text.replaceAll(
-                                  ' ',
-                                  '',
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    TextFormField(
-                      key: const ValueKey('workspace.createProject.location'),
-                      enabled: !_loading,
-                      controller: _locationController,
-                      textInputAction: TextInputAction.next,
-                      decoration: InputDecoration(
-                        labelText: 'Project location',
-                        border: InputBorder.none,
-                        suffix: TextButton(
-                          onPressed: _browse,
-                          child: const Text('Browse'),
-                        ),
+                    Expanded(
+                      child: Text(
+                        'Create new project',
+                        style: theme.textTheme.titleMedium,
                       ),
                     ),
-                    TextFormField(
-                      key: const ValueKey('workspace.createProject.scene'),
-                      enabled: !_loading,
-                      controller: _sceneController,
-                      decoration: const InputDecoration(
-                        labelText: 'Initial scene',
-                        border: InputBorder.none,
-                      ),
-                      onChanged: (text) {
-                        if (text.trim().isEmpty) {
-                          _sceneController.text = '';
-                        } else if (text.trimLeft().contains(' ')) {
-                          _sceneController.text = text.replaceAll(' ', '_');
-                        }
-                      },
-                      validator: (text) {
-                        if (text == null || text.trim().isEmpty) {
-                          return 'Please enter a Scene name';
-                        } else if (text.trim().contains(' ')) {
-                          return 'Scene names must not contains spaces';
-                        }
-                        return null;
-                      },
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      tooltip: MaterialLocalizations.of(context)
+                          .closeButtonTooltip,
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (_loading)
-                    const SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        enabled: !_loading,
+                        autofocus: true,
+                        key: const ValueKey('workspace.createProject.name'),
+                        decoration: const InputDecoration(
+                          labelText: 'Project name',
+                          hintText: 'My Awesome Game',
+                          border: InputBorder.none,
+                        ),
+                        textInputAction: TextInputAction.next,
+                        maxLength: 30,
+                        controller: _nameController,
+                        onChanged: (text) {
+                          if (text.trim().isEmpty) {
+                            _nameController.text = '';
+                          } else if (text.trimLeft().contains(' ')) {
+                            _nameController.text = text.replaceAll(' ', '_');
+                          }
+                        },
+                        validator: (text) {
+                          if (text == null || text.trim().isEmpty) {
+                            return 'Please enter a project name';
+                          }
+                          return null;
+                        },
+                      ),
                     ),
-                  const SizedBox(width: 16.0),
-                  FilledButton(
-                    key: const ValueKey('workspace.createProject.confirm'),
-                    onPressed: !_loading ? _create : null,
-                    child: const Text('Create'),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextFormField(
+                        enabled: !_loading,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Organization name',
+                          hintText: 'com.example.my_awesome_game',
+                          border: InputBorder.none,
+                        ),
+                        textInputAction: TextInputAction.next,
+                        maxLength: 30,
+                        key: const ValueKey(
+                          'workspace.createProject.organization',
+                        ),
+                        controller: _organizationController,
+                        validator: (text) {
+                          if (text == null || text.trim().isEmpty) {
+                            return 'Please enter an organization name';
+                          } else if (text.trim().contains(' ')) {
+                            return 'Organization name must not contain spaces';
+                          }
+                          return null;
+                        },
+                        onChanged: (text) {
+                          if (text.contains(' ')) {
+                            _organizationController.text = text.replaceAll(
+                              ' ',
+                              '',
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                TextFormField(
+                  key: const ValueKey('workspace.createProject.location'),
+                  enabled: !_loading,
+                  controller: _locationController,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: 'Project location',
+                    border: InputBorder.none,
+                    suffix: TextButton(
+                      onPressed: _browse,
+                      child: const Text('Browse'),
+                    ),
                   ),
-                ],
-              ),
+                ),
+                TextFormField(
+                  key: const ValueKey('workspace.createProject.scene'),
+                  enabled: !_loading,
+                  controller: _sceneController,
+                  decoration: const InputDecoration(
+                    labelText: 'Initial scene',
+                    border: InputBorder.none,
+                  ),
+                  onChanged: (text) {
+                    if (text.trim().isEmpty) {
+                      _sceneController.text = '';
+                    } else if (text.trimLeft().contains(' ')) {
+                      _sceneController.text = text.replaceAll(' ', '_');
+                    }
+                  },
+                  validator: (text) {
+                    if (text == null || text.trim().isEmpty) {
+                      return 'Please enter a Scene name';
+                    } else if (text.trim().contains(' ')) {
+                      return 'Scene names must not contains spaces';
+                    }
+                    return null;
+                  },
+                ),
+              ],
             ),
-          ],
-        );
-      },
+          ),
+        ),
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              _error!,
+              key: const ValueKey('workspace.createProject.error'),
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (_loading)
+                const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                ),
+              const SizedBox(width: 16.0),
+              FilledButton(
+                key: const ValueKey('workspace.createProject.confirm'),
+                onPressed: !_loading ? _create : null,
+                child: const Text('Create'),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -223,7 +219,10 @@ class _CreateProjectViewState extends State<CreateProjectView> {
 
   void _create() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _loading = true);
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
 
       final location = Directory(_locationController.text);
       final projectName = _nameController.text.snakeCase;
@@ -247,11 +246,7 @@ class _CreateProjectViewState extends State<CreateProjectView> {
       } catch (e, trace) {
         debugPrint('Failed to create project');
         debugPrint('$e\n$trace');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-          );
-        }
+        if (mounted) setState(() => _error = e.toString());
         return;
       } finally {
         if (mounted) {

@@ -46,8 +46,8 @@ pub-get:
 
 format:
 	@for dir in $(CHECK_DIRS); do \
-		printf '\n==> dart format: %s\n' "$$dir"; \
-		(cd "$$dir" && dart format .); \
+		printf '\n==> dart format --set-exit-if-changed: %s\n' "$$dir"; \
+		(cd "$$dir" && dart format --output=none --set-exit-if-changed .); \
 	done
 
 analyze:

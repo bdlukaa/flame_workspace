@@ -87,6 +87,7 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('inspector.paint.color')), findsOneWidget);
+
     expect(
       find.byWidgetPredicate(
         (widget) =>
@@ -109,6 +110,14 @@ void main() {
             widget is Semantics && widget.properties.label == 'Text color',
       ),
       findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('inspector.paint.color')));
+    await tester.pump();
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'The inline color picker must fit narrow inspector panes.',
     );
   });
 }

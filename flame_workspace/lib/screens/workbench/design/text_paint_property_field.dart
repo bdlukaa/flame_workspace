@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flame_workspace_protocol/workspace_value.dart';
 
+import '../../../widgets/workspace_inline.dart';
+
 class TextPaintPropertyField extends StatefulWidget {
   const TextPaintPropertyField({
     super.key,
@@ -31,6 +33,8 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
     ),
     'Line height': TextEditingController(text: '${widget.value.height ?? ''}'),
   };
+  bool colorExpanded = false;
+
   late final familyController = TextEditingController(
     text: widget.value.fontFamily ?? '',
   );
@@ -78,13 +82,13 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
           },
         ),
         _numberField('Size', (v) => value.copyWith(fontSize: v)),
-        _dropdown(
+        _select(
           'Weight',
           value.fontWeight,
           WorkspaceFontWeight.values,
           (v) => widget.onChanged(value.copyWith(fontWeight: v)),
         ),
-        _dropdown(
+        _select(
           'Style',
           value.fontStyle,
           WorkspaceFontStyle.values,
@@ -103,7 +107,9 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
               label: 'Text color',
               child: InkWell(
                 key: _keyFor('Color'),
-                onTap: widget.editable ? _pickColor : null,
+                onTap: widget.editable
+                    ? () => setState(() => colorExpanded = !colorExpanded)
+                    : null,
                 child: Container(
                   width: 34,
                   height: 22,
@@ -113,9 +119,18 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
             ),
           ],
         ),
+        if (colorExpanded)
+          ColorPicker(
+            pickerColor: Color(value.color?.argb ?? 0xFFFFFFFF),
+            paletteType: PaletteType.hsv,
+            labelTypes: const [ColorLabelType.rgb],
+            onColorChanged: (color) => widget.onChanged(
+              value.copyWith(color: WorkspaceColor(color.toARGB32())),
+            ),
+          ),
         const SizedBox(height: 8),
         const Text('Direction'),
-        _dropdown(
+        _select(
           'Text direction',
           value.textDirection,
           WorkspaceTextDirection.values,
@@ -181,60 +196,21 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
     ],
   );
 
-  Widget _dropdown<T extends Enum>(
+  Widget _select<T extends Enum>(
     String label,
     T? selected,
     List<T> values,
     ValueChanged<T> changed,
-  ) => Row(
-    children: [
-      Expanded(child: Text(label)),
-      Expanded(
-        child: DropdownButton<T>(
-          key: _keyFor(label),
-          isExpanded: true,
-          value: selected,
-          onChanged: widget.editable
-              ? (value) {
-                  if (value != null) changed(value);
-                }
-              : null,
-          items: [
-            for (final value in values)
-              DropdownMenuItem(value: value, child: Text(value.name)),
-          ],
-        ),
-      ),
-    ],
-  );
-
-  Future<void> _pickColor() async {
-    var selected = Color(widget.value.color?.argb ?? 0xFFFFFFFF);
-    final applied = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        content: ColorPicker(
-          pickerColor: selected,
-          paletteType: PaletteType.hsv,
-          labelTypes: const [ColorLabelType.rgb],
-          onColorChanged: (color) => selected = color,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Apply'),
-          ),
-        ],
-      ),
+  ) {
+    if (selected == null) return const SizedBox.shrink();
+    return WorkspaceInlineSelect<T>(
+      key: _keyFor(label),
+      label: label,
+      value: selected,
+      values: values,
+      enabled: widget.editable,
+      labelBuilder: (value) => value.name,
+      onChanged: changed,
     );
-    if (applied == true) {
-      widget.onChanged(
-        widget.value.copyWith(color: WorkspaceColor(selected.toARGB32())),
-      );
-    }
   }
 }
