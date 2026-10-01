@@ -68,6 +68,9 @@ class ComponentSupportMatrix {
     return supported == null || supported.contains(property);
   }
 
+  static bool supportsRuntimeProperty(String component, String property) =>
+      _coreInspectorProperties[component]?.contains(property) ?? false;
+
   static const coreVisual = <ComponentSupportSpec>[
     ComponentSupportSpec(
       name: 'PositionComponent',

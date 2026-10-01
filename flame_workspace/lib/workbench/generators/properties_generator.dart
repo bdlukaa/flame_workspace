@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:code_builder/code_builder.dart';
 import 'package:path/path.dart' as path;
 
+import '../parser/component_capabilities.dart';
 import '../parser/writer.dart';
 import '../project/objects/component.dart';
 import '../project/project.dart';
@@ -92,6 +93,11 @@ class PropertiesGenerator {
             .where(
               (property) =>
                   property.typeAccessible &&
+                  (component.data['api'] != true ||
+                      ComponentSupportMatrix.supportsRuntimeProperty(
+                        component.name,
+                        property.name,
+                      )) &&
                   !_transformProperties.contains(property.name) &&
                   !_containsPrivateType(property.type) &&
                   !property.type.startsWith('void Function'),

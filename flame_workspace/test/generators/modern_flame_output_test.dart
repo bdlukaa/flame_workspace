@@ -9,7 +9,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as path;
 
 void main() {
-  test('property setters use resolved writable property types only', () {
+  test('API property setters follow the Core Visual runtime contract', () {
+    final circle = FlameComponentObject(
+      name: 'CircleComponent',
+      type: 'ShapeComponent',
+      parameters: const [],
+      writableProperties: const [
+        FlameComponentProperty(name: 'radius', type: 'double'),
+        FlameComponentProperty(name: 'paint', type: 'Paint'),
+        FlameComponentProperty(name: 'isRendered', type: 'bool'),
+      ],
+      data: const {'api': true},
+    );
+    final output = PropertiesGenerator.generateForFlameComponent(circle);
+
+    expect(output, contains('cls.radius = value as double;'));
+    expect(output, contains('cls.paint = value as Paint;'));
+    expect(output, isNot(contains('isRendered')));
+  });
+
+  test('project-defined property setters retain their writable properties', () {
     final component = FlameComponentObject(
       name: 'ExampleComponent',
       type: 'PositionComponent',

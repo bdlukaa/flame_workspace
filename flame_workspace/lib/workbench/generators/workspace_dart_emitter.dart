@@ -53,7 +53,11 @@ abstract final class WorkspaceDartEmitter {
   }
 
   static Expression color(WorkspaceColor value) =>
-      refer('Color', dartUi).constInstance([literalNum(value.argb)]);
+      refer('Color', dartUi).constInstance([
+        CodeExpression(
+          Code('0x${value.argb.toRadixString(16).padLeft(8, '0')}'),
+        ),
+      ]);
 
   static Expression vector2(num x, num y) => refer(
     'Vector2',

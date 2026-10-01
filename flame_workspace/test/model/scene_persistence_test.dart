@@ -417,7 +417,7 @@ void main() {
       expect(firstOutput, contains('populateMainWorkspaceScene'));
       expect(
         firstOutput,
-        contains('backgroundColor = const Color(4278190080)'),
+        contains('backgroundColor = const Color(0xff000000)'),
       );
       expect(firstOutput, contains("FlameKey('scene:main:component:player')"));
       expect(firstOutput, contains("FlameKey('scene:main:component:sprite')"));

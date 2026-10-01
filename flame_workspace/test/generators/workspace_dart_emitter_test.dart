@@ -49,7 +49,7 @@ void main() {
       'enum': const WorkspaceEnumValue('Direction', 'horizontal'),
     });
 
-    expect(output, contains('const Color(4278233855)'));
+    expect(output, contains('const Color(0xff00aaff)'));
     expect(output, contains('Vector2(10.0, 20.0)'));
     expect(output, contains('Anchor.center'));
     expect(output, contains('Direction.horizontal'));
