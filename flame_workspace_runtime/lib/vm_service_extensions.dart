@@ -31,6 +31,13 @@ class FlameWorkspaceRuntimeBridge {
           'Unknown Flame Workspace VM Service extension',
         ),
       };
+      if (method == WorkspaceExtensionNames.setProperty ||
+          method == WorkspaceExtensionNames.setTransform ||
+          method == WorkspaceExtensionNames.setSceneBackgroundColor ||
+          method == WorkspaceExtensionNames.composeComponent ||
+          method == WorkspaceExtensionNames.setScene) {
+        _repaintIfPaused();
+      }
       return WorkspaceRuntimeResponse.success(result);
     } on _RuntimeCommandException catch (error) {
       return WorkspaceRuntimeResponse.failure(
@@ -335,6 +342,7 @@ class FlameWorkspaceRuntimeBridge {
     }
     if (scene != previousScene) {
       try {
+        await _processPausedLifecycle();
         await scene.loaded.timeout(const Duration(seconds: 10));
         await scene.mounted.timeout(const Duration(seconds: 10));
       } on TimeoutException {
@@ -417,6 +425,7 @@ class FlameWorkspaceRuntimeBridge {
       }
       parent.add(child);
       if (parent.isMounted) {
+        await _processPausedLifecycle();
         await child.mounted.timeout(const Duration(seconds: 10));
       }
     } else if (action == 'remove') {
@@ -429,7 +438,10 @@ class FlameWorkspaceRuntimeBridge {
       }
       final mounted = child.isMounted;
       child.removeFromParent();
-      if (mounted) await child.removed.timeout(const Duration(seconds: 10));
+      if (mounted) {
+        await _processPausedLifecycle();
+        await child.removed.timeout(const Duration(seconds: 10));
+      }
     } else if (action == 'move') {
       final child = _findComponent(id);
       final parent = _compositionParent(scene, arguments['parentId']);
@@ -482,13 +494,15 @@ class FlameWorkspaceRuntimeBridge {
       }
       siblings.insert(index, child);
       for (final sibling in siblings) {
-        final mounted = sibling.isMounted;
         sibling.removeFromParent();
-        if (mounted) await sibling.removed.timeout(const Duration(seconds: 10));
       }
+      await _processPausedLifecycle();
       for (final sibling in siblings) {
         parent.add(sibling);
-        if (parent.isMounted) {
+      }
+      if (parent.isMounted) {
+        await _processPausedLifecycle();
+        for (final sibling in siblings) {
           await sibling.mounted.timeout(const Duration(seconds: 10));
         }
       }
@@ -519,6 +533,19 @@ class FlameWorkspaceRuntimeBridge {
       );
     }
     return parent;
+  }
+
+  Future<void> _processPausedLifecycle() async {
+    if (core.game.paused && core.game.isMounted) {
+      // Flame's update loop is stopped, but component mounting must continue.
+      await core.game.ready().timeout(const Duration(seconds: 10));
+    }
+  }
+
+  void _repaintIfPaused() {
+    if (core.game.paused && core.game.isAttached) {
+      core.game.renderBox.markNeedsPaint();
+    }
   }
 
   dynamic _pause() {

@@ -506,6 +506,94 @@ void main() {
   });
 
   testWidgets(
+    'paused Build mode mounts, reorders and removes live components',
+    (tester) async {
+      Future<T> pumpUntilComplete<T>(Future<T> future) async {
+        var completed = false;
+        future.then((_) => completed = true);
+        for (var frame = 0; frame < 100 && !completed; frame++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+        expect(completed, isTrue, reason: 'Flame lifecycle should complete.');
+        return future;
+      }
+
+      scene = TestScene();
+      core.currentScene = scene;
+      await tester.pumpWidget(GameWidget(game: game));
+      await pumpUntilComplete(game.ready());
+      core.sessionId = 'build-session';
+      final paused = await bridge.dispatch(
+        WorkspaceExtensionNames.pause,
+        const {},
+      );
+      expect((paused.result as Map)['paused'], isTrue);
+
+      Future<WorkspaceRuntimeResponse> compose(
+        int revision,
+        String action,
+        String id, {
+        int? index,
+        Map<String, dynamic>? component,
+        Map<String, dynamic>? transform,
+      }) => bridge.dispatch(WorkspaceExtensionNames.composeComponent, {
+        'scene': scene.sceneName,
+        'sessionId': core.sessionId,
+        'revision': revision,
+        'action': action,
+        'componentId': id,
+        if (index != null) 'index': index,
+        if (component != null) 'component': component,
+        if (transform != null) 'transform': transform,
+      });
+
+      for (final id in ['head', 'torso']) {
+        final result = await pumpUntilComplete(
+          compose(
+            id == 'head' ? 1 : 2,
+            'add',
+            id,
+            component: liveComponent(id, 'RectangleComponent'),
+          ),
+        );
+        expect(result.ok, isTrue, reason: result.error?.message);
+        expect(
+          scene.children.query<RectangleComponent>().last.isMounted,
+          isTrue,
+        );
+      }
+      final moved = await pumpUntilComplete(
+        compose(
+          3,
+          'move',
+          'head',
+          index: 1,
+          transform:
+              liveComponent('head', 'RectangleComponent')['transform']
+                  as Map<String, dynamic>,
+        ),
+      );
+      expect(moved.ok, isTrue, reason: moved.error?.message);
+      final removed = await pumpUntilComplete(compose(4, 'remove', 'head'));
+      expect(removed.ok, isTrue, reason: removed.error?.message);
+      expect(scene.children.query<RectangleComponent>(), hasLength(1));
+      expect(game.paused, isTrue);
+
+      core.setScene = (_) {
+        core.currentScene = TestScene(sceneName: 'replacement');
+      };
+      final replacement = await pumpUntilComplete(
+        bridge.dispatch(WorkspaceExtensionNames.setScene, {
+          'scene': 'replacement',
+        }),
+      );
+      expect(replacement.ok, isTrue, reason: replacement.error?.message);
+      expect((replacement.result as Map)['sceneReady'], isTrue);
+      expect(game.paused, isTrue);
+    },
+  );
+
+  testWidgets(
     'scene replacement rebuilds a nested component tree for mutation',
     (tester) async {
       Future<T> pumpUntilComplete<T>(Future<T> future) async {
