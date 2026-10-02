@@ -35,7 +35,10 @@ void main() {
           runner: runner,
           executionMode: executionMode,
           canEnterGame: canEnterGame,
-          onExecutionModeChanged: selectedModes.add,
+          onExecutionModeChanged: (mode) async {
+            selectedModes.add(mode);
+            return true;
+          },
           display: PreviewDisplay.responsive,
           customId: 'custom',
           onDisplaySelected: selectedDisplays.add,
@@ -140,7 +143,7 @@ void main() {
             runner: runner,
             executionMode: WorkspaceExecutionMode.game,
             canEnterGame: true,
-            onExecutionModeChanged: (_) {},
+            onExecutionModeChanged: (_) async => true,
             display: PreviewDisplay.responsive,
             customId: 'custom',
             onDisplaySelected: (_) {},

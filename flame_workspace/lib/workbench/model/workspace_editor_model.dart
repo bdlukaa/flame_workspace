@@ -9,6 +9,19 @@ import 'scene_persistence.dart';
 import 'semantic_model.dart';
 import '../generators/scene_dispatcher_generator.dart';
 import '../generators/scene_persistence_generator.dart';
+import '../parser/writer.dart';
+
+/// A detached, revision-tagged view of authored content.
+class WorkspaceSaveSnapshot {
+  WorkspaceSaveSnapshot(this.revision, WorkspaceProject project)
+    : _json = jsonEncode(project.toJson());
+
+  final int revision;
+  final String _json;
+
+  WorkspaceProject get project =>
+      WorkspaceProject.fromJson(jsonDecode(_json) as Map<String, Object?>);
+}
 
 /// Mutable editor state backed by the semantic Workspace model.
 class WorkspaceEditorModel extends ChangeNotifier {
@@ -17,6 +30,8 @@ class WorkspaceEditorModel extends ChangeNotifier {
   String? _selectedComponentId;
   final Set<String> _selectedComponentIds = {};
   String? _selectionAnchorId;
+  int _revision = 0;
+  int _savedRevision = 0;
   bool _isDirty = false;
   final EditorHistory _history = EditorHistory();
   String? _activeTransformHistoryKey;
@@ -29,7 +44,20 @@ class WorkspaceEditorModel extends ChangeNotifier {
           (_project.scenes.isEmpty ? null : _project.scenes.first.id);
 
   WorkspaceProject get project => _project;
-  bool get isDirty => _isDirty;
+  bool get isDirty => _revision > _savedRevision || _isDirty;
+  int get revision => _revision;
+  int get savedRevision => _savedRevision;
+  bool get isTransformEditing => _activeTransformHistoryKey != null;
+
+  WorkspaceSaveSnapshot captureSnapshot() =>
+      WorkspaceSaveSnapshot(_revision, _project);
+
+  void markPersisted(int revision) {
+    if (revision > _savedRevision) _savedRevision = revision;
+    _isDirty = _revision > _savedRevision;
+    notifyListeners();
+  }
+
   bool get canUndo => _history.canUndo;
   bool get canRedo => _history.canRedo;
   EditorCommand? get lastExecutedCommand => _history.lastExecutedCommand;
@@ -60,9 +88,11 @@ class WorkspaceEditorModel extends ChangeNotifier {
     final previousComponentId = _selectedComponentId;
     final previousComponentIds = Set<String>.of(_selectedComponentIds);
     final previousAnchorId = _selectionAnchorId;
-    final nextProject = preserveUnsavedChanges && _isDirty
-        ? _mergeUnsavedScenes(project)
-        : project;
+    final preserveAuthoring =
+        preserveUnsavedChanges &&
+        _project.id == project.id &&
+        (_revision > _savedRevision || _history.canUndo || _history.canRedo);
+    final nextProject = preserveAuthoring ? _project : project;
     _project = nextProject;
     _currentSceneId =
         _project.scenes.any((scene) => scene.id == previousSceneId)
@@ -77,8 +107,10 @@ class WorkspaceEditorModel extends ChangeNotifier {
     _selectionAnchorId = _selectedComponentIds.contains(previousAnchorId)
         ? previousAnchorId
         : _selectedComponentId;
-    _activeTransformHistoryKey = null;
-    _history.clear();
+    if (!preserveAuthoring) {
+      _activeTransformHistoryKey = null;
+      _history.clear();
+    }
     notifyListeners();
   }
 
@@ -339,7 +371,9 @@ class WorkspaceEditorModel extends ChangeNotifier {
   }
 
   void endTransformEdit() {
+    if (_activeTransformHistoryKey == null) return;
     _activeTransformHistoryKey = null;
+    notifyListeners();
   }
 
   bool updateTransform(String componentId, WorkspaceTransform transform) {
@@ -726,14 +760,41 @@ class WorkspaceEditorModel extends ChangeNotifier {
   }
 
   Future<void> save(FlameProject project) async {
-    for (final scene in _project.scenes) {
-      final file = WorkspaceScenePersistence.fileFor(project, scene);
-      await WorkspaceScenePersistence.save(file: file, scene: scene);
-      await ScenePersistenceGenerator.writeForScene(scene, project);
-    }
-    await SceneDispatcherGenerator.writeForScenes(_project.scenes, project);
-    _isDirty = false;
-    notifyListeners();
+    final snapshot = captureSnapshot();
+    await persistSnapshot(project, snapshot);
+    await generateSnapshot(project, snapshot);
+  }
+
+  Future<void> persistSnapshot(
+    FlameProject project,
+    WorkspaceSaveSnapshot snapshot,
+  ) async {
+    final scenes = snapshot.project.scenes;
+    await Writer.writeBatch({
+      for (final scene in scenes)
+        WorkspaceScenePersistence.fileFor(project, scene):
+            WorkspaceScenePersistence.encode(scene),
+    });
+    markPersisted(snapshot.revision);
+  }
+
+  Future<void> generateSnapshot(
+    FlameProject project,
+    WorkspaceSaveSnapshot snapshot,
+  ) async {
+    final scenes = snapshot.project.scenes;
+    await Writer.writeBatch({
+      for (final scene in scenes)
+        ScenePersistenceGenerator.fileForScene(
+          scene,
+          project,
+        ): Writer.formatDartString(
+          ScenePersistenceGenerator.generate(scene, project),
+        ),
+      SceneDispatcherGenerator.fileForScenes(project): Writer.formatDartString(
+        SceneDispatcherGenerator.generate(scenes, project),
+      ),
+    });
   }
 
   Future<void> reset(FlameProject project) async {
@@ -753,6 +814,7 @@ class WorkspaceEditorModel extends ChangeNotifier {
     );
     _history.clear();
     _activeTransformHistoryKey = null;
+    _savedRevision = _revision;
     _isDirty = false;
     notifyListeners();
   }
@@ -791,17 +853,9 @@ class WorkspaceEditorModel extends ChangeNotifier {
       first.length == second.length && first.containsAll(second);
 
   void _markDirty() {
+    _revision++;
     _isDirty = true;
     notifyListeners();
-  }
-
-  WorkspaceProject _mergeUnsavedScenes(WorkspaceProject next) {
-    final currentById = {for (final scene in _project.scenes) scene.id: scene};
-    return WorkspaceProject(
-      id: next.id,
-      name: next.name,
-      scenes: next.scenes.map((scene) => currentById[scene.id] ?? scene),
-    );
   }
 
   ComponentInstance? _componentInCurrentScene(String componentId) {

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:path/path.dart' as path;
 
 import '../project/project.dart';
+import '../parser/writer.dart';
 import 'semantic_model.dart';
 
 /// Reads and writes Workspace-owned scene composition documents.
@@ -50,11 +51,11 @@ class WorkspaceScenePersistence {
     required File file,
     required SceneDefinition scene,
   }) async {
-    await file.parent.create(recursive: true);
-    final contents =
-        '${const JsonEncoder.withIndent('  ').convert(scene.toJson())}\n';
-    await file.writeAsString(contents);
+    await Writer.writeBatch({file: encode(scene)});
   }
+
+  static String encode(SceneDefinition scene) =>
+      '${const JsonEncoder.withIndent('  ').convert(scene.toJson())}\n';
 
   static String _fileName(String sceneName) {
     final normalized = sceneName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '_');

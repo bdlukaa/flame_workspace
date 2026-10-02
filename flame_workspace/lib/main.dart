@@ -42,6 +42,9 @@ class _FlameWorkspaceAppState extends State<FlameWorkspaceApp> {
   );
 
   Future<AppExitResponse> _shutdownPreviewSurface() async {
+    if (!await WorkspaceNavigation.flushCurrentProject()) {
+      return AppExitResponse.cancel;
+    }
     await shutdownCefPreviewSurface();
     return AppExitResponse.exit;
   }

@@ -101,7 +101,7 @@ class _WelcomeViewState extends State<WelcomeView> {
     });
     try {
       final project = await ProjectImporter.import(directory);
-      if (mounted) openProject(context, project);
+      if (mounted) await openProject(context, project);
     } catch (error) {
       if (mounted) setState(() => _openError = error.toString());
     } finally {

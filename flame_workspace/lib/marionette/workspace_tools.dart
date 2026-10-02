@@ -269,7 +269,11 @@ Future<MarionetteExtensionResult> _prepareAndOpenFixture() async {
       projectPath,
       timeout: _mountTimeout,
     );
-    WorkspaceNavigation.openProject(project);
+    if (!await WorkspaceNavigation.openProject(project)) {
+      throw StateError(
+        'Cannot switch projects until authored changes are saved.',
+      );
+    }
     await mounted;
   } on TimeoutException {
     throw StateError(

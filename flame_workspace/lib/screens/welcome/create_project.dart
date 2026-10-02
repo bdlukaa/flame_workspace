@@ -255,7 +255,7 @@ class _CreateProjectViewState extends State<CreateProjectView> {
       }
 
       if (mounted) {
-        openProject(context, project);
+        await openProject(context, project);
       }
     }
   }

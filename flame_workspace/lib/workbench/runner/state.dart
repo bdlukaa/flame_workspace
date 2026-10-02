@@ -49,6 +49,17 @@ enum WorkspaceExecutionMode { build, game }
 class FlameProjectState with ChangeNotifier {
   final FlameProject project;
   final WorkspaceEditorModel workspaceModel;
+  final Duration autosaveDelay;
+  final Future<void> Function(FlameProject, WorkspaceSaveSnapshot)?
+  persistSnapshotOverride;
+  final Future<void> Function(FlameProject, WorkspaceSaveSnapshot)?
+  generateSnapshotOverride;
+  final Duration validationDelay;
+  final Future<GeneratedSourceValidationResult> Function(
+    FlameProject,
+    WorkspaceSaveSnapshot,
+  )?
+  validateSnapshotOverride;
   bool _workspaceConfigured;
   WorkspaceModelMappingResult? _migrationMapping;
   List<String> migrationDiagnostics = const [];
@@ -77,23 +88,29 @@ class FlameProjectState with ChangeNotifier {
   bool initialized = false;
   late final Future<void> initialization;
 
-  FlameProjectState(this.project)
-    : _workspaceConfigured = project.workspaceConfigured,
-      workspaceModel = WorkspaceEditorModel(
-        WorkspaceProject(
-          id: 'project:${project.name}',
-          name: project.name,
-          scenes: [
-            SceneDefinition(
-              id: WorkspaceIds.scene(
-                sourcePath: project.location.path,
-                name: project.initialScene,
-              ),
-              name: project.initialScene,
-            ),
-          ],
-        ),
-      ) {
+  FlameProjectState(
+    this.project, {
+    this.autosaveDelay = const Duration(milliseconds: 400),
+    this.persistSnapshotOverride,
+    this.generateSnapshotOverride,
+    this.validationDelay = const Duration(seconds: 2),
+    this.validateSnapshotOverride,
+  }) : _workspaceConfigured = project.workspaceConfigured,
+       workspaceModel = WorkspaceEditorModel(
+         WorkspaceProject(
+           id: 'project:${project.name}',
+           name: project.name,
+           scenes: [
+             SceneDefinition(
+               id: WorkspaceIds.scene(
+                 sourcePath: project.location.path,
+                 name: project.initialScene,
+               ),
+               name: project.initialScene,
+             ),
+           ],
+         ),
+       ) {
     workspaceModel.addListener(_onWorkspaceModelChanged);
     try {
       files = project.location.listSync();
@@ -184,6 +201,27 @@ class FlameProjectState with ChangeNotifier {
   bool previewPending = false;
   bool? lastPreviewApplied;
   bool _saveWorkspaceRequested = false;
+  Timer? _autosaveTimer;
+  Timer? _validationTimer;
+  int _observedAuthoringRevision = 0;
+  bool _wasTransformEditing = false;
+  int generatedRevision = 0;
+  int _validationSerial = 0;
+
+  String get authoringStatus {
+    if (persistencePending || (isDirty && lastPersistenceSucceeded != false)) {
+      return 'Saving';
+    }
+    if (lastPersistenceSucceeded == false && isDirty) return 'Save failed';
+    if (generatedRevision < workspaceModel.revision ||
+        generationDiagnostics.isNotEmpty) {
+      return 'Generated output behind';
+    }
+    if (previewPending) return 'Saved; Preview updating';
+    if (lastPreviewApplied == false) return 'Saved; Preview behind';
+    return 'Saved';
+  }
+
   String? assetError;
   WorkspaceDiagnostic? _operationDiagnostic;
 
@@ -1237,6 +1275,7 @@ class FlameProjectState with ChangeNotifier {
     final runner = _runner;
     if (!canEditWorkspace || scene == null || runner == null) return false;
 
+    if (!await flushAuthoredChanges()) return false;
     workspaceModel.selectScene(sceneId);
     enterGameMode();
     _sceneToRunWhenConnected = scene.name;
@@ -1510,7 +1549,8 @@ class FlameProjectState with ChangeNotifier {
   }
 
   Future<bool> saveWorkspace() {
-    if (!canEditWorkspace) return Future.value(false);
+    if (!_workspaceConfigured) return Future.value(false);
+    _autosaveTimer?.cancel();
     final inFlight = _saveWorkspaceInFlight;
     if (inFlight != null) {
       _saveWorkspaceRequested = true;
@@ -1520,18 +1560,13 @@ class FlameProjectState with ChangeNotifier {
     persistencePending = true;
     notifyListeners();
     late final Future<bool> save;
-    save = _saveWorkspaceLoop()
-        .then((result) {
-          lastPersistenceSucceeded = result;
-          return result;
-        })
-        .whenComplete(() {
-          persistencePending = false;
-          notifyListeners();
-          if (identical(_saveWorkspaceInFlight, save)) {
-            _saveWorkspaceInFlight = null;
-          }
-        });
+    save = _saveWorkspaceLoop().whenComplete(() {
+      persistencePending = false;
+      notifyListeners();
+      if (identical(_saveWorkspaceInFlight, save)) {
+        _saveWorkspaceInFlight = null;
+      }
+    });
     _saveWorkspaceInFlight = save;
     return save;
   }
@@ -1541,22 +1576,90 @@ class FlameProjectState with ChangeNotifier {
     do {
       _saveWorkspaceRequested = false;
       saved = await _saveWorkspaceOnce();
-    } while (_saveWorkspaceRequested);
+    } while (saved &&
+        (_saveWorkspaceRequested ||
+            workspaceModel.savedRevision < workspaceModel.revision ||
+            generatedRevision < workspaceModel.revision));
     return saved;
   }
 
   Future<bool> _saveWorkspaceOnce() async {
+    final snapshot = workspaceModel.captureSnapshot();
     try {
-      await workspaceModel.save(project);
-      // Flutter test isolates cannot safely spawn a nested Dart analyzer;
-      // generated-source validation has deterministic direct tests below.
-      if (Platform.environment['FLUTTER_TEST'] == 'true') {
-        generationDiagnostics = const [];
-      } else {
-        final validation = await GeneratedProjectValidator.validate(
-          project: project,
-          scenes: workspaceProject.scenes,
-        );
+      if (workspaceModel.savedRevision < snapshot.revision ||
+          generatedRevision == 0) {
+        if (persistSnapshotOverride case final persist?) {
+          await persist(project, snapshot);
+          workspaceModel.markPersisted(snapshot.revision);
+        } else {
+          await workspaceModel.persistSnapshot(project, snapshot);
+        }
+      }
+      lastPersistenceSucceeded = true;
+    } catch (error, stackTrace) {
+      lastPersistenceSucceeded = false;
+      reportOperationDiagnostic(
+        WorkspaceDiagnostic(
+          category: WorkspaceDiagnosticCategory.project,
+          code: 'workspace_save_failed',
+          operation: 'Save Workspace scenes',
+          message: '$error',
+          recovery:
+              'Authored changes remain in memory. Retry Save before closing.',
+        ),
+      );
+      debugPrint('Saving Workspace scenes failed: $error\n$stackTrace');
+      return false;
+    }
+    try {
+      if (generatedRevision < snapshot.revision || generatedRevision == 0) {
+        if (generateSnapshotOverride case final generate?) {
+          await generate(project, snapshot);
+        } else {
+          await workspaceModel.generateSnapshot(project, snapshot);
+        }
+        generatedRevision = snapshot.revision;
+      }
+      operationError = null;
+      _scheduleValidation(snapshot);
+      notifyListeners();
+      return true;
+    } catch (error, stackTrace) {
+      reportOperationDiagnostic(
+        WorkspaceDiagnostic(
+          category: WorkspaceDiagnosticCategory.generation,
+          code: 'generated_output_behind',
+          operation: 'Generate Workspace adapters',
+          message: '$error',
+          recovery:
+              'Authored scenes are saved. Retry Save to regenerate output.',
+        ),
+      );
+      debugPrint('Generating Workspace adapters failed: $error\n$stackTrace');
+      return false;
+    }
+  }
+
+  void _scheduleValidation(WorkspaceSaveSnapshot snapshot) {
+    _validationTimer?.cancel();
+    final serial = ++_validationSerial;
+    if (Platform.environment['FLUTTER_TEST'] == 'true' &&
+        validateSnapshotOverride == null) {
+      return;
+    }
+    _validationTimer = Timer(validationDelay, () async {
+      try {
+        final validation = validateSnapshotOverride == null
+            ? await GeneratedProjectValidator.validate(
+                project: project,
+                scenes: snapshot.project.scenes,
+              )
+            : await validateSnapshotOverride!(project, snapshot);
+        if (serial != _validationSerial ||
+            snapshot.revision != generatedRevision ||
+            snapshot.revision != workspaceModel.revision) {
+          return;
+        }
         generationDiagnostics = [
           for (final diagnostic in validation.diagnostics)
             WorkspaceDiagnostic(
@@ -1566,33 +1669,47 @@ class FlameProjectState with ChangeNotifier {
                   : 'generated_source_invalid',
               operation: 'Validate generated Workspace source',
               message: diagnostic.displayMessage,
-              recovery: validation.timedOut
-                  ? 'Validation did not complete; Build State was preserved. Retry saving when the project Analyzer is idle.'
-                  : 'Fix the generated-code input shown in the context and save again.',
+              recovery: 'Fix generated source inputs and retry Save.',
             ),
         ];
-        if (!validation.isValid) {
+        notifyListeners();
+      } catch (error) {
+        if (serial == _validationSerial &&
+            snapshot.revision == workspaceModel.revision) {
+          generationDiagnostics = [
+            WorkspaceDiagnostic(
+              category: WorkspaceDiagnosticCategory.generation,
+              code: 'generated_source_validation_failed',
+              operation: 'Validate generated Workspace source',
+              message: '$error',
+              recovery:
+                  'Retry validation after the project Analyzer is available.',
+            ),
+          ];
           notifyListeners();
-          return false;
         }
       }
-      operationError = null;
-      notifyListeners();
+    });
+  }
+
+  Future<bool> flushToRevision(int revision) async {
+    _autosaveTimer?.cancel();
+    if (workspaceModel.savedRevision >= revision &&
+        generatedRevision >= revision) {
       return true;
-    } catch (error, stackTrace) {
-      reportOperationDiagnostic(
-        WorkspaceDiagnostic(
-          category: WorkspaceDiagnosticCategory.generation,
-          code: 'scene_generation_failed',
-          operation: 'Save and generate Workspace scenes',
-          message: '$error',
-          recovery: 'Fix the reported project or generated-code errors and try again.',
-        ),
-      );
-      debugPrint('Saving Workspace changes failed: $error\n$stackTrace');
-      notifyListeners();
-      return false;
     }
+    final saved = await saveWorkspace();
+    return saved &&
+        workspaceModel.savedRevision >= revision &&
+        generatedRevision >= revision;
+  }
+
+  Future<bool> flushAuthoredChanges() async {
+    do {
+      if (!await flushToRevision(workspaceModel.revision)) return false;
+    } while (workspaceModel.savedRevision < workspaceModel.revision ||
+        generatedRevision < workspaceModel.revision);
+    return true;
   }
 
   Future<void> resetWorkspace() async {
@@ -1643,6 +1760,7 @@ class FlameProjectState with ChangeNotifier {
     bool dependencyChanged = false,
   }) async {
     final revision = ++_analysisRevision;
+    final authoredRevision = workspaceModel.revision;
     isIndexing = true;
     notifyListeners();
 
@@ -1681,7 +1799,8 @@ class FlameProjectState with ChangeNotifier {
         flameMixins
           ..clear()
           ..addAll(flameMixinsResult);
-        if (workspaceProjectResult != null) {
+        if (workspaceProjectResult != null &&
+            authoredRevision == workspaceModel.revision) {
           workspaceModel.replaceProject(workspaceProjectResult);
         }
         _migrationMapping = migrationMappingResult;
@@ -1918,11 +2037,32 @@ class FlameProjectState with ChangeNotifier {
   }
 
   void _onWorkspaceModelChanged() {
+    final changed = workspaceModel.revision != _observedAuthoringRevision;
+    final gestureEnded =
+        _wasTransformEditing && !workspaceModel.isTransformEditing;
+    _wasTransformEditing = workspaceModel.isTransformEditing;
+    if (changed) {
+      _observedAuthoringRevision = workspaceModel.revision;
+      _autosaveTimer?.cancel();
+      _validationTimer?.cancel();
+      _validationSerial++;
+    }
+    if ((changed || gestureEnded) &&
+        _workspaceConfigured &&
+        isBuildMode &&
+        workspaceModel.isDirty &&
+        !workspaceModel.isTransformEditing) {
+      _autosaveTimer?.cancel();
+      _autosaveTimer = Timer(autosaveDelay, () => unawaited(saveWorkspace()));
+    }
     notifyListeners();
   }
 
   @override
   void dispose() {
+    _autosaveTimer?.cancel();
+    _validationTimer?.cancel();
+    _validationSerial++;
     unawaited(_filesSubscription?.cancel());
     unawaited(_indexingScheduler.dispose());
     _analysisRevision++;

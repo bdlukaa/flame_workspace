@@ -75,6 +75,7 @@ class const FlameProject({
           .whereType<File>();
 }
 
-void openProject(BuildContext context, FlameProject project) {
-  if (context.mounted) WorkspaceNavigation.openProject(project);
-}
+Future<bool> openProject(BuildContext context, FlameProject project) =>
+    context.mounted
+    ? WorkspaceNavigation.openProject(project)
+    : Future.value(false);

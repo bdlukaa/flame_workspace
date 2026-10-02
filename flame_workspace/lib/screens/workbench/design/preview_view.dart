@@ -203,12 +203,17 @@ class _GamePreviewViewState extends State<GamePreviewView> {
                 runner: workbench.runner,
                 executionMode: workbench.state.executionMode,
                 canEnterGame: workbench.runner.isPreviewRunning,
-                onExecutionModeChanged: (mode) {
+
+                onExecutionModeChanged: (mode) async {
                   if (mode == WorkspaceExecutionMode.build) {
                     workbench.state.enterBuildMode();
-                  } else {
-                    workbench.state.enterGameMode();
+                    return true;
                   }
+                  if (!await workbench.state.flushAuthoredChanges()) {
+                    return false;
+                  }
+                  workbench.state.enterGameMode();
+                  return true;
                 },
                 display: _display,
                 customId: _customId,
@@ -322,6 +327,7 @@ class PreviewToolbar extends StatelessWidget {
     required this.runner,
     required this.executionMode,
     required this.canEnterGame,
+
     required this.onExecutionModeChanged,
     required this.display,
     required this.customId,
@@ -332,7 +338,7 @@ class PreviewToolbar extends StatelessWidget {
   final FlameProjectRunner runner;
   final WorkspaceExecutionMode executionMode;
   final bool canEnterGame;
-  final ValueChanged<WorkspaceExecutionMode> onExecutionModeChanged;
+  final Future<bool> Function(WorkspaceExecutionMode) onExecutionModeChanged;
   final PreviewDisplay display;
   final String customId;
   final ValueChanged<String> onDisplaySelected;
@@ -386,11 +392,17 @@ class PreviewToolbar extends StatelessWidget {
               tooltip: 'Play',
               onPressed: canStart
                   ? () {
-                      onExecutionModeChanged(WorkspaceExecutionMode.game);
                       unawaited(() async {
+                        if (!await onExecutionModeChanged(
+                          WorkspaceExecutionMode.game,
+                        )) {
+                          return;
+                        }
                         await runner.runPreviewSafely();
                         if (!runner.isPreviewRunning) {
-                          onExecutionModeChanged(WorkspaceExecutionMode.build);
+                          await onExecutionModeChanged(
+                            WorkspaceExecutionMode.build,
+                          );
                         }
                       }());
                     }
@@ -414,7 +426,9 @@ class PreviewToolbar extends StatelessWidget {
               tooltip: 'Stop',
               onPressed: canStop
                   ? () {
-                      onExecutionModeChanged(WorkspaceExecutionMode.build);
+                      unawaited(
+                        onExecutionModeChanged(WorkspaceExecutionMode.build),
+                      );
                       unawaited(runner.stop());
                     }
                   : null,
@@ -481,7 +495,7 @@ class PreviewToolbar extends StatelessWidget {
               selected: {executionMode},
               showSelectedIcon: false,
               onSelectionChanged: (selection) {
-                onExecutionModeChanged(selection.first);
+                unawaited(onExecutionModeChanged(selection.first));
               },
             ),
             const SizedBox(width: 12),

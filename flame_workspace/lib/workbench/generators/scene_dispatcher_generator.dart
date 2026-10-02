@@ -97,13 +97,15 @@ class SceneDispatcherGenerator {
     );
   }
 
+  static File fileForScenes(FlameProject project) => File(
+    path.join(project.location.path, 'lib', '.generated', 'scenes.dart'),
+  );
+
   static Future<File> writeForScenes(
     Iterable<SceneDefinition> scenes,
     FlameProject project,
   ) async {
-    final file = File(
-      path.join(project.location.path, 'lib', '.generated', 'scenes.dart'),
-    );
+    final file = fileForScenes(project);
     await file.parent.create(recursive: true);
     await Writer.writeFormatted(file, generate(scenes, project));
     return file;

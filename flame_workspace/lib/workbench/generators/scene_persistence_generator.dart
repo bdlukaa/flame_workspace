@@ -241,19 +241,21 @@ class ScenePersistenceGenerator {
     );
   }
 
+  static File fileForScene(SceneDefinition scene, FlameProject project) => File(
+    path.join(
+      project.location.path,
+      'lib',
+      generatedFilesDirectory,
+      'scenes',
+      '${_sceneToken(scene.name).snakeCase}.workspace.dart',
+    ),
+  );
+
   static Future<File> writeForScene(
     SceneDefinition scene,
     FlameProject project,
   ) async {
-    final file = File(
-      path.join(
-        project.location.path,
-        'lib',
-        generatedFilesDirectory,
-        'scenes',
-        '${_sceneToken(scene.name).snakeCase}.workspace.dart',
-      ),
-    );
+    final file = fileForScene(scene, project);
     await file.parent.create(recursive: true);
     await Writer.writeFormatted(file, generate(scene, project));
     return file;

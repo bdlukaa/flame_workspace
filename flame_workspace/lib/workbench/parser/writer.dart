@@ -49,8 +49,67 @@ class Writer {
   }
 
   /// Formats [content] and writes it to [file].
-  static Future<void> writeFormatted(File file, String content) {
-    return file.writeAsString(formatDartString(content));
+  static Future<void> writeFormatted(File file, String content) =>
+      writeBatch({file: formatDartString(content)});
+
+  /// Stages the entire Workspace-owned batch before replacing any destination.
+  static Future<void> writeBatch(Map<File, String> contents) async {
+    final staged = <File, File>{};
+    final originals = <File, String?>{};
+    final backups = <File, File>{};
+    final published = <File>[];
+    try {
+      for (final entry in contents.entries) {
+        final file = entry.key;
+        final old = await file.exists() ? await file.readAsString() : null;
+        if (old == entry.value) continue;
+        originals[file] = old;
+        await file.parent.create(recursive: true);
+        final temporary = File(
+          '${file.path}.${DateTime.now().microsecondsSinceEpoch}.${staged.length}.tmp',
+        );
+        staged[file] = temporary;
+        await temporary.writeAsString(entry.value, flush: true);
+      }
+      for (final entry in staged.entries) {
+        if (Platform.isWindows && originals[entry.key] != null) {
+          final backup = File(
+            '${entry.key.path}.${DateTime.now().microsecondsSinceEpoch}.backup',
+          );
+          await entry.key.rename(backup.path);
+          backups[entry.key] = backup;
+        }
+        await entry.value.rename(entry.key.path);
+        published.add(entry.key);
+      }
+    } catch (_) {
+      for (final file in published.reversed) {
+        final old = originals[file];
+        if (await file.exists()) await file.delete();
+        if (backups[file] case final backup?) {
+          await backup.rename(file.path);
+        } else if (old != null) {
+          final rollback = File(
+            '${file.path}.${DateTime.now().microsecondsSinceEpoch}.rollback',
+          );
+          await rollback.writeAsString(old, flush: true);
+          await rollback.rename(file.path);
+        }
+      }
+      for (final entry in backups.entries) {
+        if (await entry.value.exists()) {
+          await entry.value.rename(entry.key.path);
+        }
+      }
+      rethrow;
+    } finally {
+      for (final temporary in staged.values) {
+        if (await temporary.exists()) await temporary.delete();
+      }
+      for (final backup in backups.values) {
+        if (await backup.exists()) await backup.delete();
+      }
+    }
   }
 
   static String addImport(String text, String importPath) {

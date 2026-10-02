@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../marionette/workspace_tools.dart';
 import '../../workbench/model/semantic_model.dart';
 import '../../workbench/project/project.dart';
+import '../../workbench/project/workspace_navigation.dart';
 import '../../workbench/runner/preview.dart';
 import '../../workbench/runner/runner.dart';
 import '../../workbench/runner/state.dart';
@@ -108,6 +109,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   late final FlameProjectRunner runner;
 
   bool _editingScript = false;
+  bool _allowPop = false;
 
   @override
   void initState() {
@@ -119,6 +121,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
       onHotRestartCompleted: state.clearRuntimeOverridesAfterRestart,
     );
     state.attachRunner(runner);
+    WorkspaceNavigation.flushBeforeLeave = state.flushAuthoredChanges;
     attachWorkspaceMarionetteContext(state, runner);
 
     state.addListener(_updateListener);
@@ -132,9 +135,21 @@ class _WorkbenchViewState extends State<WorkbenchView> {
   @override
   void dispose() {
     detachWorkspaceMarionetteContext(state);
-    runner.dispose();
+    if (WorkspaceNavigation.flushBeforeLeave == state.flushAuthoredChanges) {
+      WorkspaceNavigation.flushBeforeLeave = null;
+    }
+    unawaited(_finishClosing());
 
     super.dispose();
+  }
+
+  Future<void> _finishClosing() async {
+    if (!await state.flushAuthoredChanges()) {
+      debugPrint('Workspace close blocked: authored state was not saved.');
+      return;
+    }
+    runner.dispose();
+    state.dispose();
   }
 
   @override
@@ -164,50 +179,59 @@ class _WorkbenchViewState extends State<WorkbenchView> {
       );
     }
 
-    return Focus(
-      onKeyEvent: _handleEditorShortcut,
-      child: Workbench(
-        project: widget.project,
-        runner: runner,
-        state: state,
-        onComponentSelected: (component) {
-          state.selectComponent(component?.id);
-        },
-        onEditScript: () {
-          setState(() => _editingScript = !_editingScript);
-        },
-        onEditScene: (sceneId) {
-          state.editWorkspaceScene(sceneId);
-          setState(() {
-            mode = WorkbenchViewMode.design;
-            _editingScript = false;
-          });
-        },
-        child: Scaffold(
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Card(
-                margin: EdgeInsets.zero,
-                shape: const RoundedRectangleBorder(),
-                child: Container(
-                  height: 38.0,
-                  padding: const EdgeInsetsDirectional.all(4.0),
-                  child: Builder(builder: _buildToolbar),
-                ),
-              ),
-              if (_hasProjectIssue) _buildProjectIssueBanner(context),
-              Expanded(
-                child: switch (mode) {
-                  WorkbenchViewMode.design => DesignView(
-                    isEditingScript: _editingScript,
+    return PopScope(
+      canPop: _allowPop,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop || !await state.flushAuthoredChanges() || !mounted) return;
+        setState(() => _allowPop = true);
+        Navigator.of(this.context).pop();
+      },
+      child: Focus(
+        onKeyEvent: _handleEditorShortcut,
+        child: Workbench(
+          project: widget.project,
+          runner: runner,
+          state: state,
+          onComponentSelected: (component) {
+            state.selectComponent(component?.id);
+          },
+          onEditScript: () {
+            setState(() => _editingScript = !_editingScript);
+          },
+          onEditScene: (sceneId) {
+            state.editWorkspaceScene(sceneId);
+            setState(() {
+              mode = WorkbenchViewMode.design;
+              _editingScript = false;
+            });
+          },
+          child: Scaffold(
+            body: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Card(
+                  margin: EdgeInsets.zero,
+                  shape: const RoundedRectangleBorder(),
+                  child: Container(
+                    height: 38.0,
+                    padding: const EdgeInsetsDirectional.all(4.0),
+                    child: Builder(builder: _buildToolbar),
                   ),
-                  WorkbenchViewMode.project => const ProjectView(),
-                  WorkbenchViewMode.assets => const AssetsView(),
-                  WorkbenchViewMode.configuration => const ConfigurationView(),
-                },
-              ),
-            ],
+                ),
+                if (_hasProjectIssue) _buildProjectIssueBanner(context),
+                Expanded(
+                  child: switch (mode) {
+                    WorkbenchViewMode.design => DesignView(
+                      isEditingScript: _editingScript,
+                    ),
+                    WorkbenchViewMode.project => const ProjectView(),
+                    WorkbenchViewMode.assets => const AssetsView(),
+                    WorkbenchViewMode.configuration =>
+                      const ConfigurationView(),
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -342,6 +366,12 @@ class _WorkbenchViewState extends State<WorkbenchView> {
                     : null,
                 tooltip: 'Save scene',
                 icon: const Icon(Icons.save),
+              ),
+              const SizedBox(width: 8.0),
+              Text(
+                state.authoringStatus,
+                key: const ValueKey('workspace.saveStatus'),
+                style: theme.textTheme.labelSmall,
               ),
               const SizedBox(width: 8.0),
               InkedIconButton(
