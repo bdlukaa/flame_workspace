@@ -12,6 +12,7 @@ import '../../workbench/runner/preview.dart';
 import '../../workbench/runner/runner.dart';
 import '../../workbench/runner/state.dart';
 import '../../widgets/inked_icon_button.dart';
+import '../../widgets/workspace_window_header.dart';
 import 'assets/assets_view.dart';
 import 'configuration/configuration_view.dart';
 import 'design/design.dart';
@@ -124,6 +125,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
     );
     state.attachRunner(runner);
     WorkspaceNavigation.flushBeforeLeave = state.flushAuthoredChanges;
+    WorkspaceNavigation.prepareForExit = _prepareForExit;
     attachWorkspaceMarionetteContext(state, runner);
 
     state.addListener(_updateListener);
@@ -140,9 +142,18 @@ class _WorkbenchViewState extends State<WorkbenchView> {
     if (WorkspaceNavigation.flushBeforeLeave == state.flushAuthoredChanges) {
       WorkspaceNavigation.flushBeforeLeave = null;
     }
+    if (WorkspaceNavigation.prepareForExit == _prepareForExit) {
+      WorkspaceNavigation.prepareForExit = null;
+    }
     unawaited(_finishClosing());
 
     super.dispose();
+  }
+
+  Future<bool> _prepareForExit() async {
+    if (!await state.flushAuthoredChanges()) return false;
+    await runner.stop();
+    return true;
   }
 
   Future<void> _finishClosing() async {
@@ -211,15 +222,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
             body: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Card(
-                  margin: EdgeInsets.zero,
-                  shape: const RoundedRectangleBorder(),
-                  child: Container(
-                    height: 38.0,
-                    padding: const EdgeInsetsDirectional.all(4.0),
-                    child: Builder(builder: _buildToolbar),
-                  ),
-                ),
+                WorkspaceWindowHeader(child: Builder(builder: _buildToolbar)),
                 if (_hasProjectIssue) _buildProjectIssueBanner(context),
                 Expanded(
                   child: switch (mode) {

@@ -120,3 +120,4 @@ app.*.symbols
 !/dev/ci/**/Gemfile.lock
 
 test_fw_game/
+docs/stabilization/.evidence/

@@ -6,8 +6,10 @@ import 'package:flame_workspace/screens/workbench/workbench_view.dart';
 import 'package:flame_workspace/marionette/workspace_tools.dart';
 
 import 'package:flame_workspace/workbench/runner/cef_preview_surface.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart'
+    show kDebugMode, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
 import 'screens/welcome/welcome.dart';
@@ -37,20 +39,52 @@ class const FlameWorkspaceApp({super.key}) extends StatefulWidget {
 }
 
 class _FlameWorkspaceAppState extends State<FlameWorkspaceApp> {
-  late final AppLifecycleListener _lifecycleListener = AppLifecycleListener(
-    onExitRequested: _shutdownPreviewSurface,
-  );
+  static const _windowChannel = MethodChannel('flameWorkspace/window');
+  late final AppLifecycleListener _lifecycleListener;
+  Future<AppExitResponse>? _exitInFlight;
 
-  Future<AppExitResponse> _shutdownPreviewSurface() async {
-    if (!await WorkspaceNavigation.flushCurrentProject()) {
+  @override
+  void initState() {
+    super.initState();
+    _lifecycleListener = AppLifecycleListener(
+      onExitRequested: _shutdownPreviewSurface,
+    );
+    if (defaultTargetPlatform == TargetPlatform.macOS) {
+      _windowChannel.setMethodCallHandler((call) async {
+        if (call.method != 'requestClose') {
+          throw MissingPluginException(
+            'Unknown window request: ${call.method}',
+          );
+        }
+        return await _shutdownPreviewSurface() == AppExitResponse.exit;
+      });
+    }
+  }
+
+  Future<AppExitResponse> _shutdownPreviewSurface() {
+    return _exitInFlight ??= _prepareForExit().whenComplete(() {
+      _exitInFlight = null;
+    });
+  }
+
+  Future<AppExitResponse> _prepareForExit() async {
+    try {
+      if (!await WorkspaceNavigation.closeCurrentProject()) {
+        return AppExitResponse.cancel;
+      }
+      await shutdownCefPreviewSurface();
+      return AppExitResponse.exit;
+    } catch (error) {
+      debugPrint('Could not close Workspace safely: $error');
       return AppExitResponse.cancel;
     }
-    await shutdownCefPreviewSurface();
-    return AppExitResponse.exit;
   }
 
   @override
   void dispose() {
+    if (defaultTargetPlatform == TargetPlatform.macOS) {
+      _windowChannel.setMethodCallHandler(null);
+    }
     _lifecycleListener.dispose();
     super.dispose();
   }

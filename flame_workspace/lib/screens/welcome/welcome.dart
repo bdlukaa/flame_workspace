@@ -4,6 +4,8 @@ import 'package:flame_workspace/workbench/project/import.dart';
 import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:flutter/material.dart';
 
+import '../../widgets/workspace_window_header.dart';
+
 import 'create_project.dart';
 
 class WelcomeView extends StatefulWidget {
@@ -29,47 +31,55 @@ class _WelcomeViewState extends State<WelcomeView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              children: [
-                Text(
-                  'Welcome to the Flame Workspace!',
-                  style: theme.textTheme.headlineMedium,
+      body: Column(
+        children: [
+          const WorkspaceWindowHeader(),
+          Expanded(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Welcome to the Flame Workspace!',
+                        style: theme.textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _ActionButton(
+                            key: const ValueKey('workspace.createProject'),
+                            icon: Icons.add,
+                            text: 'Create new project',
+                            onPressed: () =>
+                                setState(() => _creating = !_creating),
+                          ),
+                          const SizedBox(width: 16),
+                          _ActionButton(
+                            key: const ValueKey('workspace.openProject'),
+                            icon: Icons.folder_open,
+                            text: 'Open existing project',
+                            onPressed: () => setState(() => _creating = false),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      if (_creating)
+                        const CreateProjectView(
+                          key: ValueKey('workspace.createProject.form'),
+                        )
+                      else
+                        _buildOpenForm(context),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _ActionButton(
-                      key: const ValueKey('workspace.createProject'),
-                      icon: Icons.add,
-                      text: 'Create new project',
-                      onPressed: () => setState(() => _creating = !_creating),
-                    ),
-                    const SizedBox(width: 16),
-                    _ActionButton(
-                      key: const ValueKey('workspace.openProject'),
-                      icon: Icons.folder_open,
-                      text: 'Open existing project',
-                      onPressed: () => setState(() => _creating = false),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                if (_creating)
-                  const CreateProjectView(
-                    key: ValueKey('workspace.createProject.form'),
-                  )
-                else
-                  _buildOpenForm(context),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

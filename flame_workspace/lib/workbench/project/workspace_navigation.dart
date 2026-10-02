@@ -4,6 +4,10 @@ final workspaceNavigatorKey = GlobalKey<NavigatorState>();
 
 abstract final class WorkspaceNavigation {
   static Future<bool> Function()? flushBeforeLeave;
+  static Future<bool> Function()? prepareForExit;
+
+  static Future<bool> closeCurrentProject() async =>
+      await prepareForExit?.call() ?? await flushCurrentProject();
 
   static Future<bool> flushCurrentProject() async =>
       await flushBeforeLeave?.call() ?? true;
