@@ -126,6 +126,25 @@ void main() {
       ),
       runtimeClientOverride: WorkspaceRuntimeClient.fromInvoker((method, _) {
         calls.add(method);
+        if (method == WorkspaceExtensionNames.getState) {
+          return Future.value(
+            const WorkspaceRuntimeResponse.success({
+              'sessionId': 'toolbar-test',
+              'scene': 'Scene1',
+              'sceneReady': true,
+              'paused': false,
+            }).toMap(),
+          );
+        }
+        if (method == WorkspaceExtensionNames.getComponentTree) {
+          return Future.value(
+            const WorkspaceRuntimeResponse.success({
+              'id': 'Scene1',
+              'type': 'Scene',
+              'children': [],
+            }).toMap(),
+          );
+        }
         return Future.value(
           const WorkspaceRuntimeResponse.success({'paused': true}).toMap(),
         );
@@ -134,6 +153,8 @@ void main() {
     );
     runner.previewRunner.state = PreviewState.running;
     runner.previewRunner.url = Uri.parse('http://localhost:8080');
+    expect(await runner.connectRuntime('ws://localhost:8181/ws'), isTrue);
+    calls.clear();
 
     Widget toolbar() => MaterialApp(
       home: Scaffold(

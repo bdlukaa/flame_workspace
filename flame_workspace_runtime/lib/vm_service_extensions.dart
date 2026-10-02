@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'flame_workspace_runtime.dart';
@@ -81,9 +82,17 @@ class FlameWorkspaceRuntimeBridge {
   }
 
   dynamic _getState() {
+    final scene = core.currentSceneOrNull;
     return WorkspaceGameState(
       paused: core.game.paused,
-      scene: core.currentSceneOrNull?.sceneName,
+      scene: scene?.sceneName,
+      sessionId: core.sessionId.isEmpty ? null : core.sessionId,
+      sceneReady:
+          scene != null &&
+          core.game.isMounted &&
+          scene.isLoaded &&
+          scene.isMounted &&
+          identical(core.game.world, scene),
     ).toMap();
   }
 
@@ -312,11 +321,35 @@ class FlameWorkspaceRuntimeBridge {
     }
 
     final scene = core.currentSceneOrNull;
-    if (scene != null && scene != previousScene && core.game.isMounted) {
-      await scene.loaded;
-      await core.game.ready();
+    if (scene == null || scene.sceneName != sceneName) {
+      throw _RuntimeCommandException(
+        'scene_not_found',
+        'The dispatcher did not select "$sceneName".',
+      );
     }
-    return <String, dynamic>{'scene': sceneName};
+    if (scene != previousScene) {
+      try {
+        await scene.loaded.timeout(const Duration(seconds: 10));
+        await scene.mounted.timeout(const Duration(seconds: 10));
+      } on TimeoutException {
+        throw _RuntimeCommandException(
+          'scene_not_ready',
+          'Scene "$sceneName" did not mount in time.',
+        );
+      }
+    }
+    if (_getState()['sceneReady'] != true ||
+        !identical(core.currentSceneOrNull, scene)) {
+      throw _RuntimeCommandException(
+        'scene_not_ready',
+        'Scene "$sceneName" is not ready for editing.',
+      );
+    }
+    return <String, dynamic>{
+      'scene': sceneName,
+      'sessionId': core.sessionId,
+      'sceneReady': true,
+    };
   }
 
   dynamic _pause() {

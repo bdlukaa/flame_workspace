@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:webview_cef/webview_cef.dart';
 
@@ -20,6 +22,35 @@ class _CefPreviewSurfaceLifecycle {
 
 class CefPreviewSurface implements PreviewSurface {
   WebViewController? _controller;
+  Completer<void>? _pageLoaded;
+
+  Future<void> _waitForPage(
+    WebViewController controller,
+    Uri uri,
+    Future<void> Function() load,
+  ) async {
+    final ready = Completer<void>();
+    // Disposal may happen while initialize/loadUrl is still awaiting CEF.
+    ready.future.ignore();
+    _pageLoaded = ready;
+    controller.setWebviewListener(
+      WebviewEventsListener(
+        onLoadEnd: (source, url) {
+          if (identical(source, _controller) &&
+              Uri.tryParse(url)?.origin == uri.origin &&
+              !ready.isCompleted) {
+            ready.complete();
+          }
+        },
+      ),
+    );
+    try {
+      await load().timeout(const Duration(seconds: 20));
+      await ready.future.timeout(const Duration(seconds: 20));
+    } finally {
+      if (identical(_pageLoaded, ready)) _pageLoaded = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +78,7 @@ class CefPreviewSurface implements PreviewSurface {
 
     final existing = _controller;
     if (existing != null) {
-      await existing.loadUrl(uri.toString());
+      await _waitForPage(existing, uri, () => existing.loadUrl(uri.toString()));
       return;
     }
 
@@ -60,7 +91,11 @@ class CefPreviewSurface implements PreviewSurface {
     _controller = controller;
 
     try {
-      await controller.initialize(uri.toString());
+      await _waitForPage(
+        controller,
+        uri,
+        () => controller.initialize(uri.toString()),
+      );
     } catch (_) {
       _controller = null;
       await controller.dispose();
@@ -74,6 +109,7 @@ class CefPreviewSurface implements PreviewSurface {
     if (controller == null) {
       throw StateError('Preview surface has not been loaded.');
     }
+    // reload() only acknowledges the CEF command; load completion is separate.
     await controller.reload();
   }
 
@@ -81,6 +117,13 @@ class CefPreviewSurface implements PreviewSurface {
   Future<void> dispose() async {
     final controller = _controller;
     _controller = null;
+    final pending = _pageLoaded;
+    _pageLoaded = null;
+    if (pending != null && !pending.isCompleted) {
+      pending.completeError(
+        StateError('Preview browser was disposed during loading.'),
+      );
+    }
     await controller?.dispose();
   }
 

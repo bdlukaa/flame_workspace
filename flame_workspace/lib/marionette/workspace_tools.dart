@@ -198,6 +198,8 @@ Future<MarionetteExtensionResult> _read(String name) async {
     'workspace.getSyncStatus' => {
       'mode': state.executionMode.name,
       'runtimeConnected': runner.canControlRuntime,
+      'connectionState': runner.connectionState.name,
+      'runtimeSessionId': runner.runtimeSessionId,
       'runtimeTreeAvailable': state.runtimeTree != null,
       'diagnostics': [
         for (final diagnostic in state.runtimeTreeDiagnostics)

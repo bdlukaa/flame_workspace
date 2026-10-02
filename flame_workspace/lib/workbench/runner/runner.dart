@@ -17,6 +17,17 @@ import '../project/project.dart';
 
 const kWorkspaceLogPrefix = 'flame_workspace: ';
 const kPreviewLogPrefix = 'preview: ';
+
+enum RuntimeConnectionState {
+  disconnected,
+  browserLoaded,
+  serviceConnected,
+  extensionsAvailable,
+  sceneLoading,
+  sceneReady,
+  failed,
+}
+
 const kInitialLog =
     '$kWorkspaceLogPrefix'
     'Project not running';
@@ -34,6 +45,10 @@ class FlameProjectRunner with ChangeNotifier {
 
   /// Called after the VM Service connection is established.
   final Future<void> Function()? onRuntimeConnected;
+  final String? Function()? expectedScene;
+  final bool Function()? isBuildMode;
+  final Duration handshakeTimeout;
+  final Duration handshakePollInterval;
 
   /// Optional runtime client override used by focused synchronization tests.
   final WorkspaceRuntimeClient? runtimeClientOverride;
@@ -50,6 +65,10 @@ class FlameProjectRunner with ChangeNotifier {
   FlameProjectRunner(
     this.project, {
     this.onRuntimeConnected,
+    this.expectedScene,
+    this.isBuildMode,
+    this.handshakeTimeout = const Duration(seconds: 15),
+    this.handshakePollInterval = const Duration(milliseconds: 150),
     this.runtimeClientOverride,
     this.onRuntimeTreeChanged,
     this.onHotRestartCompleted,
@@ -67,7 +86,25 @@ class FlameProjectRunner with ChangeNotifier {
   WorkspaceDiagnostic? _runtimeDiagnostic;
   WorkspaceDiagnostic? _executionDiagnostic;
   String? _runtimeServiceUri;
+  WorkspaceRuntimeConnection? _connection;
+  Future<bool>? _connectionInFlight;
+  Timer? _reconnectTimer;
+  int _reconnectAttempts = 0;
+  int _previewGeneration = 0;
+  Future<void>? _previewStartInFlight;
+  RuntimeConnectionState _connectionState = RuntimeConnectionState.disconnected;
+  RuntimeConnectionState get connectionState => _connectionState;
+  String? _runtimeSessionId;
+  String? get runtimeSessionId => _runtimeSessionId;
+  WorkspaceRuntimeClient? get _client =>
+      runtimeClientOverride ?? _connection?.client;
   bool? _isPaused;
+
+  void _setConnectionState(RuntimeConnectionState state) {
+    if (_connectionState == state) return;
+    _connectionState = state;
+    notifyListeners();
+  }
 
   /// Whether the project is running.
   bool get isRunning => _isRunning;
@@ -98,8 +135,7 @@ class FlameProjectRunner with ChangeNotifier {
   bool get isPreviewRunning => previewRunner.isRunning;
 
   bool get canControlRuntime =>
-      runtimeClientOverride != null ||
-      (_runtimeServiceUri != null && runtimeClient != null);
+      _connectionState == RuntimeConnectionState.sceneReady;
   bool get canHotReload => isPreviewRunning;
   bool get canHotRestart => isPreviewRunning;
   bool? get isPaused => _isPaused;
@@ -136,12 +172,61 @@ class FlameProjectRunner with ChangeNotifier {
       _enqueue(() => _setSceneNow(sceneName));
 
   Future<bool> _setSceneNow(String sceneName) async {
+    final session = _session;
+    _setConnectionState(RuntimeConnectionState.sceneLoading);
     final succeeded = await _invokeRuntimeNow(
       WorkspaceExtensionNames.setScene,
       arguments: {'scene': sceneName},
     );
-    if (succeeded) await _refreshRuntimeTree();
-    return succeeded;
+    if (session != _session) return false;
+    if (!succeeded) {
+      _setConnectionState(RuntimeConnectionState.failed);
+      return false;
+    }
+    try {
+      final client = _client!;
+      final deadline = DateTime.now().add(handshakeTimeout);
+      while (session == _session && DateTime.now().isBefore(deadline)) {
+        final state = await client
+            .invoke(WorkspaceExtensionNames.getState)
+            .timeout(const Duration(seconds: 2));
+        if (session != _session) return false;
+        if (state is Map &&
+            state['scene'] == sceneName &&
+            state['sceneReady'] == true &&
+            state['sessionId'] == _runtimeSessionId) {
+          final tree = await client
+              .invoke(WorkspaceExtensionNames.getComponentTree)
+              .timeout(const Duration(seconds: 2));
+          if (session != _session) return false;
+          if (tree is Map && tree['id'] == sceneName) {
+            _setConnectionState(RuntimeConnectionState.sceneReady);
+            await _refreshRuntimeTree();
+            return session == _session;
+          }
+        }
+        await Future<void>.delayed(handshakePollInterval);
+      }
+      if (session != _session) return false;
+      throw TimeoutException(
+        'Scene "$sceneName" did not mount in runtime session $_runtimeSessionId.',
+      );
+    } catch (error) {
+      if (session == _session) {
+        _setConnectionState(RuntimeConnectionState.failed);
+        _reportRuntimeDiagnostic(
+          WorkspaceDiagnostic(
+            category: WorkspaceDiagnosticCategory.synchronization,
+            code: 'scene_not_ready',
+            operation: 'Mount scene "$sceneName"',
+            message: '$error',
+            recovery: 'Authored state is preserved. Restart Preview to rebuild the scene.',
+          ),
+        );
+      }
+      debugPrint('Scene readiness failed: $error');
+      return false;
+    }
   }
 
   /// Reloads generated scene code, then replaces the active World so its
@@ -154,7 +239,8 @@ class FlameProjectRunner with ChangeNotifier {
   Future<void> refreshRuntimeTree() => _refreshRuntimeTree();
 
   Future<void> _refreshRuntimeTree() async {
-    final client = runtimeClientOverride ?? runtimeClient;
+    final session = _session;
+    final client = _client;
     if (client == null) return;
     try {
       // During hot restart Flame briefly has no active Workspace scene. Avoid
@@ -175,11 +261,13 @@ class FlameProjectRunner with ChangeNotifier {
           'Runtime component tree must be an object.',
         );
       }
+      if (session != _session) return;
       await onRuntimeTreeChanged?.call(
         WorkspaceComponentNode.fromMap(Map<String, dynamic>.from(decoded)),
         null,
       );
     } catch (error) {
+      if (session != _session) return;
       await onRuntimeTreeChanged?.call(null, error);
       _reportRuntimeDiagnostic(
         WorkspaceDiagnostic(
@@ -250,8 +338,11 @@ class FlameProjectRunner with ChangeNotifier {
     Map<String, dynamic> arguments = const {},
   }) async {
     final session = _session;
-    final client = runtimeClientOverride ?? runtimeClient;
-    if (client == null) {
+    final client = _client;
+    if (client == null ||
+        (runtimeClientOverride == null &&
+            _connectionState != RuntimeConnectionState.sceneReady &&
+            method != WorkspaceExtensionNames.setScene)) {
       _reportRuntimeDiagnostic(
         const WorkspaceDiagnostic(
           category: WorkspaceDiagnosticCategory.synchronization,
@@ -299,6 +390,10 @@ class FlameProjectRunner with ChangeNotifier {
       return false;
     } catch (error) {
       if (session != _session) return false;
+      if (error is RPCError) {
+        reportRuntimeConnectionError(error);
+        return false;
+      }
       _reportRuntimeDiagnostic(
         WorkspaceDiagnostic(
           category: WorkspaceDiagnosticCategory.synchronization,
@@ -331,37 +426,148 @@ class FlameProjectRunner with ChangeNotifier {
   ///
   /// Connection failures are returned as `false` and retained in
   /// [runtimeError] so a broken preview cannot crash the editor.
-  Future<bool> connectRuntime(String serviceUri) async {
+  Future<bool> connectRuntime(String serviceUri) {
+    if (_disposeRequested) return Future.value(false);
+    if (_runtimeServiceUri == serviceUri && canControlRuntime) {
+      return Future.value(true);
+    }
+    final inFlight = _connectionInFlight;
+    if (inFlight != null && _runtimeServiceUri == serviceUri) return inFlight;
+    _reconnectTimer?.cancel();
     if (_runtimeServiceUri != null && _runtimeServiceUri != serviceUri) {
       _invalidateSession();
+      unawaited(_connection?.dispose());
+      _connection = null;
     }
     _runtimeServiceUri = serviceUri;
+    final session = _session;
+    late final Future<bool> connecting;
+    connecting = _connectRuntimeOnce(serviceUri, session).whenComplete(() {
+      if (identical(_connectionInFlight, connecting)) {
+        _connectionInFlight = null;
+      }
+    });
+    _connectionInFlight = connecting;
+    return connecting;
+  }
+
+  Future<bool> _connectRuntimeOnce(String serviceUri, int session) async {
+    WorkspaceRuntimeConnection? candidate;
     try {
-      await registerWorkspace(serviceUri);
-      await onRuntimeConnected?.call();
-      clearRuntimeError();
-      await _refreshRuntimeGameState();
-      await _refreshRuntimeTree();
-      return true;
+      if (runtimeClientOverride == null) {
+        candidate = await WorkspaceRuntimeConnection.connect(serviceUri)
+            .timeout(const Duration(seconds: 12));
+      }
+      if (session != _session) return false;
+      _connection = candidate;
+      _setConnectionState(RuntimeConnectionState.serviceConnected);
+      final client = _client!;
+      final deadline = DateTime.now().add(handshakeTimeout);
+      String? runtimeSession;
+      while (DateTime.now().isBefore(deadline) && session == _session) {
+        try {
+          final result = await client
+              .invoke(WorkspaceExtensionNames.getState)
+              .timeout(const Duration(seconds: 2));
+          if (session != _session) return false;
+          if (result is! Map ||
+              result['sessionId'] is! String ||
+              (result['sessionId'] as String).isEmpty ||
+              result['sceneReady'] is! bool) {
+            throw const FormatException(
+              'Runtime handshake lacks sessionId or sceneReady.',
+            );
+          }
+          runtimeSession = result['sessionId'] as String;
+          _setConnectionState(RuntimeConnectionState.extensionsAvailable);
+          final wanted = expectedScene?.call();
+          if (wanted != null &&
+              result['scene'] != null &&
+              result['scene'] != wanted &&
+              isBuildMode?.call() == true) {
+            _setConnectionState(RuntimeConnectionState.sceneLoading);
+            final changed = await _invokeRuntimeNow(
+              WorkspaceExtensionNames.setScene,
+              arguments: {'scene': wanted},
+            );
+            if (!changed) {
+              throw StateError('Could not select expected scene $wanted.');
+            }
+          } else if (result['sceneReady'] == true &&
+              (wanted == null ||
+                  wanted == result['scene'] ||
+                  isBuildMode?.call() == false)) {
+            final tree = await client
+                .invoke(WorkspaceExtensionNames.getComponentTree)
+                .timeout(const Duration(seconds: 2));
+            if (session != _session) return false;
+            if (tree is! Map || tree['id'] != result['scene']) {
+              throw const FormatException(
+                'Runtime component tree does not match the mounted scene.',
+              );
+            }
+            _runtimeSessionId = runtimeSession;
+            _setConnectionState(RuntimeConnectionState.sceneReady);
+            candidate?.onDone.then((_) {
+              if (session == _session && identical(candidate, _connection)) {
+                reportRuntimeConnectionError(StateError('VM Service closed.'));
+              }
+            });
+            _reconnectAttempts = 0;
+            clearRuntimeError();
+            await _refreshRuntimeGameState();
+            await _refreshRuntimeTree();
+            if (session != _session) return false;
+            await onRuntimeConnected?.call();
+            return session == _session;
+          } else {
+            _setConnectionState(RuntimeConnectionState.sceneLoading);
+          }
+        } on WorkspaceRuntimeException catch (error) {
+          if (error.code != 'extension_not_registered' &&
+              error.code != 'scene_unavailable') {
+            rethrow;
+          }
+        } on RPCError catch (error) {
+          // DWDS reports missing extensions while Flutter is registering them.
+          if (error.code != -32601 && error.code != -32000) rethrow;
+        }
+        await Future<void>.delayed(handshakePollInterval);
+      }
+      if (session != _session) return false;
+      throw TimeoutException(
+        'Runtime extensions or scene $runtimeSession did not become ready at $serviceUri.',
+      );
     } catch (error) {
+      if (session != _session) return false;
+      _setConnectionState(RuntimeConnectionState.failed);
       _reportRuntimeDiagnostic(
         WorkspaceDiagnostic(
           category: WorkspaceDiagnosticCategory.runtime,
-          code: 'runtime_connection_failed',
-          operation: 'Connect to running game',
+          code: 'runtime_attachment_failed',
+          operation: 'Attach to running game',
           message: '$error',
-          recovery: 'Verify the preview is active, then reconnect VM Service.',
+          recovery: 'Check Preview logs and VM Service availability; retry after fixing the game.',
         ),
       );
+      _scheduleReconnect();
       return false;
+    } finally {
+      if (session != _session ||
+          _connectionState == RuntimeConnectionState.failed) {
+        if (identical(_connection, candidate)) _connection = null;
+        await candidate?.dispose();
+      }
     }
   }
 
   Future<void> _refreshRuntimeGameState() async {
-    final client = runtimeClientOverride ?? runtimeClient;
+    final session = _session;
+    final client = _client;
     if (client == null) return;
     try {
       final result = await client.invoke(WorkspaceExtensionNames.getState);
+      if (session != _session) return;
       if (result is Map && result['paused'] is bool) {
         _isPaused = result['paused'] as bool;
         notifyListeners();
@@ -369,6 +575,24 @@ class FlameProjectRunner with ChangeNotifier {
     } on Object {
       // Pause/resume remain available through their command responses.
     }
+  }
+
+  void _scheduleReconnect() {
+    final endpoint = _runtimeServiceUri;
+    if (endpoint == null ||
+        !isPreviewRunning ||
+        _disposeRequested ||
+        _reconnectAttempts >= 3) {
+      return;
+    }
+    final attempt = ++_reconnectAttempts;
+    final session = _session;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(Duration(milliseconds: 300 * attempt), () {
+      if (session == _session && isPreviewRunning) {
+        unawaited(connectRuntime(endpoint));
+      }
+    });
   }
 
   Future<void> reconnectRuntime() async {
@@ -391,38 +615,64 @@ class FlameProjectRunner with ChangeNotifier {
 
   void reportRuntimeConnectionError(Object error) {
     _invalidateSession();
-    _runtimeServiceUri = null;
+    final previous = _connection;
+    _connection = null;
+    _connectionInFlight = null;
+    _runtimeSessionId = null;
+    unawaited(previous?.dispose());
+    _setConnectionState(RuntimeConnectionState.disconnected);
     _reportRuntimeDiagnostic(
       WorkspaceDiagnostic(
         category: WorkspaceDiagnosticCategory.runtime,
         code: 'runtime_connection_lost',
         operation: 'Maintain runtime connection',
         message: '$error',
-        recovery: 'Reconnect VM Service or restart the preview.',
+        recovery: 'Workspace will retry attachment; restart Preview if the service remains unavailable.',
       ),
     );
+    _scheduleReconnect();
   }
 
-  Future<void> runPreview() async {
-    if (_isRunning) {
-      throw Exception('Project is already running');
-    }
+  Future<void> runPreview() {
+    final inFlight = _previewStartInFlight;
+    if (inFlight != null) return inFlight;
+    late final Future<void> starting;
+    starting = _runPreviewOnce().whenComplete(() {
+      if (identical(_previewStartInFlight, starting)) {
+        _previewStartInFlight = null;
+      }
+    });
+    _previewStartInFlight = starting;
+    return starting;
+  }
 
+  Future<void> _runPreviewOnce() async {
+    if (_isRunning) throw StateError('Project is already running.');
     _isRunning = true;
     _isPaused = null;
     _executionDiagnostic = null;
     emitLog('Starting web preview', kWorkspaceLogPrefix);
     notifyListeners();
     try {
-      final session = _session;
+      final generation = ++_previewGeneration;
       final starting = previewRunner.start(
         onOutput: (line) {
-          if (session == _session) unawaited(onReceiveLog(line));
+          if (generation == _previewGeneration) unawaited(onReceiveLog(line));
         },
-        onError: (line) => emitLog(line, kPreviewLogPrefix),
+        onError: (line) {
+          if (generation == _previewGeneration) {
+            emitLog(line, kPreviewLogPrefix);
+          }
+        },
         onExit: (_) {
-          if (session != _session) return;
+          if (generation != _previewGeneration) return;
           _invalidateSession();
+          _reconnectTimer?.cancel();
+          final previous = _connection;
+          _connection = null;
+          _runtimeSessionId = null;
+          unawaited(previous?.dispose());
+          _setConnectionState(RuntimeConnectionState.disconnected);
           _isRunning = false;
           _isPaused = null;
           notifyListeners();
@@ -430,8 +680,15 @@ class FlameProjectRunner with ChangeNotifier {
       );
       notifyListeners();
       await starting;
+      if (generation != _previewGeneration) return;
+      if (_connectionState == RuntimeConnectionState.disconnected) {
+        _setConnectionState(RuntimeConnectionState.browserLoaded);
+      } else if (_connectionState == RuntimeConnectionState.failed) {
+        _scheduleReconnect();
+      }
       notifyListeners();
     } catch (error) {
+      if (!_isRunning) return;
       _isRunning = false;
       _reportExecutionError(
         'Could not start the web preview: $error Check the preview logs, '
@@ -458,6 +715,7 @@ class FlameProjectRunner with ChangeNotifier {
 
   void _invalidateSession() {
     _session++;
+    _connectionInFlight = null;
     if (!_sessionCancelled.isCompleted) _sessionCancelled.complete(false);
     _sessionCancelled = Completer<bool>();
     completeHotReload(succeeded: false);
@@ -575,12 +833,25 @@ class FlameProjectRunner with ChangeNotifier {
     if (completer == null) return;
     if (completer.isCompleted) return;
     completer.complete(succeeded);
-    if (succeeded) onHotRestartCompleted?.call();
-    notifyListeners();
     if (succeeded) {
-      unawaited(_refreshRuntimeGameState());
-      unawaited(_refreshRuntimeTree());
+      onHotRestartCompleted?.call();
+      final previous = _connection;
+      _connection = null;
+      _runtimeSessionId = null;
+      _setConnectionState(RuntimeConnectionState.disconnected);
+      unawaited(previous?.dispose());
+      final endpoint = _runtimeServiceUri;
+      _invalidateSession();
+      final session = _session;
+      if (endpoint != null) {
+        Timer.run(() {
+          if (session == _session && !_disposeRequested && isPreviewRunning) {
+            unawaited(connectRuntime(endpoint));
+          }
+        });
+      }
     }
+    notifyListeners();
   }
 
   bool get isHotRestarting =>
@@ -595,7 +866,16 @@ class FlameProjectRunner with ChangeNotifier {
   }
 
   Future<void> stop() async {
+    _previewGeneration++;
+    _reconnectTimer?.cancel();
+    _previewStartInFlight = null;
     _invalidateSession();
+    final connection = _connection;
+    _connection = null;
+    _connectionInFlight = null;
+    _runtimeSessionId = null;
+    await connection?.dispose();
+    _setConnectionState(RuntimeConnectionState.disconnected);
     if (_isRunning) emitLog('Stopping project', kWorkspaceLogPrefix);
     Object? stopError;
     try {
@@ -608,6 +888,7 @@ class FlameProjectRunner with ChangeNotifier {
     }
     _isRunning = false;
     _runtimeServiceUri = null;
+    _reconnectAttempts = 0;
     _isPaused = null;
     _runtimeDiagnostic = null;
 

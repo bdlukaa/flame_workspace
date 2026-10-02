@@ -117,6 +117,8 @@ class _WorkbenchViewState extends State<WorkbenchView> {
     runner = FlameProjectRunner(
       widget.project,
       onRuntimeConnected: state.onRuntimeConnected,
+      expectedScene: () => state.workspaceModel.currentScene?.name,
+      isBuildMode: () => state.isBuildMode,
       onRuntimeTreeChanged: state.updateRuntimeTreeDiagnostics,
       onHotRestartCompleted: state.clearRuntimeOverridesAfterRestart,
     );

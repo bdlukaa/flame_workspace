@@ -220,6 +220,14 @@ class _GamePreviewViewState extends State<GamePreviewView> {
                 onDisplaySelected: _selectDisplay,
                 onSwapOrientation: _swapOrientation,
               ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Preview: ${workbench.runner.connectionState.name}',
+                  key: const ValueKey('workspace.runtimeStatus'),
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ),
               if (workbench.runner.runtimeError case final error?)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),

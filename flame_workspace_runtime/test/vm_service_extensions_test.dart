@@ -53,7 +53,11 @@ void main() {
     );
 
     expect(state.ok, isTrue);
-    expect(state.result, {'paused': false, 'scene': 'test_scene'});
+    expect(state.result, {
+      'paused': false,
+      'scene': 'test_scene',
+      'sceneReady': false,
+    });
     expect(tree.ok, isTrue);
     final treeMap = tree.result as Map<String, dynamic>;
     expect(treeMap['id'], 'test_scene');
@@ -177,7 +181,8 @@ void main() {
 
     expect(propertyResponse.ok, isTrue);
     expect(changedValue, isTrue);
-    expect(sceneResponse.ok, isTrue);
+    expect(sceneResponse.ok, isFalse);
+    expect(sceneResponse.error?.code, 'scene_not_found');
     expect(selectedScene, 'other_scene');
   });
 
@@ -227,8 +232,16 @@ void main() {
       const {},
     );
 
-    expect(paused.result, {'paused': true, 'scene': 'test_scene'});
-    expect(resumed.result, {'paused': false, 'scene': 'test_scene'});
+    expect(paused.result, {
+      'paused': true,
+      'scene': 'test_scene',
+      'sceneReady': false,
+    });
+    expect(resumed.result, {
+      'paused': false,
+      'scene': 'test_scene',
+      'sceneReady': false,
+    });
   });
 
   test('malformed service requests return a useful response', () async {

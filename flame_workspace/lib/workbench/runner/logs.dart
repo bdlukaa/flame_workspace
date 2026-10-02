@@ -3,7 +3,6 @@
 import 'dart:async';
 
 import 'package:flame_workspace/workbench/runner/runner.dart';
-import 'package:flutter/foundation.dart';
 
 extension RunnerLogs on FlameProjectRunner {
   void emitLog(String log, String prefix) {
@@ -20,46 +19,46 @@ extension RunnerLogs on FlameProjectRunner {
     if (line.trim().isEmpty) return;
     emitLog(line, kPreviewLogPrefix);
 
-    if (line.trim().contains('The Flutter DevTools debugger and profiler on')) {
-      final marker = 'available at:';
-      final markerIndex = line.indexOf(marker);
-      if (markerIndex == -1) return;
-
-      final devToolsUrl = Uri.tryParse(
-        line.substring(markerIndex + marker.length).trim(),
-      );
-      final serviceUrl = devToolsUrl?.queryParameters['uri'];
-      if (serviceUrl == null) {
-        emitLog(
-          'Flutter did not provide a VM Service URL.',
-          kWorkspaceLogPrefix,
-        );
-        return;
-      }
-
-      final parsedServiceUrl = Uri.tryParse(serviceUrl);
-      if (parsedServiceUrl == null) {
-        emitLog(
-          'Flutter provided an invalid VM Service URL.',
-          kWorkspaceLogPrefix,
-        );
-        return;
-      }
-
-      final wsUri = '${parsedServiceUrl.replace(scheme: 'ws')}ws';
-      debugPrint('VM service at $wsUri');
-
-      final connected = await connectRuntime(wsUri);
-      if (!connected) return;
-
-      notifyListeners();
+    final serviceUri = PreviewServiceUriDetector.find(line);
+    if (serviceUri != null) {
+      await connectRuntime(serviceUri.toString());
     } else if (line.trim().contains('Reloaded ') ||
         line.trim().contains('Recompile complete.')) {
       completeHotReload();
     } else if (line.trim().contains('Restarted application in ')) {
       completeHotRestart();
     } else if (line.trim().contains('Exited ')) {
-      stop();
+      unawaited(stop());
     }
+  }
+}
+
+/// Understands both Flutter's direct VM Service line and its DevTools link.
+class PreviewServiceUriDetector {
+  static Uri? find(String line) {
+    Uri? endpoint;
+    if (line.contains('The Dart VM service is listening on ') ||
+        line.contains('A Dart VM Service on ')) {
+      final match = RegExp(r'https?://[^\s]+').firstMatch(line);
+      endpoint = Uri.tryParse(match?.group(0) ?? '');
+    } else if (line.contains('The Flutter DevTools debugger and profiler on')) {
+      final match = RegExp(r'https?://[^\s]+').firstMatch(line);
+      endpoint = Uri.tryParse(
+        Uri.tryParse(match?.group(0) ?? '')?.queryParameters['uri'] ?? '',
+      );
+    }
+    if (endpoint == null ||
+        !{'http', 'https', 'ws', 'wss'}.contains(endpoint.scheme) ||
+        endpoint.host.isEmpty) {
+      return null;
+    }
+    if (endpoint.scheme == 'ws' || endpoint.scheme == 'wss') return endpoint;
+    return endpoint.replace(
+      scheme: endpoint.scheme == 'https' ? 'wss' : 'ws',
+      path:
+          '${endpoint.path.endsWith('/') ? endpoint.path : '${endpoint.path}/'}ws',
+      query: null,
+      fragment: null,
+    );
   }
 }

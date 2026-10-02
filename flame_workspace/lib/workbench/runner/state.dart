@@ -72,11 +72,33 @@ class FlameProjectState with ChangeNotifier {
   void attachRunner(FlameProjectRunner runner) => _runner = runner;
 
   Future<void> onRuntimeConnected() async {
-    final sceneName = _sceneToRunWhenConnected;
-    if (sceneName == null || !isGameMode) return;
     final runner = _runner;
     if (runner == null || !runner.canControlRuntime) return;
-    if (await runner.setScene(sceneName)) _sceneToRunWhenConnected = null;
+    if (isGameMode) {
+      final sceneName = _sceneToRunWhenConnected;
+      if (sceneName != null && await runner.setScene(sceneName)) {
+        _sceneToRunWhenConnected = null;
+      }
+      return;
+    }
+    if (lastPreviewApplied != false && runtimeTreeDiagnostics.isEmpty) return;
+    for (var attempt = 0; attempt < 3 && isBuildMode; attempt++) {
+      if (!await flushAuthoredChanges()) return;
+      final revision = workspaceModel.revision;
+      final scene = workspaceModel.currentScene;
+      if (scene == null ||
+          !runner.canControlRuntime ||
+          !await runner.recreateScene(scene.name)) {
+        return;
+      }
+      if (revision == workspaceModel.revision) {
+        lastPreviewApplied = true;
+        notifyListeners();
+        return;
+      }
+    }
+    lastPreviewApplied = false;
+    runner.reportPreviewBehind(workspaceModel.currentScene?.name ?? 'unknown');
   }
 
   WorkspaceExecutionMode _executionMode = WorkspaceExecutionMode.build;
@@ -1029,9 +1051,16 @@ class FlameProjectState with ChangeNotifier {
         : true;
     if (!saved ||
         runner == null ||
-        !runner.isPreviewRunning ||
         workspaceModel.currentSceneId != scene.id ||
         !identical(runner, _runner)) {
+      return;
+    }
+    if (!runner.isPreviewRunning) return;
+    if (classifyWorkspaceChange(kind) ==
+            WorkspaceChangeStrategy.runtimeMutation &&
+        !runner.canControlRuntime) {
+      lastPreviewApplied = false;
+      runner.reportPreviewBehind(scene.name);
       return;
     }
     previewPending = true;

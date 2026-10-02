@@ -31,9 +31,12 @@ class FlameWorkspaceCore {
 
   FlameWorkspaceCore();
 
+  String sessionId = '';
+
   /// Initializes the runtime VM Service extensions.
   static Future<void> ensureInitialized(FlameGame game) async {
     instance.game = game;
+    instance.sessionId = DateTime.now().microsecondsSinceEpoch.toString();
     registerFlameWorkspaceExtensions(instance);
     if (kDebugMode) {
       debugPrint('Initializing Flame Workspace runtime');

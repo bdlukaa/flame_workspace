@@ -134,7 +134,12 @@ class PreviewProjectRunner {
     }
 
     try {
-      return await ready.future;
+      return await ready.future.timeout(const Duration(seconds: 45));
+    } on TimeoutException {
+      await stop();
+      throw TimeoutException(
+        'Web Preview did not provide a loaded page in 45 seconds.',
+      );
     } finally {
       if (identical(_ready, ready)) _ready = null;
     }

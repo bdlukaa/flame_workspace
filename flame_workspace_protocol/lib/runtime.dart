@@ -203,10 +203,14 @@ class const WorkspaceComponentNode({
 class const WorkspaceGameState({
   required final bool paused,
   final String? scene,
+  final String? sessionId,
+  final bool sceneReady = false,
 }) {
   Map<String, dynamic> toMap() => {
     'paused': paused,
     if (scene != null) 'scene': scene,
+    if (sessionId != null) 'sessionId': sessionId,
+    'sceneReady': sceneReady,
   };
 }
 
