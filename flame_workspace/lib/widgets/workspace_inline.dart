@@ -50,7 +50,7 @@ class _WorkspaceExpanderState extends State<WorkspaceExpander> {
                   child: Text(
                     label,
                     style: theme.textTheme.labelMedium,
-                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
                   ),
                 ),
                 if (widget.trailing != null) widget.trailing!,
@@ -77,6 +77,7 @@ class WorkspaceInlineSelect<T> extends StatelessWidget {
     required this.onChanged,
     this.enabled = true,
     this.labelBuilder,
+    this.maxOptionsHeight = 300,
   });
 
   final T value;
@@ -85,39 +86,36 @@ class WorkspaceInlineSelect<T> extends StatelessWidget {
   final ValueChanged<T> onChanged;
   final bool enabled;
   final String Function(T value)? labelBuilder;
+  final double? maxOptionsHeight;
 
   @override
   Widget build(BuildContext context) {
+    final options = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final option in values)
+          InkWell(
+            key: ValueKey('$label.${option.toString()}'),
+            onTap: enabled ? () => onChanged(option) : null,
+            child: Container(
+              color: option == value
+                  ? Theme.of(context).colorScheme.primaryContainer
+                  : null,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Text(labelBuilder?.call(option) ?? option.toString()),
+            ),
+          ),
+      ],
+    );
     return WorkspaceExpander(
       title: label,
       summary: labelBuilder?.call(value) ?? value.toString(),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 300),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final option in values)
-                InkWell(
-                  key: ValueKey('$label.${option.toString()}'),
-                  onTap: enabled ? () => onChanged(option) : null,
-                  child: Container(
-                    color: option == value
-                        ? Theme.of(context).colorScheme.primaryContainer
-                        : null,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 6,
-                    ),
-                    child: Text(
-                      labelBuilder?.call(option) ?? option.toString(),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
+      child: maxOptionsHeight == null
+          ? options
+          : ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxOptionsHeight!),
+              child: SingleChildScrollView(child: options),
+            ),
     );
   }
 }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+
 import 'package:flame_workspace_protocol/workspace_value.dart';
 
 import '../../../widgets/workspace_inline.dart';
+import '../../../widgets/workspace_inline_color.dart';
 
 class PaintPropertyField extends StatefulWidget {
   const PaintPropertyField({
@@ -12,6 +13,8 @@ class PaintPropertyField extends StatefulWidget {
     this.editable = true,
     this.nullable = false,
     this.semanticKey,
+    this.onGestureStart,
+    this.onGestureEnd,
   });
 
   final WorkspacePaint? value;
@@ -19,6 +22,8 @@ class PaintPropertyField extends StatefulWidget {
   final bool editable;
   final bool nullable;
   final String? semanticKey;
+  final VoidCallback? onGestureStart;
+  final VoidCallback? onGestureEnd;
 
   @override
   State<PaintPropertyField> createState() => _PaintPropertyFieldState();
@@ -39,7 +44,7 @@ class _CompactSwitch extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Text(label),
+      Expanded(child: Text(label)),
       Transform.scale(
         scale: 0.8,
         child: Switch.adaptive(
@@ -57,18 +62,41 @@ class _PaintPropertyFieldState extends State<PaintPropertyField> {
     text: (widget.value?.strokeWidth ?? 0).toString(),
   );
   String? validationError;
-  bool colorExpanded = false;
+  final widthFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    widthFocus.addListener(() {
+      if (!widthFocus.hasFocus) _commitWidth();
+    });
+  }
+
+  void _commitWidth() {
+    if (!widget.editable || widget.value == null) return;
+    final width = double.tryParse(widthController.text.trim());
+    if (width == null || !width.isFinite || width < 0) {
+      setState(() => validationError = 'Enter a valid width.');
+      return;
+    }
+    setState(() => validationError = null);
+    if (widget.value!.strokeWidth != width) {
+      update(widget.value!.copyWith(strokeWidth: width));
+    }
+  }
 
   @override
   void didUpdateWidget(covariant PaintPropertyField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.value?.strokeWidth != widget.value?.strokeWidth) {
+    if (!widthFocus.hasFocus &&
+        oldWidget.value?.strokeWidth != widget.value?.strokeWidth) {
       widthController.text = (widget.value?.strokeWidth ?? 0).toString();
     }
   }
 
   @override
   void dispose() {
+    widthFocus.dispose();
     widthController.dispose();
     super.dispose();
   }
@@ -94,47 +122,23 @@ class _PaintPropertyFieldState extends State<PaintPropertyField> {
                 : null,
           ),
         if (widget.value != null || !widget.nullable) ...[
-          Row(
-            children: [
-              const Expanded(child: Text('Color')),
-              Semantics(
-                button: true,
-                label: 'Paint color',
-                child: InkWell(
-                  key: widget.semanticKey == null
-                      ? null
-                      : ValueKey('${widget.semanticKey}.color'),
-                  onTap: widget.editable
-                      ? () => setState(() => colorExpanded = !colorExpanded)
-                      : null,
-                  child: Container(
-                    width: 34,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      color: Color(value.color.argb),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
+          Semantics(
+            button: true,
+            label: 'Paint color',
+            child: WorkspaceInlineColor(
+              key: widget.semanticKey == null
+                  ? null
+                  : ValueKey('${widget.semanticKey}.color'),
+              label: 'Color',
+              value: Color(value.color.argb),
+              enabled: widget.editable,
+              onGestureStart: widget.onGestureStart,
+              onGestureEnd: widget.onGestureEnd,
+              onChanged: (color) => update(
+                value.copyWith(color: WorkspaceColor(color.toARGB32())),
               ),
-            ],
-          ),
-          if (colorExpanded)
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final pickerWidth = constraints.maxWidth.clamp(160.0, 300.0);
-                return ColorPicker(
-                  pickerColor: Color(value.color.argb),
-                  paletteType: PaletteType.hsv,
-                  labelTypes: const [ColorLabelType.rgb],
-                  portraitOnly: true,
-                  colorPickerWidth: pickerWidth,
-                  onColorChanged: (color) => update(
-                    value.copyWith(color: WorkspaceColor(color.toARGB32())),
-                  ),
-                );
-              },
             ),
+          ),
           WorkspaceInlineSelect<WorkspacePaintStyle>(
             label: 'Style',
             value: value.style,
@@ -146,11 +150,12 @@ class _PaintPropertyFieldState extends State<PaintPropertyField> {
           if (value.style == WorkspacePaintStyle.stroke)
             Row(
               children: [
-                const Expanded(child: Text('Stroke width')),
-                SizedBox(
-                  width: 90,
+                const Expanded(child: Text('Stroke width', softWrap: true)),
+                Expanded(
                   child: TextField(
                     controller: widthController,
+                    focusNode: widthFocus,
+                    onTapOutside: (_) => widthFocus.unfocus(),
                     enabled: widget.editable,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -159,17 +164,7 @@ class _PaintPropertyFieldState extends State<PaintPropertyField> {
                       isDense: true,
                       errorText: validationError,
                     ),
-                    onSubmitted: (text) {
-                      final width = double.tryParse(text);
-                      if (width == null || !width.isFinite || width < 0) {
-                        setState(
-                          () => validationError = 'Enter a valid width.',
-                        );
-                        return;
-                      }
-                      setState(() => validationError = null);
-                      update(value.copyWith(strokeWidth: width));
-                    },
+                    onSubmitted: (_) => _commitWidth(),
                   ),
                 ),
               ],

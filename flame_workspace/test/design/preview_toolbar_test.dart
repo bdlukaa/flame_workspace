@@ -113,6 +113,74 @@ void main() {
     expect(find.text('Playing'), findsOneWidget);
   });
 
+  testWidgets('display options and inline custom size remain reachable', (
+    tester,
+  ) async {
+    final runner = FlameProjectRunner(
+      FlameProject(
+        name: 'test_game',
+        organization: 'test',
+        location: Directory.current,
+        initialScene: 'Scene1',
+      ),
+      previewSurface: UnavailablePreviewSurface(),
+    );
+    var display = const PreviewDisplay(
+      id: 'custom',
+      label: 'Custom',
+      width: 480,
+      height: 320,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 800,
+              height: 240,
+              child: StatefulBuilder(
+                builder: (context, refresh) => PreviewToolbar(
+                  runner: runner,
+                  executionMode: WorkspaceExecutionMode.build,
+                  canEnterGame: false,
+                  onExecutionModeChanged: (_) async => true,
+                  display: display,
+                  customId: 'custom',
+                  onDisplaySelected: (_) {},
+                  onSwapOrientation: () {},
+                  onCustomDimensionsChanged: (size) => refresh(
+                    () => display = display.withDimensions(
+                      size.width,
+                      size.height,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.textContaining('Display:'));
+    await tester.pump();
+    final lastOption = find.byKey(const ValueKey('Display.custom'));
+    await tester.ensureVisible(lastOption);
+    await tester.tap(lastOption);
+    await tester.pump();
+    final width = find.byKey(const ValueKey('workspace.preview.Width'));
+    final height = find.byKey(const ValueKey('workspace.preview.Height'));
+    await tester.ensureVisible(width);
+    await tester.enterText(width, '600');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    await tester.ensureVisible(height);
+    expect(display.width, 600);
+    expect(height, findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Pause and Resume use runtime commands and update status', (
     tester,
   ) async {

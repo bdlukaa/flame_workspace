@@ -2193,8 +2193,8 @@ class FlameProjectState with ChangeNotifier {
   void _onWorkspaceModelChanged() {
     final changed = workspaceModel.revision != _observedAuthoringRevision;
     final gestureEnded =
-        _wasTransformEditing && !workspaceModel.isTransformEditing;
-    _wasTransformEditing = workspaceModel.isTransformEditing;
+        _wasTransformEditing && !workspaceModel.isAuthoringGesture;
+    _wasTransformEditing = workspaceModel.isAuthoringGesture;
     if (changed) {
       _observedAuthoringRevision = workspaceModel.revision;
       _autosaveTimer?.cancel();
@@ -2205,7 +2205,7 @@ class FlameProjectState with ChangeNotifier {
         _workspaceConfigured &&
         isBuildMode &&
         workspaceModel.isDirty &&
-        !workspaceModel.isTransformEditing) {
+        !workspaceModel.isAuthoringGesture) {
       _autosaveTimer?.cancel();
       _autosaveTimer = Timer(autosaveDelay, () => unawaited(saveWorkspace()));
     }

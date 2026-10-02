@@ -35,6 +35,7 @@ class WorkspaceEditorModel extends ChangeNotifier {
   bool _isDirty = false;
   final EditorHistory _history = EditorHistory();
   String? _activeTransformHistoryKey;
+  String? _activePropertyHistoryKey;
   String? _componentClipboardJson;
   int _nextComponentOrdinal = 0;
 
@@ -48,6 +49,26 @@ class WorkspaceEditorModel extends ChangeNotifier {
   int get revision => _revision;
   int get savedRevision => _savedRevision;
   bool get isTransformEditing => _activeTransformHistoryKey != null;
+  bool get isAuthoringGesture =>
+      isTransformEditing || _activePropertyHistoryKey != null;
+
+  void beginPropertyEdit(String componentId, String property) {
+    if (_componentInCurrentScene(componentId) != null) {
+      _activePropertyHistoryKey = 'property:$componentId:$property';
+    }
+  }
+
+  void beginSceneBackgroundEdit(String sceneId) {
+    if (currentScene?.id == sceneId) {
+      _activePropertyHistoryKey = 'background:$sceneId';
+    }
+  }
+
+  void endPropertyEdit() {
+    if (_activePropertyHistoryKey == null) return;
+    _activePropertyHistoryKey = null;
+    notifyListeners();
+  }
 
   WorkspaceSaveSnapshot captureSnapshot() =>
       WorkspaceSaveSnapshot(_revision, _project);
@@ -109,6 +130,7 @@ class WorkspaceEditorModel extends ChangeNotifier {
         : _selectedComponentId;
     if (!preserveAuthoring) {
       _activeTransformHistoryKey = null;
+      _activePropertyHistoryKey = null;
       _history.clear();
     }
     notifyListeners();
@@ -174,6 +196,7 @@ class WorkspaceEditorModel extends ChangeNotifier {
     }
     _history.clear();
     _activeTransformHistoryKey = null;
+    _activePropertyHistoryKey = null;
     _markDirty();
     return true;
   }
@@ -258,6 +281,9 @@ class WorkspaceEditorModel extends ChangeNotifier {
     final command = EditorCommand(
       description: 'Change scene background',
       changeKind: WorkspaceChangeKind.sceneProperty,
+      coalesceKey: _activePropertyHistoryKey == 'background:$sceneId'
+          ? _activePropertyHistoryKey
+          : null,
       sceneId: sceneId,
       propertyName: 'backgroundColor',
       redoAction: () => scene.backgroundColor = color,
@@ -346,6 +372,9 @@ class WorkspaceEditorModel extends ChangeNotifier {
     final command = EditorCommand(
       description: 'Change $name',
       changeKind: changeKind,
+      coalesceKey: _activePropertyHistoryKey == 'property:$componentId:$name'
+          ? _activePropertyHistoryKey
+          : null,
       componentId: componentId,
       propertyName: name,
       sceneId: currentScene?.id,
@@ -814,6 +843,7 @@ class WorkspaceEditorModel extends ChangeNotifier {
     );
     _history.clear();
     _activeTransformHistoryKey = null;
+    _activePropertyHistoryKey = null;
     _savedRevision = _revision;
     _isDirty = false;
     notifyListeners();

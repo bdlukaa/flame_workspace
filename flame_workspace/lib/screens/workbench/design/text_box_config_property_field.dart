@@ -38,6 +38,18 @@ class _TextBoxConfigPropertyFieldState
     ),
   };
   final errors = <String, String?>{};
+  final focusNodes = <String, FocusNode>{};
+
+  @override
+  void initState() {
+    super.initState();
+    for (final name in controllers.keys) {
+      focusNodes[name] = FocusNode()
+        ..addListener(() {
+          if (!focusNodes[name]!.hasFocus) _submit();
+        });
+    }
+  }
 
   @override
   void didUpdateWidget(covariant TextBoxConfigPropertyField oldWidget) {
@@ -47,13 +59,20 @@ class _TextBoxConfigPropertyFieldState
 
   void _syncControllers() {
     final value = widget.value;
-    controllers['Max width']!.text = '${value.maxWidth}';
-    controllers['Top margin']!.text = '${value.margins.top}';
-    controllers['Right margin']!.text = '${value.margins.right}';
-    controllers['Bottom margin']!.text = '${value.margins.bottom}';
-    controllers['Left margin']!.text = '${value.margins.left}';
-    controllers['Time per character']!.text = '${value.timePerChar}';
-    controllers['Dismiss delay']!.text = '${value.dismissDelay ?? ''}';
+    final values = {
+      'Max width': '${value.maxWidth}',
+      'Top margin': '${value.margins.top}',
+      'Right margin': '${value.margins.right}',
+      'Bottom margin': '${value.margins.bottom}',
+      'Left margin': '${value.margins.left}',
+      'Time per character': '${value.timePerChar}',
+      'Dismiss delay': '${value.dismissDelay ?? ''}',
+    };
+    for (final entry in values.entries) {
+      if (!focusNodes[entry.key]!.hasFocus) {
+        controllers[entry.key]!.text = entry.value;
+      }
+    }
   }
 
   @override
@@ -61,10 +80,14 @@ class _TextBoxConfigPropertyFieldState
     for (final controller in controllers.values) {
       controller.dispose();
     }
+    for (final node in focusNodes.values) {
+      node.dispose();
+    }
     super.dispose();
   }
 
-  void _submit() {
+  void _submit({bool? growingBox}) {
+    if (!widget.editable) return;
     final parsed = <String, double?>{};
     var valid = true;
     for (final entry in controllers.entries) {
@@ -83,20 +106,19 @@ class _TextBoxConfigPropertyFieldState
     setState(() {});
     if (!valid) return;
 
-    widget.onChanged(
-      WorkspaceTextBoxConfig(
-        maxWidth: parsed['Max width']!,
-        margins: WorkspaceEdgeInsets(
-          top: parsed['Top margin']!,
-          right: parsed['Right margin']!,
-          bottom: parsed['Bottom margin']!,
-          left: parsed['Left margin']!,
-        ),
-        timePerChar: parsed['Time per character']!,
-        dismissDelay: parsed['Dismiss delay'],
-        growingBox: widget.value.growingBox,
+    final next = WorkspaceTextBoxConfig(
+      maxWidth: parsed['Max width']!,
+      margins: WorkspaceEdgeInsets(
+        top: parsed['Top margin']!,
+        right: parsed['Right margin']!,
+        bottom: parsed['Bottom margin']!,
+        left: parsed['Left margin']!,
       ),
+      timePerChar: parsed['Time per character']!,
+      dismissDelay: parsed['Dismiss delay'],
+      growingBox: growingBox ?? widget.value.growingBox,
     );
+    if (next != widget.value) widget.onChanged(next);
   }
 
   @override
@@ -116,20 +138,7 @@ class _TextBoxConfigPropertyFieldState
         title: const Text('Growing box while typing'),
         value: widget.value.growingBox,
         onChanged: widget.editable
-            ? (value) {
-                _submit();
-                if (errors.isEmpty) {
-                  widget.onChanged(
-                    WorkspaceTextBoxConfig(
-                      maxWidth: widget.value.maxWidth,
-                      margins: widget.value.margins,
-                      timePerChar: widget.value.timePerChar,
-                      dismissDelay: widget.value.dismissDelay,
-                      growingBox: value,
-                    ),
-                  );
-                }
-              }
+            ? (value) => _submit(growingBox: value)
             : null,
       ),
     ],
@@ -139,11 +148,12 @@ class _TextBoxConfigPropertyFieldState
     padding: const EdgeInsets.symmetric(vertical: 2),
     child: Row(
       children: [
-        Expanded(child: Text(label)),
-        SizedBox(
-          width: 100,
+        Expanded(child: Text(label, softWrap: true)),
+        Expanded(
           child: TextField(
             controller: controllers[label],
+            focusNode: focusNodes[label],
+            onTapOutside: (_) => focusNodes[label]?.unfocus(),
             enabled: widget.editable,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(

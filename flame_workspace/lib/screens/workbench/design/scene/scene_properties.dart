@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:auto_size_text/auto_size_text.dart';
-
 import 'package:flame_workspace/widgets/inked_icon_button.dart';
 
 import 'package:flame_workspace/workbench/parser/values.dart';
@@ -28,8 +26,7 @@ class ScenePropertiesView extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ListView(
         children: [
           Text('Scene', style: theme.textTheme.labelLarge),
           ComponentSectionCard(
@@ -48,6 +45,9 @@ class ScenePropertiesView extends StatelessWidget {
                     'Color(0x${backgroundColor.toRadixString(16).padLeft(8, '0').toUpperCase()})',
                 type: '$Color',
                 editable: state.workspaceConfigured,
+                onGestureStart: () =>
+                    state.workspaceModel.beginSceneBackgroundEdit(scene.id),
+                onGestureEnd: state.workspaceModel.endPropertyEdit,
                 onChanged: (value) {
                   final color = ValuesParser.parseColor(value).toARGB32();
                   unawaited(state.editSceneBackgroundColor(color));
@@ -60,24 +60,21 @@ class ScenePropertiesView extends StatelessWidget {
             trailing: '${scene.components.length}',
             children: [
               for (final component in scene.components)
-                SizedBox(
-                  height: kFieldHeight,
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     children: [
                       Expanded(
-                        flex: 2,
-                        child: AutoSizeText(
+                        child: Text(
                           component.type.name,
-                          maxLines: 1,
-                          minFontSize: 8.0,
-                          style: theme.textTheme.labelMedium!,
+                          style: theme.textTheme.labelMedium,
                         ),
                       ),
-                      const VerticalDivider(),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           component.declarationName ?? component.id,
-                          style: theme.textTheme.bodySmall!,
+                          style: theme.textTheme.bodySmall,
                         ),
                       ),
                     ],
@@ -85,7 +82,7 @@ class ScenePropertiesView extends StatelessWidget {
                 ),
             ],
           ),
-          const Spacer(),
+          const SizedBox(height: 24),
           Text('Script', style: theme.textTheme.labelLarge),
 
           ComponentSectionCard(

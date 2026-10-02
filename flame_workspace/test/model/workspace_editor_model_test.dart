@@ -151,6 +151,36 @@ void main() {
     expect(scene.backgroundColor, 0xFF123456);
   });
 
+  test('color gestures coalesce into one undoable authored change', () {
+    final circle = _component('circle', 'Circle');
+    final scene = SceneDefinition(
+      id: 'scene',
+      name: 'Main',
+      components: [circle],
+    );
+    final editor = WorkspaceEditorModel(
+      WorkspaceProject(id: 'project', name: 'Game', scenes: [scene]),
+    );
+    editor.beginPropertyEdit(circle.id, 'color');
+    expect(editor.isAuthoringGesture, isTrue);
+    editor.updateProperty(circle.id, 'color', 0xFFFF0000);
+    editor.updateProperty(circle.id, 'color', 0xFF00FF00);
+    editor.endPropertyEdit();
+    expect(editor.isAuthoringGesture, isFalse);
+    expect(circle.properties['color'], 0xFF00FF00);
+    expect(editor.undo(), isTrue);
+    expect(circle.properties.containsKey('color'), isFalse);
+    expect(editor.redo(), isTrue);
+    expect(circle.properties['color'], 0xFF00FF00);
+
+    editor.beginSceneBackgroundEdit(scene.id);
+    editor.updateSceneBackgroundColor(scene.id, 0xFFFF0000);
+    editor.updateSceneBackgroundColor(scene.id, 0xFF00FF00);
+    editor.endPropertyEdit();
+    expect(editor.undo(), isTrue);
+    expect(scene.backgroundColor, 0xFF000000);
+  });
+
   test('property and hierarchy changes mark the semantic model dirty', () {
     final parent = _component('parent', 'Parent');
     final editor = WorkspaceEditorModel(

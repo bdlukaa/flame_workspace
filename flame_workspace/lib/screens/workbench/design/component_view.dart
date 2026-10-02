@@ -4,10 +4,9 @@ import 'package:flutter/material.dart';
 
 import 'vertices_property_field.dart';
 
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-
 import 'package:flame_workspace/workbench/extensions.dart';
 import 'package:flame_workspace/workbench/model/semantic_model.dart';
+import 'package:flame_workspace/workbench/model/workspace_editor_model.dart';
 import 'package:flame_workspace/workbench/model/semantic_property_editor.dart';
 import 'package:flame_workspace/workbench/parser/values.dart';
 import 'package:flame_workspace_protocol/runtime.dart';
@@ -20,6 +19,7 @@ import 'text_paint_property_field.dart';
 import 'scene/scene_properties.dart';
 import '../workbench_view.dart';
 import '../../../widgets/workspace_inline.dart';
+import '../../../widgets/workspace_inline_color.dart';
 
 const kFieldHeight = 28.0;
 
@@ -123,6 +123,21 @@ class const ComponentView({super.key}) extends StatelessWidget {
       );
     }
 
+    Widget buildField(
+      WorkspacePropertyDefinition property,
+      Object? value, {
+      bool allowStructuralEdits = true,
+      Key? key,
+    }) => _buildPropertyField(
+      property,
+      value,
+      updateProperty,
+      model: state.workspaceModel,
+      componentId: component.id,
+      allowStructuralEdits: allowStructuralEdits,
+      key: key,
+    );
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: ListView(
@@ -132,6 +147,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
             title: 'General',
             children: [
               PropertyField(
+                key: ValueKey('${component.id}:name'),
                 name: 'Name',
                 value: component.declarationName ?? component.id,
                 type: '$String',
@@ -160,7 +176,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
               title: 'Text',
               children: [
                 for (final property in textProperties)
-                  _buildPropertyField(
+                  buildField(
                     property,
                     state.runtimeOverrides.resolveProperty(
                       component.id,
@@ -168,7 +184,6 @@ class const ComponentView({super.key}) extends StatelessWidget {
                       component.properties[property.name] ??
                           property.defaultValue,
                     ),
-                    updateProperty,
                     allowStructuralEdits: state.isBuildMode,
                     key: ValueKey('${component.id}:${property.name}'),
                   ),
@@ -179,7 +194,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
               title: 'Typography',
               children: [
                 for (final property in textPaintProperties)
-                  _buildPropertyField(
+                  buildField(
                     property,
                     state.runtimeOverrides.resolveProperty(
                       component.id,
@@ -187,7 +202,6 @@ class const ComponentView({super.key}) extends StatelessWidget {
                       component.properties[property.name] ??
                           property.defaultValue,
                     ),
-                    updateProperty,
                     allowStructuralEdits: state.isBuildMode,
                     key: ValueKey('${component.id}:${property.name}'),
                   ),
@@ -198,7 +212,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
               title: 'Text box',
               children: [
                 for (final property in textBoxConfigProperties)
-                  _buildPropertyField(
+                  buildField(
                     property,
                     state.runtimeOverrides.resolveProperty(
                       component.id,
@@ -207,7 +221,6 @@ class const ComponentView({super.key}) extends StatelessWidget {
                           property.defaultValue ??
                           const WorkspaceTextBoxConfig(),
                     ),
-                    updateProperty,
                     key: ValueKey('${component.id}:${property.name}'),
                   ),
               ],
@@ -217,7 +230,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
               title: 'Content alignment',
               children: [
                 for (final property in textBoxAlignProperties)
-                  _buildPropertyField(
+                  buildField(
                     property,
                     state.runtimeOverrides.resolveProperty(
                       component.id,
@@ -226,7 +239,6 @@ class const ComponentView({super.key}) extends StatelessWidget {
                           property.defaultValue ??
                           const WorkspaceAnchor(0, 0),
                     ),
-                    updateProperty,
                     key: ValueKey('${component.id}:${property.name}'),
                   ),
               ],
@@ -236,7 +248,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
             trailing: '${scriptProperties.length}',
             children: [
               for (final property in scriptProperties)
-                _buildPropertyField(
+                buildField(
                   property,
                   state.runtimeOverrides.resolveProperty(
                     component.id,
@@ -244,7 +256,6 @@ class const ComponentView({super.key}) extends StatelessWidget {
                     component.properties[property.name] ??
                         property.defaultValue,
                   ),
-                  updateProperty,
                   allowStructuralEdits: state.isBuildMode,
                   key: ValueKey('${component.id}:${property.name}'),
                 ),
@@ -257,6 +268,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
               children: [
                 PropertyField.vector2(
                   (x: transform.position.x, y: transform.position.y),
+                  keyPrefix: component.id,
                   first: 'pos | x',
                   second: 'pos | y',
                   onChanged: (value) => _updateVectorTransform(
@@ -272,6 +284,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
                     component.type.name != 'TextComponent')
                   PropertyField.vector2(
                     (x: transform.size.x, y: transform.size.y),
+                    keyPrefix: component.id,
                     first: 'size | width',
                     second: 'size | height',
                     onChanged: (value) => _updateVectorTransform(
@@ -285,6 +298,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
                   ),
                 PropertyField.vector2(
                   (x: transform.scale.x, y: transform.scale.y),
+                  keyPrefix: component.id,
                   first: 'scale | x',
                   second: 'scale | y',
                   onChanged: (value) => _updateVectorTransform(
@@ -297,6 +311,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
                   ),
                 ),
                 PropertyField(
+                  key: ValueKey('${component.id}:rotation'),
                   name: 'rotation',
                   description: 'rotation angle',
                   value: '${transform.angle}',
@@ -337,6 +352,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
                   },
                 ),
                 PropertyField(
+                  key: ValueKey('${component.id}:priority'),
                   name: 'priority',
                   value: '$priority',
                   type: 'int',
@@ -364,12 +380,14 @@ class const ComponentView({super.key}) extends StatelessWidget {
     WorkspacePropertyDefinition definition,
     Object? rawValue,
     void Function(WorkspacePropertyDefinition, Object?) onChanged, {
+    required WorkspaceEditorModel model,
+    required String componentId,
     bool allowStructuralEdits = true,
     Key? key,
   }) {
     final kind = SemanticPropertyEditor.kindFor(definition);
     final value = SemanticPropertyEditor.displayValue(definition, rawValue);
-    final fieldKey = ValueKey('inspector.${definition.name}');
+    final fieldKey = key ?? ValueKey('inspector.${definition.name}');
     if (kind == WorkspacePropertyEditorKind.enumeration ||
         kind == WorkspacePropertyEditorKind.anchor) {
       return EnumPropertyField(
@@ -413,6 +431,9 @@ class const ComponentView({super.key}) extends StatelessWidget {
             ? rawValue
             : const WorkspaceTextPaint(),
         editable: definition.editable,
+        onGestureStart: () =>
+            model.beginPropertyEdit(componentId, definition.name),
+        onGestureEnd: model.endPropertyEdit,
         onChanged: (value) => onChanged(definition, value),
       );
     }
@@ -423,6 +444,9 @@ class const ComponentView({super.key}) extends StatelessWidget {
         value: rawValue is WorkspacePaint ? rawValue : null,
         editable: definition.editable,
         nullable: definition.type.endsWith('?'),
+        onGestureStart: () =>
+            model.beginPropertyEdit(componentId, definition.name),
+        onGestureEnd: model.endPropertyEdit,
         onChanged: (value) => onChanged(definition, value),
       );
     }
@@ -432,6 +456,7 @@ class const ComponentView({super.key}) extends StatelessWidget {
           const WorkspaceVector2.zero();
       return PropertyField.vector2(
         (x: vector.x, y: vector.y),
+        keyPrefix: '$componentId:${definition.name}',
         first: '${definition.name} | x',
         second: '${definition.name} | y',
         onChanged: (value) => onChanged(definition, value),
@@ -446,6 +471,9 @@ class const ComponentView({super.key}) extends StatelessWidget {
           definition.editable &&
           kind != WorkspacePropertyEditorKind.unsupported &&
           (!definition.recreateOnEdit || allowStructuralEdits),
+      onGestureStart: () =>
+          model.beginPropertyEdit(componentId, definition.name),
+      onGestureEnd: model.endPropertyEdit,
       onChanged: (value) => onChanged(definition, value),
     );
   }
@@ -636,6 +664,8 @@ class PropertyField extends StatefulWidget {
 
   final bool editable;
   final bool forceSingleLine;
+  final VoidCallback? onGestureStart;
+  final VoidCallback? onGestureEnd;
 
   const PropertyField({
     super.key,
@@ -647,6 +677,8 @@ class PropertyField extends StatefulWidget {
     this.labelWidth,
     this.editable = true,
     this.forceSingleLine = false,
+    this.onGestureStart,
+    this.onGestureEnd,
   });
 
   static Widget vector2(
@@ -654,6 +686,7 @@ class PropertyField extends StatefulWidget {
     String first = 'a',
     String second = 'b',
     bool nullable = false,
+    String? keyPrefix,
     void Function(String value)? onChanged,
   }) {
     // If one of the parameters is null, it defaults it to this value. This is
@@ -662,6 +695,7 @@ class PropertyField extends StatefulWidget {
     return Column(
       children: [
         PropertyField(
+          key: keyPrefix == null ? null : ValueKey('$keyPrefix:$first'),
           name: first,
           value: '${vector2?.x}',
           type: nullable ? '$double?' : '$double',
@@ -670,6 +704,7 @@ class PropertyField extends StatefulWidget {
           ),
         ),
         PropertyField(
+          key: keyPrefix == null ? null : ValueKey('$keyPrefix:$second'),
           name: second,
           value: '${vector2?.y}',
           type: '$double',
@@ -705,7 +740,7 @@ class PropertyFieldState extends State<PropertyField> {
   @override
   void didUpdateWidget(covariant PropertyField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
+    if (oldWidget.value != widget.value && !focusNode.hasFocus) {
       controller.text = widget.value;
       _validationError = null;
     }
@@ -719,12 +754,19 @@ class PropertyFieldState extends State<PropertyField> {
   }
 
   void onSubmit() {
+    if (!widget.editable || widget.onChanged == null) return;
     if (isNumbericField) {
       final value = controller.text.trim();
       final normalized = switch (widget.nonNullableType) {
         'int' => int.tryParse(value)?.toString(),
-        'double' => double.tryParse(value)?.toString(),
-        'num' => num.tryParse(value)?.toString(),
+        'double' => switch (double.tryParse(value)) {
+          final candidate? when candidate.isFinite => candidate.toString(),
+          _ => null,
+        },
+        'num' => switch (num.tryParse(value)) {
+          final candidate? when candidate.isFinite => candidate.toString(),
+          _ => null,
+        },
         _ => null,
       };
       if (normalized == null) {
@@ -735,10 +777,14 @@ class PropertyFieldState extends State<PropertyField> {
       }
       controller.text = normalized;
       setState(() => _validationError = null);
-      widget.onChanged?.call(controller.text);
+      if (controller.text != widget.value) {
+        widget.onChanged?.call(controller.text);
+      }
     } else {
       setState(() => _validationError = null);
-      widget.onChanged?.call("'${controller.text.removeQuoteMarks()}'");
+      if (controller.text != widget.value) {
+        widget.onChanged?.call("'${controller.text.removeQuoteMarks()}'");
+      }
     }
   }
 
@@ -769,6 +815,7 @@ class PropertyFieldState extends State<PropertyField> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    if (widget.nonNullableType == 'Color') return buildColorPicker();
     return MouseRegion(
       onEnter: (d) => setState(() => _isHovering = true),
       onExit: (d) => setState(() => _isHovering = false),
@@ -784,47 +831,49 @@ class PropertyFieldState extends State<PropertyField> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  height: kFieldHeight,
-                  width: widget.labelWidth ?? (constraints.maxWidth / 2),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 24.0,
-                        child: Icon(icon?.icon, size: icon?.size),
-                      ),
-                      const SizedBox(width: 6.0),
-                      if (widget.description != null)
-                        Expanded(
-                          child: Tooltip(
-                            verticalOffset: 16.0,
-                            message: widget.description,
-                            child: label,
-                          ),
-                        )
-                      else
-                        Expanded(child: label),
-                      if (isNullable && !isNull)
-                        InkWell(
-                          onTap: () {
-                            widget.onChanged?.call('null');
-                          },
-                          child: const Tooltip(
-                            message: 'Make it null',
-                            child: Padding(
-                              padding: EdgeInsets.all(2.0),
-                              child: Icon(Icons.clear, size: 12.0),
+                ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: kFieldHeight),
+                  child: SizedBox(
+                    width: widget.labelWidth ?? (constraints.maxWidth / 2),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 24.0,
+                          child: Icon(icon?.icon, size: icon?.size),
+                        ),
+                        const SizedBox(width: 6.0),
+                        if (widget.description != null)
+                          Expanded(
+                            child: Tooltip(
+                              verticalOffset: 16.0,
+                              message: widget.description,
+                              child: label,
+                            ),
+                          )
+                        else
+                          Expanded(child: label),
+                        if (isNullable && !isNull)
+                          InkWell(
+                            onTap: () {
+                              widget.onChanged?.call('null');
+                            },
+                            child: const Tooltip(
+                              message: 'Make it null',
+                              child: Padding(
+                                padding: EdgeInsets.all(2.0),
+                                child: Icon(Icons.clear, size: 12.0),
+                              ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8.0),
                 Expanded(
                   child: switch (widget.nonNullableType) {
                     'String' || 'int' || 'double' || 'num' => buildEditable(),
-                    'Color' => buildColorPicker(),
+
                     'bool' => buildFlagSwitch(),
                     _ => buildUnsupported(),
                   },
@@ -859,6 +908,7 @@ class PropertyFieldState extends State<PropertyField> {
                       key: ValueKey('workspace.propertyField.${widget.name}'),
                       controller: controller,
                       focusNode: focusNode,
+                      onTapOutside: (_) => focusNode.unfocus(),
                       style: theme.textTheme.bodySmall,
                       cursorColor: theme.colorScheme.primary,
                       readOnly: !widget.editable,
@@ -928,49 +978,25 @@ class PropertyFieldState extends State<PropertyField> {
   }
 
   Widget buildColorPicker() {
-    return Builder(
-      builder: (context) {
-        Color? color;
-        try {
-          color = ValuesParser.parseColor(widget.value);
-        } on Object {
-          return buildUnsupported(label: 'Invalid color');
-        }
-
-        return Padding(
-          padding: const EdgeInsetsDirectional.symmetric(vertical: 5.0),
-          child: InkWell(
-            onTap: widget.editable
-                ? () async {
-                    Color? newColor;
-                    await showDialog(
-                      context: context,
-                      builder: (context) {
-                        return SimpleDialog(
-                          children: [
-                            ColorPicker(
-                              pickerColor: color!,
-                              paletteType: PaletteType.hsv,
-                              labelTypes: const [ColorLabelType.rgb],
-                              portraitOnly: true,
-                              onColorChanged: (color) => newColor = color,
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                    if (newColor != null) {
-                      widget.onChanged?.call(
-                        'const Color(0x${newColor!.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()})',
-                      );
-                    }
-                  }
-                : null,
-            child: Container(color: color),
-          ),
-        );
-      },
+    Color color;
+    try {
+      color = ValuesParser.parseColor(widget.value);
+    } on Object {
+      return buildUnsupported(label: 'Invalid color');
+    }
+    final editor = WorkspaceInlineColor(
+      label: widget.name,
+      value: color,
+      enabled: widget.editable && widget.onChanged != null,
+      onGestureStart: widget.onGestureStart,
+      onGestureEnd: widget.onGestureEnd,
+      onChanged: (next) => widget.onChanged?.call(
+        'const Color(0x${next.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()})',
+      ),
     );
+    return widget.description == null
+        ? editor
+        : Tooltip(message: widget.description!, child: editor);
   }
 
   Widget buildUnsupported({String? label}) {

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+
 import 'package:flame_workspace_protocol/workspace_value.dart';
 
 import '../../../widgets/workspace_inline.dart';
+import '../../../widgets/workspace_inline_color.dart';
 
 class TextPaintPropertyField extends StatefulWidget {
   const TextPaintPropertyField({
@@ -11,12 +12,16 @@ class TextPaintPropertyField extends StatefulWidget {
     required this.onChanged,
     this.editable = true,
     this.semanticKey,
+    this.onGestureStart,
+    this.onGestureEnd,
   });
 
   final WorkspaceTextPaint value;
   final ValueChanged<WorkspaceTextPaint> onChanged;
   final bool editable;
   final String? semanticKey;
+  final VoidCallback? onGestureStart;
+  final VoidCallback? onGestureEnd;
 
   @override
   State<TextPaintPropertyField> createState() => _TextPaintPropertyFieldState();
@@ -33,22 +38,64 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
     ),
     'Line height': TextEditingController(text: '${widget.value.height ?? ''}'),
   };
-  bool colorExpanded = false;
+  final focusNodes = <String, FocusNode>{};
+  final errors = <String, String>{};
 
   late final familyController = TextEditingController(
     text: widget.value.fontFamily ?? '',
   );
 
   @override
+  void initState() {
+    super.initState();
+    for (final name in controllers.keys) {
+      focusNodes[name] = FocusNode()
+        ..addListener(() {
+          if (focusNodes[name]!.hasFocus) return;
+          _number(
+            name,
+            (value) => switch (name) {
+              'Size' => widget.value.copyWith(fontSize: value),
+              'Letter spacing' => widget.value.copyWith(letterSpacing: value),
+              'Word spacing' => widget.value.copyWith(wordSpacing: value),
+              _ => widget.value.copyWith(height: value),
+            },
+          );
+        });
+    }
+    focusNodes['Font family'] = FocusNode()
+      ..addListener(() {
+        if (!focusNodes['Font family']!.hasFocus) _commitFamily();
+      });
+  }
+
+  void _commitFamily() {
+    if (widget.editable &&
+        familyController.text != (widget.value.fontFamily ?? '')) {
+      widget.onChanged(
+        widget.value.copyWith(fontFamily: familyController.text),
+      );
+    }
+  }
+
+  @override
   void didUpdateWidget(covariant TextPaintPropertyField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.value != widget.value) {
-      controllers['Size']!.text = '${widget.value.fontSize ?? ''}';
-      controllers['Letter spacing']!.text =
-          '${widget.value.letterSpacing ?? ''}';
-      controllers['Word spacing']!.text = '${widget.value.wordSpacing ?? ''}';
-      controllers['Line height']!.text = '${widget.value.height ?? ''}';
-      familyController.text = widget.value.fontFamily ?? '';
+      final values = {
+        'Size': '${widget.value.fontSize ?? ''}',
+        'Letter spacing': '${widget.value.letterSpacing ?? ''}',
+        'Word spacing': '${widget.value.wordSpacing ?? ''}',
+        'Line height': '${widget.value.height ?? ''}',
+      };
+      for (final entry in values.entries) {
+        if (!focusNodes[entry.key]!.hasFocus) {
+          controllers[entry.key]!.text = entry.value;
+        }
+      }
+      if (!focusNodes['Font family']!.hasFocus) {
+        familyController.text = widget.value.fontFamily ?? '';
+      }
     }
   }
 
@@ -57,6 +104,9 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
     for (final controller in controllers.values) {
       controller.dispose();
     }
+    for (final node in focusNodes.values) {
+      node.dispose();
+    }
     familyController.dispose();
     super.dispose();
   }
@@ -64,8 +114,21 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
   void _number(String name, WorkspaceTextPaint Function(double?) update) {
     final input = controllers[name]!.text.trim();
     final parsed = input.isEmpty ? null : double.tryParse(input);
-    if (input.isNotEmpty && (parsed == null || !parsed.isFinite)) return;
-    widget.onChanged(update(parsed));
+    if (!widget.editable) return;
+    if (input.isNotEmpty && (parsed == null || !parsed.isFinite)) {
+      setState(() => errors[name] = 'Enter a finite number.');
+      return;
+    }
+    setState(() => errors.remove(name));
+    if (controllers[name]!.text !=
+        '${switch (name) {
+              'Size' => widget.value.fontSize,
+              'Letter spacing' => widget.value.letterSpacing,
+              'Word spacing' => widget.value.wordSpacing,
+              _ => widget.value.height,
+            } ?? ''}') {
+      widget.onChanged(update(parsed));
+    }
   }
 
   @override
@@ -77,9 +140,7 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
         _text(
           'Font family',
           controller: familyController,
-          submit: () {
-            widget.onChanged(value.copyWith(fontFamily: familyController.text));
-          },
+          submit: _commitFamily,
         ),
         _numberField('Size', (v) => value.copyWith(fontSize: v)),
         _select(
@@ -99,35 +160,21 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
         _numberField('Line height', (v) => value.copyWith(height: v)),
         const SizedBox(height: 8),
         const Text('Appearance'),
-        Row(
-          children: [
-            const Expanded(child: Text('Color')),
-            Semantics(
-              button: true,
-              label: 'Text color',
-              child: InkWell(
-                key: _keyFor('Color'),
-                onTap: widget.editable
-                    ? () => setState(() => colorExpanded = !colorExpanded)
-                    : null,
-                child: Container(
-                  width: 34,
-                  height: 22,
-                  color: Color(value.color?.argb ?? 0xFFFFFFFF),
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (colorExpanded)
-          ColorPicker(
-            pickerColor: Color(value.color?.argb ?? 0xFFFFFFFF),
-            paletteType: PaletteType.hsv,
-            labelTypes: const [ColorLabelType.rgb],
-            onColorChanged: (color) => widget.onChanged(
+        Semantics(
+          button: true,
+          label: 'Text color',
+          child: WorkspaceInlineColor(
+            key: _keyFor('Color'),
+            label: 'Color',
+            value: Color(value.color?.argb ?? 0xFFFFFFFF),
+            enabled: widget.editable,
+            onGestureStart: widget.onGestureStart,
+            onGestureEnd: widget.onGestureEnd,
+            onChanged: (color) => widget.onChanged(
               value.copyWith(color: WorkspaceColor(color.toARGB32())),
             ),
           ),
+        ),
         const SizedBox(height: 8),
         const Text('Direction'),
         _select(
@@ -164,11 +211,13 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
     VoidCallback? submit,
   }) => Row(
     children: [
-      Expanded(child: Text(label)),
+      Expanded(child: Text(label, softWrap: true)),
       Expanded(
         child: TextField(
           key: _keyFor(label),
           controller: controller,
+          focusNode: focusNodes[label],
+          onTapOutside: (_) => focusNodes[label]?.unfocus(),
           enabled: widget.editable,
           decoration: const InputDecoration(isDense: true),
           onSubmitted: (_) => submit?.call(),
@@ -182,14 +231,16 @@ class _TextPaintPropertyFieldState extends State<TextPaintPropertyField> {
     WorkspaceTextPaint Function(double?) update,
   ) => Row(
     children: [
-      Expanded(child: Text(label)),
+      Expanded(child: Text(label, softWrap: true)),
       Expanded(
         child: TextField(
           key: _keyFor(label),
           controller: controllers[label],
+          focusNode: focusNodes[label],
+          onTapOutside: (_) => focusNodes[label]?.unfocus(),
           enabled: widget.editable,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(isDense: true),
+          decoration: InputDecoration(isDense: true, errorText: errors[label]),
           onSubmitted: (_) => _number(label, update),
         ),
       ),

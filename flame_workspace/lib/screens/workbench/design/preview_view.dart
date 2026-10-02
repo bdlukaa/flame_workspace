@@ -10,6 +10,7 @@ import '../../../workbench/runner/state.dart';
 import '../../../workbench/runner/view.dart';
 import '../workbench_view.dart';
 import 'preview_display.dart';
+import 'preview_dimensions_editor.dart';
 import '../../../widgets/workspace_inline.dart';
 
 class GamePreviewView extends StatefulWidget {
@@ -58,14 +59,15 @@ class _GamePreviewViewState extends State<GamePreviewView> {
       isValidPreviewDimension(height.toInt());
 
   Future<void> _selectDisplay(String id) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) return;
     if (id == _customId) {
-      final dimensions = await _showCustomDimensions();
-      if (dimensions == null || !mounted) return;
       final display = PreviewDisplay(
         id: _customId,
         label: 'Custom',
-        width: dimensions.width,
-        height: dimensions.height,
+        width: _display.width ?? 1080,
+        height: _display.height ?? 1920,
       );
       setState(() => _display = display);
       await _persistDisplay(display);
@@ -92,79 +94,21 @@ class _GamePreviewViewState extends State<GamePreviewView> {
     }
   }
 
-  Future<Size?> _showCustomDimensions() async {
-    final widthController = TextEditingController(
-      text: (_display.width ?? 1080).round().toString(),
+  Future<void> _applyCustomDimensions(Size dimensions) async {
+    final display = PreviewDisplay(
+      id: _customId,
+      label: 'Custom',
+      width: dimensions.width,
+      height: dimensions.height,
     );
-    final heightController = TextEditingController(
-      text: (_display.height ?? 1920).round().toString(),
-    );
-    final formKey = GlobalKey<FormState>();
-    final result = await showDialog<Size>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Custom preview dimensions'),
-        content: Form(
-          key: formKey,
-          child: Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: widthController,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Width'),
-                  validator: (value) => _dimensionError(value),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: TextFormField(
-                  controller: heightController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Height'),
-                  validator: (value) => _dimensionError(value),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (!formKey.currentState!.validate()) return;
-              Navigator.pop(
-                context,
-                Size(
-                  double.parse(widthController.text),
-                  double.parse(heightController.text),
-                ),
-              );
-            },
-            child: const Text('Apply'),
-          ),
-        ],
-      ),
-    );
-    widthController.dispose();
-    heightController.dispose();
-    return result;
-  }
-
-  String? _dimensionError(String? value) {
-    final dimension = int.tryParse(value ?? '');
-    if (!isValidPreviewDimension(dimension)) {
-      return 'Enter a value from 1 to 10000';
-    }
-    return null;
+    setState(() => _display = display);
+    await _persistDisplay(display);
   }
 
   Future<void> _swapOrientation() async {
-    if (_display.isResponsive) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted || _display.isResponsive) return;
     final width = _display.height!;
     final height = _display.width!;
     final matchedPreset = PreviewDisplay.presets.where(
@@ -205,6 +149,9 @@ class _GamePreviewViewState extends State<GamePreviewView> {
                 canEnterGame: workbench.runner.isPreviewRunning,
 
                 onExecutionModeChanged: (mode) async {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  await Future<void>.delayed(Duration.zero);
+                  if (!mounted) return false;
                   if (mode == WorkspaceExecutionMode.build) {
                     workbench.state.enterBuildMode();
                     return true;
@@ -219,6 +166,8 @@ class _GamePreviewViewState extends State<GamePreviewView> {
                 customId: _customId,
                 onDisplaySelected: _selectDisplay,
                 onSwapOrientation: _swapOrientation,
+                onCustomDimensionsChanged: (dimensions) =>
+                    unawaited(_applyCustomDimensions(dimensions)),
               ),
               Align(
                 alignment: Alignment.centerLeft,
@@ -341,6 +290,7 @@ class PreviewToolbar extends StatelessWidget {
     required this.customId,
     required this.onDisplaySelected,
     required this.onSwapOrientation,
+    this.onCustomDimensionsChanged,
   });
 
   final FlameProjectRunner runner;
@@ -351,6 +301,7 @@ class PreviewToolbar extends StatelessWidget {
   final String customId;
   final ValueChanged<String> onDisplaySelected;
   final VoidCallback onSwapOrientation;
+  final ValueChanged<Size>? onCustomDimensionsChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -389,158 +340,180 @@ class PreviewToolbar extends StatelessWidget {
         : runtimeAction;
     final selectedId = display.id;
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 42),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            IconButton(
-              key: const ValueKey('workspace.play'),
-              tooltip: 'Play',
-              onPressed: canStart
-                  ? () {
-                      unawaited(() async {
-                        if (!await onExecutionModeChanged(
-                          WorkspaceExecutionMode.game,
-                        )) {
-                          return;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 42),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                IconButton(
+                  key: const ValueKey('workspace.play'),
+                  tooltip: 'Play',
+                  onPressed: canStart
+                      ? () {
+                          unawaited(() async {
+                            if (!await onExecutionModeChanged(
+                              WorkspaceExecutionMode.game,
+                            )) {
+                              return;
+                            }
+                            await runner.runPreviewSafely();
+                            if (!runner.isPreviewRunning) {
+                              await onExecutionModeChanged(
+                                WorkspaceExecutionMode.build,
+                              );
+                            }
+                          }());
                         }
-                        await runner.runPreviewSafely();
-                        if (!runner.isPreviewRunning) {
-                          await onExecutionModeChanged(
-                            WorkspaceExecutionMode.build,
-                          );
-                        }
-                      }());
-                    }
-                  : null,
-              icon: const Icon(Icons.play_arrow),
-              visualDensity: VisualDensity.compact,
-            ),
-            IconButton(
-              key: const ValueKey('workspace.pause'),
-              tooltip: pauseTooltip,
-              onPressed: canPauseOrResume
-                  ? () => unawaited(
-                      isPaused ? runner.resumeGame() : runner.pauseGame(),
-                    )
-                  : null,
-              icon: Icon(isPaused ? Icons.play_arrow : Icons.pause),
-              visualDensity: VisualDensity.compact,
-            ),
-            IconButton(
-              key: const ValueKey('workspace.stop'),
-              tooltip: 'Stop',
-              onPressed: canStop
-                  ? () {
-                      unawaited(
-                        onExecutionModeChanged(WorkspaceExecutionMode.build),
-                      );
-                      unawaited(runner.stop());
-                    }
-                  : null,
-              icon: const Icon(Icons.stop),
-              visualDensity: VisualDensity.compact,
-            ),
-            IconButton(
-              tooltip: 'Hot reload',
-              onPressed: runner.canHotReload
-                  ? () => unawaited(
-                      Workbench.of(context).state.synchronizeSourceCode(),
-                    )
-                  : null,
-              icon: const Icon(Icons.bolt),
-              visualDensity: VisualDensity.compact,
-            ),
-            IconButton(
-              tooltip: 'Hot restart',
-              onPressed: runner.canHotRestart
-                  ? () => unawaited(
-                      Workbench.of(context).state
-                          .synchronizeSourceCode(restart: true),
-                    )
-                  : null,
-              icon: const Icon(Icons.local_fire_department),
-              visualDensity: VisualDensity.compact,
-            ),
-            IconButton(
-              tooltip: 'Reload embedded display',
-              onPressed: runner.previewUrl == null
-                  ? null
-                  : () => unawaited(runner.reloadPreview()),
-              icon: const Icon(Icons.refresh),
-              visualDensity: VisualDensity.compact,
-            ),
-            Icon(statusIcon, size: 12),
-            const SizedBox(width: 4),
-            Text(status, style: Theme.of(context).textTheme.labelSmall),
-            const SizedBox(width: 12),
-            SegmentedButton<WorkspaceExecutionMode>(
-              key: const ValueKey('workspace.mode'),
-              segments: [
-                ButtonSegment(
-                  value: WorkspaceExecutionMode.build,
-                  label: Text(
-                    'Build',
-                    key: const ValueKey('workspace.mode.build'),
-                  ),
-                  icon: Icon(Icons.edit_outlined),
+                      : null,
+                  icon: const Icon(Icons.play_arrow),
+                  visualDensity: VisualDensity.compact,
                 ),
-                ButtonSegment(
-                  value: WorkspaceExecutionMode.game,
-                  label: Text(
-                    'Game',
-                    key: const ValueKey('workspace.mode.game'),
-                  ),
-                  icon: Icon(Icons.play_arrow),
-                  enabled: canEnterGame,
-                  tooltip: canEnterGame
+                IconButton(
+                  key: const ValueKey('workspace.pause'),
+                  tooltip: pauseTooltip,
+                  onPressed: canPauseOrResume
+                      ? () => unawaited(
+                          isPaused ? runner.resumeGame() : runner.pauseGame(),
+                        )
+                      : null,
+                  icon: Icon(isPaused ? Icons.play_arrow : Icons.pause),
+                  visualDensity: VisualDensity.compact,
+                ),
+                IconButton(
+                  key: const ValueKey('workspace.stop'),
+                  tooltip: 'Stop',
+                  onPressed: canStop
+                      ? () {
+                          unawaited(
+                            onExecutionModeChanged(
+                              WorkspaceExecutionMode.build,
+                            ),
+                          );
+                          unawaited(runner.stop());
+                        }
+                      : null,
+                  icon: const Icon(Icons.stop),
+                  visualDensity: VisualDensity.compact,
+                ),
+                IconButton(
+                  tooltip: 'Hot reload',
+                  onPressed: runner.canHotReload
+                      ? () => unawaited(
+                          Workbench.of(context).state.synchronizeSourceCode(),
+                        )
+                      : null,
+                  icon: const Icon(Icons.bolt),
+                  visualDensity: VisualDensity.compact,
+                ),
+                IconButton(
+                  tooltip: 'Hot restart',
+                  onPressed: runner.canHotRestart
+                      ? () => unawaited(
+                          Workbench.of(context).state
+                              .synchronizeSourceCode(restart: true),
+                        )
+                      : null,
+                  icon: const Icon(Icons.local_fire_department),
+                  visualDensity: VisualDensity.compact,
+                ),
+                IconButton(
+                  tooltip: 'Reload embedded display',
+                  onPressed: runner.previewUrl == null
                       ? null
-                      : 'Game mode requires a running preview.',
+                      : () => unawaited(runner.reloadPreview()),
+                  icon: const Icon(Icons.refresh),
+                  visualDensity: VisualDensity.compact,
+                ),
+                Icon(statusIcon, size: 12),
+                const SizedBox(width: 4),
+                Text(status, style: Theme.of(context).textTheme.labelSmall),
+                const SizedBox(width: 12),
+                SegmentedButton<WorkspaceExecutionMode>(
+                  key: const ValueKey('workspace.mode'),
+                  segments: [
+                    ButtonSegment(
+                      value: WorkspaceExecutionMode.build,
+                      label: Text(
+                        'Build',
+                        key: const ValueKey('workspace.mode.build'),
+                      ),
+                      icon: Icon(Icons.edit_outlined),
+                    ),
+                    ButtonSegment(
+                      value: WorkspaceExecutionMode.game,
+                      label: Text(
+                        'Game',
+                        key: const ValueKey('workspace.mode.game'),
+                      ),
+                      icon: Icon(Icons.play_arrow),
+                      enabled: canEnterGame,
+                      tooltip: canEnterGame
+                          ? null
+                          : 'Game mode requires a running preview.',
+                    ),
+                  ],
+                  selected: {executionMode},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (selection) {
+                    unawaited(onExecutionModeChanged(selection.first));
+                  },
                 ),
               ],
-              selected: {executionMode},
-              showSelectedIcon: false,
-              onSelectionChanged: (selection) {
-                unawaited(onExecutionModeChanged(selection.first));
-              },
             ),
-            const SizedBox(width: 12),
-            SizedBox(
-              width: 190,
-              child: WorkspaceInlineSelect<String>(
-                label: 'Display',
-                value: selectedId,
-                values: [
-                  ...PreviewDisplay.presets.map((preset) => preset.id),
-                  customId,
-                ],
-                labelBuilder: (id) {
-                  if (id == customId) {
-                    return display.id == customId
-                        ? _displayLabel(display)
-                        : 'Custom dimensions…';
-                  }
-                  return _displayLabel(
-                    PreviewDisplay.presets.firstWhere(
-                      (preset) => preset.id == id,
-                    ),
-                  );
-                },
-                onChanged: onDisplaySelected,
-              ),
-            ),
-            if (!display.isResponsive)
-              IconButton(
-                tooltip: 'Swap display orientation',
-                onPressed: onSwapOrientation,
-                icon: const Icon(Icons.screen_rotation),
-                visualDensity: VisualDensity.compact,
-              ),
-          ],
+          ),
         ),
-      ),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 72),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: WorkspaceInlineSelect<String>(
+                        label: 'Display',
+                        value: selectedId,
+                        values: [
+                          ...PreviewDisplay.presets.map((preset) => preset.id),
+                          customId,
+                        ],
+                        maxOptionsHeight: null,
+                        labelBuilder: (id) => id == customId
+                            ? (display.id == customId
+                                  ? _displayLabel(display)
+                                  : 'Custom dimensions')
+                            : _displayLabel(
+                                PreviewDisplay.presets.firstWhere(
+                                  (preset) => preset.id == id,
+                                ),
+                              ),
+                        onChanged: onDisplaySelected,
+                      ),
+                    ),
+                    if (!display.isResponsive)
+                      IconButton(
+                        tooltip: 'Swap display orientation',
+                        onPressed: onSwapOrientation,
+                        icon: const Icon(Icons.screen_rotation),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                  ],
+                ),
+                if (display.id == customId && onCustomDimensionsChanged != null)
+                  PreviewDimensionsEditor(
+                    width: display.width!.round(),
+                    height: display.height!.round(),
+                    onChanged: onCustomDimensionsChanged!,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
