@@ -477,7 +477,7 @@ class FlameProjectState with ChangeNotifier {
     final runner = _runner;
     if (classifyWorkspaceChange(WorkspaceChangeKind.property) ==
             WorkspaceChangeStrategy.runtimeMutation &&
-        (isGameMode || (runner?.canControlRuntime ?? false))) {
+        isGameMode) {
       if (runner == null) return false;
       return setRuntimeProperty(
         runner: runner,
@@ -502,7 +502,7 @@ class FlameProjectState with ChangeNotifier {
     final runner = _runner;
     if (classifyWorkspaceChange(WorkspaceChangeKind.transform) ==
             WorkspaceChangeStrategy.runtimeMutation &&
-        (isGameMode || (runner?.canControlRuntime ?? false))) {
+        isGameMode) {
       if (runner == null) return false;
       return setRuntimeTransform(
         runner: runner,
@@ -1485,6 +1485,12 @@ class FlameProjectState with ChangeNotifier {
       }
       operationError = null;
       notifyListeners();
+      if (isBuildMode && _runner?.isPreviewRunning == true) {
+        final scene = workspaceModel.currentScene;
+        if (scene != null) {
+          await _runner!.recreateScene(scene.name);
+        }
+      }
       return true;
     } catch (error, stackTrace) {
       reportOperationDiagnostic(
