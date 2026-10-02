@@ -9,6 +9,7 @@ abstract final class WorkspaceExtensionNames {
   static const setSceneBackgroundColor =
       'ext.flameWorkspace.setSceneBackgroundColor';
 
+  static const composeComponent = 'ext.flameWorkspace.composeComponent';
   static const setScene = 'ext.flameWorkspace.setScene';
   static const pause = 'ext.flameWorkspace.pause';
   static const resume = 'ext.flameWorkspace.resume';
@@ -19,10 +20,30 @@ abstract final class WorkspaceExtensionNames {
     setProperty,
     setTransform,
     setSceneBackgroundColor,
+    composeComponent,
     setScene,
     pause,
     resume,
   ];
+}
+
+/// Built-in Flame component factories available without recompilation.
+abstract final class WorkspaceCompositionTypes {
+  static const names = <String>{
+    'PositionComponent',
+    'RectangleComponent',
+    'CircleComponent',
+    'TextComponent',
+    'TextBoxComponent',
+  };
+
+  static const properties = <String, Set<String>>{
+    'PositionComponent': {},
+    'RectangleComponent': {'paint'},
+    'CircleComponent': {'radius', 'paint'},
+    'TextComponent': {'text', 'textRenderer'},
+    'TextBoxComponent': {'text', 'textRenderer', 'boxConfig', 'align'},
+  };
 }
 
 /// Arguments sent to a Workspace VM Service extension.

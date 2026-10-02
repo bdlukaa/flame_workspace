@@ -221,6 +221,7 @@ class FlameProjectState with ChangeNotifier {
   bool persistencePending = false;
   bool? lastPersistenceSucceeded;
   bool previewPending = false;
+  int _previewOperations = 0;
   bool? lastPreviewApplied;
   bool _saveWorkspaceRequested = false;
   Timer? _autosaveTimer;
@@ -954,6 +955,16 @@ class FlameProjectState with ChangeNotifier {
     String? parentId,
   }) => _applyStructuralChange(
     () => _addWorkspaceComponent(component, parentId: parentId),
+    compose: _canCompose(component)
+        ? (runner, scene, revision) => runner.composeComponent(
+            sceneName: scene.name,
+            revision: revision,
+            action: 'add',
+            componentId: component.id,
+            parentId: parentId,
+            component: {...component.toJson(), 'children': <Object>[]},
+          )
+        : null,
   );
 
   bool copyWorkspaceComponent() {
@@ -1004,10 +1015,54 @@ class FlameProjectState with ChangeNotifier {
     String componentId, {
     String? parentId,
     required int index,
-  }) => _applyStructuralChange(
-    () =>
-        _moveWorkspaceComponent(componentId, parentId: parentId, index: index),
-  );
+  }) {
+    final scene = workspaceModel.currentScene;
+    final component = scene == null
+        ? null
+        : _authoredComponent(scene.components, componentId);
+    final siblings = scene == null
+        ? null
+        : parentId == null
+        ? scene.components
+        : _authoredComponent(scene.components, parentId)?.children;
+    final canCompose =
+        component != null &&
+        ScenePersistenceGenerator.supportsLiveFactory(component, project) &&
+        siblings != null &&
+        siblings.every(
+          (sibling) =>
+              sibling.id == componentId ||
+              ScenePersistenceGenerator.supportsLiveFactory(sibling, project),
+        );
+    return _applyStructuralChange(
+      () => _moveWorkspaceComponent(
+        componentId,
+        parentId: parentId,
+        index: index,
+      ),
+      compose: !canCompose
+          ? null
+          : (runner, scene, revision) async {
+              final target = parentId == null
+                  ? scene.components
+                  : _authoredComponent(scene.components, parentId)?.children;
+              if (target == null) return false;
+              final actualIndex = target.indexWhere(
+                (child) => child.id == componentId,
+              );
+              if (actualIndex < 0) return false;
+              return runner.composeComponent(
+                sceneName: scene.name,
+                revision: revision,
+                action: 'move',
+                componentId: componentId,
+                parentId: parentId,
+                index: actualIndex,
+                transform: target[actualIndex].transform,
+              );
+            },
+    );
+  }
 
   bool _removeWorkspaceComponent(String componentId) {
     if (!canEditWorkspace) return false;
@@ -1015,9 +1070,36 @@ class FlameProjectState with ChangeNotifier {
   }
 
   Future<bool> removeWorkspaceComponentAndSync(String componentId) =>
-      _applyStructuralChange(() => _removeWorkspaceComponent(componentId));
+      _applyStructuralChange(
+        () => _removeWorkspaceComponent(componentId),
+        compose: (runner, scene, revision) => runner.composeComponent(
+          sceneName: scene.name,
+          revision: revision,
+          action: 'remove',
+          componentId: componentId,
+        ),
+      );
 
-  Future<bool> _applyStructuralChange(bool Function() apply) async {
+  ComponentInstance? _authoredComponent(
+    List<ComponentInstance> components,
+    String id,
+  ) {
+    for (final component in components) {
+      if (component.id == id) return component;
+      final child = _authoredComponent(component.children, id);
+      if (child != null) return child;
+    }
+    return null;
+  }
+
+  bool _canCompose(ComponentInstance component) =>
+      ScenePersistenceGenerator.supportsLiveFactory(component, project) &&
+      component.children.isEmpty;
+
+  Future<bool> _applyStructuralChange(
+    bool Function() apply, {
+    Future<bool> Function(FlameProjectRunner, SceneDefinition, int)? compose,
+  }) async {
     if (!canEditWorkspace ||
         classifyWorkspaceChange(WorkspaceChangeKind.structure) !=
             WorkspaceChangeStrategy.sceneRecreation) {
@@ -1031,6 +1113,45 @@ class FlameProjectState with ChangeNotifier {
       workspaceModel.selectComponent(selectedComponentId);
     }
 
+    final runner = _runner;
+    final scene = workspaceModel.currentScene;
+    if (compose != null &&
+        runner != null &&
+        scene != null &&
+        runner.isPreviewRunning) {
+      if (!runner.canControlRuntime) {
+        lastPreviewApplied = false;
+        runner.reportPreviewBehind(scene.name);
+        notifyListeners();
+        return true;
+      }
+      if (!runner.supportsLiveComposition) {
+        await _synchronizeAuthoredChange(WorkspaceChangeKind.structure);
+        return true;
+      }
+      previewPending = ++_previewOperations > 0;
+      notifyListeners();
+      final revision = workspaceModel.revision;
+      try {
+        final applied = await compose(runner, scene, revision);
+        if (identical(runner, _runner) &&
+            workspaceModel.currentSceneId == scene.id &&
+            workspaceModel.revision == revision) {
+          lastPreviewApplied = applied;
+          if (!applied) runner.reportPreviewBehind(scene.name);
+        }
+      } catch (error) {
+        if (workspaceModel.revision == revision && identical(runner, _runner)) {
+          lastPreviewApplied = false;
+          runner.reportPreviewBehind(scene.name);
+        }
+        debugPrint('Live composition failed: $error');
+      } finally {
+        previewPending = --_previewOperations > 0;
+        notifyListeners();
+      }
+      return true;
+    }
     await _synchronizeAuthoredChange(WorkspaceChangeKind.structure);
     return true;
   }
@@ -1046,6 +1167,7 @@ class FlameProjectState with ChangeNotifier {
         : _sceneById(sceneId);
     if (scene == null) return;
     final runner = _runner;
+    final revision = workspaceModel.revision;
     final saved = kind == WorkspaceChangeKind.structure && persist
         ? await saveWorkspace()
         : true;
@@ -1063,7 +1185,7 @@ class FlameProjectState with ChangeNotifier {
       runner.reportPreviewBehind(scene.name);
       return;
     }
-    previewPending = true;
+    previewPending = ++_previewOperations > 0;
     notifyListeners();
     try {
       final applied = switch (classifyWorkspaceChange(kind)) {
@@ -1078,17 +1200,20 @@ class FlameProjectState with ChangeNotifier {
         WorkspaceChangeStrategy.editorOnly => true,
       };
       if (!identical(runner, _runner) ||
-          workspaceModel.currentSceneId != scene.id) {
+          workspaceModel.currentSceneId != scene.id ||
+          workspaceModel.revision != revision) {
         return;
       }
       lastPreviewApplied = applied;
       if (!applied) runner.reportPreviewBehind(scene.name);
     } catch (error) {
-      lastPreviewApplied = false;
-      runner.reportPreviewBehind(scene.name);
+      if (workspaceModel.revision == revision && identical(runner, _runner)) {
+        lastPreviewApplied = false;
+        runner.reportPreviewBehind(scene.name);
+      }
       debugPrint('Preview synchronization failed: $error');
     } finally {
-      previewPending = false;
+      previewPending = --_previewOperations > 0;
       notifyListeners();
     }
   }

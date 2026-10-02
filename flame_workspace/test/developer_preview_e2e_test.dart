@@ -77,6 +77,31 @@ void main() {
     );
 
     expect(editor.addComponent(component), isTrue);
+    final circleId = WorkspaceIds.component(
+      sceneId: scene.id,
+      name: 'head',
+      ordinal: scene.components.length + 101,
+    );
+    expect(
+      editor.addComponent(
+        ComponentInstance(
+          id: circleId,
+          type: const ComponentType(
+            id: 'CircleComponent',
+            name: 'CircleComponent',
+            isPositionComponent: true,
+            properties: [
+              WorkspacePropertyDefinition(name: 'radius', type: 'double'),
+            ],
+          ),
+          properties: const {'radius': 40.0},
+          transform: const WorkspaceTransform(
+            position: WorkspaceVector2(100, 100),
+          ),
+        ),
+      ),
+      isTrue,
+    );
     expect(
       editor.updateTransform(
         componentId,
@@ -104,6 +129,7 @@ void main() {
     expect(await generatedFile.exists(), isTrue);
     final firstGeneratedOutput = await generatedFile.readAsString();
     expect(firstGeneratedOutput, contains('populateLevelOneWorkspaceScene'));
+    expect(firstGeneratedOutput, contains('createWorkspaceComponentJson'));
     await ScenePersistenceGenerator.writeForScene(scene, imported);
     expect(await generatedFile.readAsString(), firstGeneratedOutput);
 
@@ -154,6 +180,10 @@ void main() {
       ),
     );
     expect(persistedComponent.priority, 7);
+    expect(
+      reopenedScene.components.any((component) => component.id == circleId),
+      isTrue,
+    );
   }, timeout: const Timeout(Duration(minutes: 10)));
 
   test(

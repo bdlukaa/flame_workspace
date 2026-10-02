@@ -8,6 +8,7 @@ class FlameWorkspaceRuntimeBridge {
   FlameWorkspaceRuntimeBridge(this.core);
 
   final FlameWorkspaceCore core;
+  final Map<String, int> _compositionRevisions = {};
 
   Future<WorkspaceRuntimeResponse> dispatch(
     String method,
@@ -21,6 +22,7 @@ class FlameWorkspaceRuntimeBridge {
         WorkspaceExtensionNames.setTransform => _setTransform(arguments),
         WorkspaceExtensionNames.setSceneBackgroundColor =>
           _setSceneBackgroundColor(arguments),
+        WorkspaceExtensionNames.composeComponent => await _compose(arguments),
         WorkspaceExtensionNames.setScene => await _setScene(arguments),
         WorkspaceExtensionNames.pause => _pause(),
         WorkspaceExtensionNames.resume => _resume(),
@@ -83,7 +85,7 @@ class FlameWorkspaceRuntimeBridge {
 
   dynamic _getState() {
     final scene = core.currentSceneOrNull;
-    return WorkspaceGameState(
+    final state = WorkspaceGameState(
       paused: core.game.paused,
       scene: scene?.sceneName,
       sessionId: core.sessionId.isEmpty ? null : core.sessionId,
@@ -94,6 +96,10 @@ class FlameWorkspaceRuntimeBridge {
           scene.isMounted &&
           identical(core.game.world, scene),
     ).toMap();
+    if (core.sessionId.isNotEmpty) {
+      state['capabilities'] = const ['composeComponent'];
+    }
+    return state;
   }
 
   dynamic _getComponentTree() {
@@ -350,6 +356,169 @@ class FlameWorkspaceRuntimeBridge {
       'sessionId': core.sessionId,
       'sceneReady': true,
     };
+  }
+
+  Future<dynamic> _compose(Map<String, dynamic> arguments) async {
+    final sceneName = _requiredString(arguments, 'scene');
+    final sessionId = _requiredString(arguments, 'sessionId');
+    final revision = arguments['revision'];
+    final action = _requiredString(arguments, 'action');
+    final scene = core.currentSceneOrNull;
+    if (scene == null ||
+        scene.sceneName != sceneName ||
+        sessionId != core.sessionId) {
+      throw const _RuntimeCommandException(
+        'stale_session',
+        'The authored scene or runtime session has changed.',
+      );
+    }
+    if (revision is! int || revision < 0) {
+      throw const _RuntimeCommandException(
+        'invalid_revision',
+        'Expected an authored revision.',
+      );
+    }
+    if (revision < (_compositionRevisions[sceneName] ?? -1)) {
+      throw const _RuntimeCommandException(
+        'stale_revision',
+        'A newer authored revision is already applied.',
+      );
+    }
+    final id = _requiredString(arguments, 'componentId');
+    if (action == 'add') {
+      if (_findInTree(scene, id, scene.sceneName) != null) {
+        throw const _RuntimeCommandException(
+          'duplicate_component_id',
+          'The component ID is already in use.',
+        );
+      }
+      final raw = arguments['component'];
+      if (raw is! Map) {
+        throw const _RuntimeCommandException(
+          'invalid_component',
+          'Missing component definition.',
+        );
+      }
+      final data = Map<String, dynamic>.from(raw);
+      if (data['id'] != id ||
+          data['children'] is! List ||
+          (data['children'] as List).isNotEmpty) {
+        throw const _RuntimeCommandException(
+          'invalid_component',
+          'Live additions require a matching ID and no nested children.',
+        );
+      }
+      final parent = _compositionParent(scene, arguments['parentId']);
+      late final PositionComponent child;
+      try {
+        child = WorkspaceComposition.create(data);
+      } on FormatException catch (error) {
+        throw _RuntimeCommandException('invalid_component', error.message);
+      }
+      parent.add(child);
+      if (parent.isMounted) {
+        await child.mounted.timeout(const Duration(seconds: 10));
+      }
+    } else if (action == 'remove') {
+      final child = _findComponent(id);
+      if (child.parent == null) {
+        throw const _RuntimeCommandException(
+          'invalid_component',
+          'Cannot remove the scene root.',
+        );
+      }
+      final mounted = child.isMounted;
+      child.removeFromParent();
+      if (mounted) await child.removed.timeout(const Duration(seconds: 10));
+    } else if (action == 'move') {
+      final child = _findComponent(id);
+      final parent = _compositionParent(scene, arguments['parentId']);
+      for (
+        Component? ancestor = parent;
+        ancestor != null;
+        ancestor = ancestor.parent
+      ) {
+        if (identical(ancestor, child)) {
+          throw const _RuntimeCommandException(
+            'invalid_hierarchy',
+            'A component cannot contain itself.',
+          );
+        }
+      }
+      final rawTransform = arguments['transform'];
+      if (rawTransform is! Map) {
+        throw const _RuntimeCommandException(
+          'invalid_transform',
+          'Missing reparent transform.',
+        );
+      }
+      final transform = Map<String, dynamic>.from(rawTransform);
+      _validateTransform(transform);
+      final index = arguments['index'];
+      final siblings = parent.children
+          .where(
+            (sibling) => sibling.key is FlameKey && !identical(sibling, child),
+          )
+          .toList();
+      if (index is! int || index < 0 || index > siblings.length) {
+        throw const _RuntimeCommandException(
+          'invalid_index',
+          'Invalid authored sibling index.',
+        );
+      }
+      if (siblings.any(
+        (sibling) => !{
+          PositionComponent,
+          RectangleComponent,
+          CircleComponent,
+          TextComponent,
+          TextBoxComponent,
+        }.contains(sibling.runtimeType),
+      )) {
+        throw const _RuntimeCommandException(
+          'unsupported_composition',
+          'Cannot reorder developer-defined siblings without recompilation.',
+        );
+      }
+      siblings.insert(index, child);
+      for (final sibling in siblings) {
+        final mounted = sibling.isMounted;
+        sibling.removeFromParent();
+        if (mounted) await sibling.removed.timeout(const Duration(seconds: 10));
+      }
+      for (final sibling in siblings) {
+        parent.add(sibling);
+        if (parent.isMounted) {
+          await sibling.mounted.timeout(const Duration(seconds: 10));
+        }
+      }
+      _setTransform({'componentId': id, 'transform': transform});
+    } else {
+      throw _RuntimeCommandException(
+        'unsupported_composition',
+        'Unsupported action $action.',
+      );
+    }
+    _compositionRevisions[sceneName] = revision;
+    return {'revision': revision, 'componentId': id, 'sessionId': sessionId};
+  }
+
+  Component _compositionParent(FlameScene scene, Object? id) {
+    if (id == null) return scene;
+    if (id is! String || id.isEmpty) {
+      throw const _RuntimeCommandException(
+        'invalid_parent',
+        'Invalid parent ID.',
+      );
+    }
+    final parent = _findComponent(id);
+    if (parent is! PositionComponent) {
+      throw const _RuntimeCommandException(
+        'invalid_parent',
+        'The parent cannot contain authored components.',
+      );
+    }
+    return parent;
   }
 
   dynamic _pause() {

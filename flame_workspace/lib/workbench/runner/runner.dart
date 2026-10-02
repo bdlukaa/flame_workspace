@@ -95,6 +95,9 @@ class FlameProjectRunner with ChangeNotifier {
   RuntimeConnectionState _connectionState = RuntimeConnectionState.disconnected;
   RuntimeConnectionState get connectionState => _connectionState;
   String? _runtimeSessionId;
+  bool _supportsLiveComposition = false;
+  bool get supportsLiveComposition =>
+      canControlRuntime && _supportsLiveComposition;
   String? get runtimeSessionId => _runtimeSessionId;
   WorkspaceRuntimeClient? get _client =>
       runtimeClientOverride ?? _connection?.client;
@@ -168,8 +171,12 @@ class FlameProjectRunner with ChangeNotifier {
     return succeeded;
   }
 
-  Future<bool> setScene(String sceneName) =>
-      _enqueue(() => _setSceneNow(sceneName));
+  int _sceneGeneration = 0;
+
+  Future<bool> setScene(String sceneName) {
+    _sceneGeneration++;
+    return _enqueue(() => _setSceneNow(sceneName));
+  }
 
   Future<bool> _setSceneNow(String sceneName) async {
     final session = _session;
@@ -231,10 +238,13 @@ class FlameProjectRunner with ChangeNotifier {
 
   /// Reloads generated scene code, then replaces the active World so its
   /// onLoad repopulates components from the persisted Workspace scene.
-  Future<bool> recreateScene(String sceneName) => _enqueue(() async {
-    if (!isPreviewRunning || !await _hotReloadNow()) return false;
-    return _setSceneNow(sceneName);
-  });
+  Future<bool> recreateScene(String sceneName) {
+    _sceneGeneration++;
+    return _enqueue(() async {
+      if (!isPreviewRunning || !await _hotReloadNow()) return false;
+      return _setSceneNow(sceneName);
+    });
+  }
 
   Future<void> refreshRuntimeTree() => _refreshRuntimeTree();
 
@@ -282,6 +292,43 @@ class FlameProjectRunner with ChangeNotifier {
     }
   }
 
+  Future<bool> composeComponent({
+    required String sceneName,
+    required int revision,
+    required String action,
+    required String componentId,
+    String? parentId,
+    int? index,
+    WorkspaceTransform? transform,
+    Map<String, Object?>? component,
+  }) => _enqueue(() async {
+    final session = _session;
+    final runtimeSession = _runtimeSessionId;
+    if (!supportsLiveComposition || runtimeSession == null) return false;
+    final applied = await _invokeRuntimeNow(
+      WorkspaceExtensionNames.composeComponent,
+      arguments: {
+        'scene': sceneName,
+        'sessionId': runtimeSession,
+        'revision': revision,
+        'action': action,
+        'componentId': componentId,
+        'parentId': parentId,
+        'index': ?index,
+        'transform': ?transform?.toJson(),
+        'component': ?component,
+      },
+      expectedRevision: revision,
+    );
+    if (!applied ||
+        session != _session ||
+        runtimeSession != _runtimeSessionId) {
+      return false;
+    }
+    await _refreshRuntimeTree();
+    return session == _session;
+  });
+
   Future<bool> setProperty({
     required String componentId,
     required String property,
@@ -299,23 +346,31 @@ class FlameProjectRunner with ChangeNotifier {
     );
   }
 
+  final Map<
+    (int, int, String),
+    ({WorkspaceTransform transform, Future<bool> future})
+  >
+  _queuedTransforms = {};
+
   Future<bool> setTransform({
     required String componentId,
     required WorkspaceTransform transform,
   }) {
-    return _invokeRuntime(
-      WorkspaceExtensionNames.setTransform,
-      arguments: {
-        'componentId': componentId,
-        'transform': {
-          'position': {'x': transform.position.x, 'y': transform.position.y},
-          'size': {'x': transform.size.x, 'y': transform.size.y},
-          'scale': {'x': transform.scale.x, 'y': transform.scale.y},
-          'angle': transform.angle,
-          'anchor': {'x': transform.anchor.x, 'y': transform.anchor.y},
-        },
-      },
-    );
+    final key = (_session, _sceneGeneration, componentId);
+    final pending = _queuedTransforms[key];
+    if (pending != null) {
+      _queuedTransforms[key] = (transform: transform, future: pending.future);
+      return pending.future;
+    }
+    final future = _enqueue(() {
+      final latest = _queuedTransforms.remove(key)?.transform ?? transform;
+      return _invokeRuntimeNow(
+        WorkspaceExtensionNames.setTransform,
+        arguments: {'componentId': componentId, 'transform': latest.toJson()},
+      );
+    });
+    _queuedTransforms[key] = (transform: transform, future: future);
+    return future;
   }
 
   Future<bool> setSceneBackgroundColor({
@@ -336,6 +391,7 @@ class FlameProjectRunner with ChangeNotifier {
   Future<bool> _invokeRuntimeNow(
     String method, {
     Map<String, dynamic> arguments = const {},
+    int? expectedRevision,
   }) async {
     final session = _session;
     final client = _client;
@@ -356,10 +412,18 @@ class FlameProjectRunner with ChangeNotifier {
     }
 
     try {
-      await client
+      final result = await client
           .invoke(method, arguments: arguments)
           .timeout(const Duration(seconds: 20));
       if (session != _session) return false;
+      if (expectedRevision != null &&
+          (result is! Map ||
+              result['revision'] != expectedRevision ||
+              result['sessionId'] != _runtimeSessionId)) {
+        throw const FormatException(
+          'Stale or invalid composition acknowledgement.',
+        );
+      }
       if (_runtimeDiagnostic != null) {
         _runtimeDiagnostic = null;
         notifyListeners();
@@ -507,6 +571,11 @@ class FlameProjectRunner with ChangeNotifier {
               );
             }
             _runtimeSessionId = runtimeSession;
+            _supportsLiveComposition =
+                (result['capabilities'] as List?)?.contains(
+                  'composeComponent',
+                ) ==
+                true;
             _setConnectionState(RuntimeConnectionState.sceneReady);
             candidate?.onDone.then((_) {
               if (session == _session && identical(candidate, _connection)) {
@@ -619,6 +688,7 @@ class FlameProjectRunner with ChangeNotifier {
     _connection = null;
     _connectionInFlight = null;
     _runtimeSessionId = null;
+    _supportsLiveComposition = false;
     unawaited(previous?.dispose());
     _setConnectionState(RuntimeConnectionState.disconnected);
     _reportRuntimeDiagnostic(
@@ -715,6 +785,7 @@ class FlameProjectRunner with ChangeNotifier {
 
   void _invalidateSession() {
     _session++;
+    _queuedTransforms.clear();
     _connectionInFlight = null;
     if (!_sessionCancelled.isCompleted) _sessionCancelled.complete(false);
     _sessionCancelled = Completer<bool>();
@@ -874,6 +945,7 @@ class FlameProjectRunner with ChangeNotifier {
     _connection = null;
     _connectionInFlight = null;
     _runtimeSessionId = null;
+    _supportsLiveComposition = false;
     await connection?.dispose();
     _setConnectionState(RuntimeConnectionState.disconnected);
     if (_isRunning) emitLog('Stopping project', kWorkspaceLogPrefix);

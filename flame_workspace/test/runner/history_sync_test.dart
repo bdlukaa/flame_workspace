@@ -153,7 +153,7 @@ void main() {
   });
 
   test(
-    'structural undo and redo persist and recreate the selected scene',
+    'structural history persists and removal uses live composition',
     () async {
       final directory = await Directory.systemTemp.createTemp(
         'history_structure_',
@@ -202,7 +202,8 @@ void main() {
       expect(state.currentScene.components.single.id, component.id);
       await state.redoWorkspace();
       expect(state.currentScene.components, isEmpty);
-      expect(runner.recreatedScenes, hasLength(6));
+      expect(runner.recreatedScenes, hasLength(5));
+      expect(runner.compositionActions, ['remove']);
     },
   );
 
@@ -445,6 +446,7 @@ class _HistoryRunner extends FlameProjectRunner {
   final propertyValues = <Object?>[];
   final transforms = <WorkspaceTransform>[];
   final recreatedScenes = <String>[];
+  final compositionActions = <String>[];
   final backgroundColors = <int>[];
 
   @override
@@ -452,6 +454,9 @@ class _HistoryRunner extends FlameProjectRunner {
 
   @override
   bool get canControlRuntime => true;
+
+  @override
+  bool get supportsLiveComposition => true;
 
   @override
   Future<bool> setProperty({
@@ -479,6 +484,21 @@ class _HistoryRunner extends FlameProjectRunner {
     required int color,
   }) async {
     backgroundColors.add(color);
+    return !failMutations;
+  }
+
+  @override
+  Future<bool> composeComponent({
+    required String sceneName,
+    required int revision,
+    required String action,
+    required String componentId,
+    String? parentId,
+    int? index,
+    WorkspaceTransform? transform,
+    Map<String, Object?>? component,
+  }) async {
+    compositionActions.add(action);
     return !failMutations;
   }
 

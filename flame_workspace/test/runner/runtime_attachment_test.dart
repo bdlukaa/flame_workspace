@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flame_workspace/workbench/model/semantic_model.dart';
 import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:flame_workspace/workbench/runner/logs.dart';
 import 'package:flame_workspace/workbench/runner/runner.dart';
@@ -12,6 +13,7 @@ const ready = {
   'sessionId': 'session-1',
   'scene': 'Main',
   'sceneReady': true,
+  'capabilities': ['composeComponent'],
   'paused': false,
 };
 Map<String, dynamic> response(Object result) =>
@@ -169,6 +171,115 @@ void main() {
     expect(runner.connectionState, RuntimeConnectionState.disconnected);
     expect(runner.runtimeSessionId, isNull);
   });
+
+  test(
+    'composition serializes add, dependent move and removal without reload',
+    () async {
+      final started = Completer<void>();
+      final release = Completer<void>();
+      final commands = <String>[];
+      final positions = <num>[];
+      final runner = fakeRunner(
+        WorkspaceRuntimeClient.fromInvoker((method, arguments) async {
+          if (method == WorkspaceExtensionNames.getState) {
+            return response(ready);
+          }
+          if (method == WorkspaceExtensionNames.getComponentTree) {
+            return response({'id': 'Main', 'type': 'Scene', 'children': []});
+          }
+          if (method == WorkspaceExtensionNames.setTransform) {
+            commands.add('transform');
+            final transform = arguments['transform'] as Map;
+            positions.add((transform['position'] as Map)['x'] as num);
+            return response({});
+          }
+          if (method == WorkspaceExtensionNames.composeComponent) {
+            final action = arguments['action'] as String;
+            commands.add(action);
+            if (action == 'add') {
+              started.complete();
+              await release.future;
+            }
+            return response({
+              'revision': arguments['revision'],
+              'sessionId': arguments['sessionId'],
+            });
+          }
+          fail('Unexpected runtime command $method');
+        }),
+      );
+      expect(await runner.connectRuntime('ws://localhost:8181/ws'), isTrue);
+      final add = runner.composeComponent(
+        sceneName: 'Main',
+        revision: 1,
+        action: 'add',
+        componentId: 'arm',
+        component: const {'id': 'arm'},
+      );
+      await started.future;
+      final firstMove = runner.setTransform(
+        componentId: 'arm',
+        transform: const WorkspaceTransform(position: WorkspaceVector2(1, 0)),
+      );
+      final lastMove = runner.setTransform(
+        componentId: 'arm',
+        transform: const WorkspaceTransform(position: WorkspaceVector2(99, 0)),
+      );
+      expect(identical(firstMove, lastMove), isTrue);
+      final move = runner.composeComponent(
+        sceneName: 'Main',
+        revision: 2,
+        action: 'move',
+        componentId: 'arm',
+        index: 0,
+      );
+      final remove = runner.composeComponent(
+        sceneName: 'Main',
+        revision: 3,
+        action: 'remove',
+        componentId: 'arm',
+      );
+      expect(commands, ['add']);
+      release.complete();
+      expect(await add, isTrue);
+      expect(await firstMove, isTrue);
+      expect(await lastMove, isTrue);
+      expect(await move, isTrue);
+      expect(await remove, isTrue);
+      expect(positions, [99]);
+      expect(commands, ['add', 'transform', 'move', 'remove']);
+      await runner.stop();
+    },
+  );
+
+  test(
+    'stale composition acknowledgement cannot claim an applied edit',
+    () async {
+      final runner = fakeRunner(
+        WorkspaceRuntimeClient.fromInvoker((method, _) async {
+          if (method == WorkspaceExtensionNames.getState) {
+            return response(ready);
+          }
+          if (method == WorkspaceExtensionNames.getComponentTree) {
+            return response({'id': 'Main', 'type': 'Scene', 'children': []});
+          }
+          return response({'revision': 0, 'sessionId': 'session-1'});
+        }),
+      );
+      expect(await runner.connectRuntime('ws://localhost:8181/ws'), isTrue);
+      expect(
+        await runner.composeComponent(
+          sceneName: 'Main',
+          revision: 2,
+          action: 'remove',
+          componentId: 'head',
+        ),
+        isFalse,
+      );
+      expect(runner.runtimeDiagnostic?.code, 'runtime_command_failed');
+      await runner.stop();
+    },
+  );
 
   test('scene change waits for the selected scene to mount', () async {
     var polls = 0;

@@ -9,6 +9,7 @@ import 'vm_service_extensions.dart';
 export 'package:flame_workspace_protocol/runtime.dart';
 export 'package:flame_workspace_protocol/state.dart';
 export 'package:flame_workspace_runtime/value_parser.dart';
+export 'package:flame_workspace_runtime/composition.dart';
 export 'package:flame_workspace_runtime/exports.dart';
 
 export 'package:flame_workspace_runtime/game/key.dart';

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flame_workspace/workbench/generators/scene_persistence_generator.dart';
@@ -6,6 +7,8 @@ import 'package:flame_workspace/workbench/model/semantic_model.dart';
 import 'package:flame_workspace/workbench/model/workspace_editor_model.dart';
 import 'package:flame_workspace/workbench/model/runtime_tree_reconciliation.dart';
 import 'package:flame_workspace_protocol/runtime.dart';
+import 'package:flame_workspace_runtime/flame_workspace_runtime.dart'
+    as runtime;
 import 'package:flame_workspace_protocol/workspace_value.dart';
 import 'package:flame_workspace/workbench/project/project.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -343,15 +346,36 @@ void main() {
       ),
     );
 
-    expect(generated, contains('component0.radius = 18.0;'));
-    expect(
-      generated,
-      contains(
-        '..position = Vector2(10.0, 20.0)\n    ..scale = Vector2(2.0, 1.0)',
-      ),
-    );
-    expect(generated, contains('..position = Vector2(40.0, 50.0)'));
-    expect(generated, contains('..size = Vector2(120.0, 80.0)'));
+    expect(generated, contains('createWorkspaceComponentJson'));
+    expect(generated, contains('"radius":18.0'));
+    expect(generated, contains('"position":{"x":10.0,"y":20.0}'));
+    expect(generated, contains('"scale":{"x":2.0,"y":1.0}'));
+    expect(generated, contains('"position":{"x":40.0,"y":50.0}'));
+    expect(generated, contains('"size":{"x":120.0,"y":80.0}'));
+    for (final component in restored.components.take(2)) {
+      final snapshot = jsonEncode(component.toJson());
+      expect(generated, contains(snapshot));
+      final live = runtime.createWorkspaceComponentJson(snapshot);
+      expect((live.key as runtime.FlameKey).name, component.id);
+      expect(live.position.x, component.transform.position.x);
+      expect(live.position.y, component.transform.position.y);
+      expect(live.scale.x, component.transform.scale.x);
+      expect(live.priority, component.priority);
+      if (live is runtime.CircleComponent) {
+        expect(live.radius, component.properties['radius']);
+        expect(
+          live.paint.color.toARGB32(),
+          (component.properties['paint'] as WorkspacePaint).color.argb,
+        );
+      }
+      if (live is runtime.RectangleComponent) {
+        expect(live.size.x, component.transform.size.x);
+        expect(
+          live.paint.color.toARGB32(),
+          (component.properties['paint'] as WorkspacePaint).color.argb,
+        );
+      }
+    }
     expect(generated, contains('PolygonComponent(['));
     expect(generated, isNot(contains('component2.vertices =')));
     expect(generated, contains('..position = Vector2(80.0, 90.0)'));

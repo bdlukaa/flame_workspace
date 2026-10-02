@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:code_builder/code_builder.dart';
+import 'package:flame_workspace_protocol/runtime.dart';
 import 'package:flame_workspace_protocol/workspace_value.dart';
 import 'package:path/path.dart' as path;
 import 'package:recase/recase.dart';
@@ -48,6 +50,25 @@ class ScenePersistenceGenerator {
     void writeComponent(ComponentInstance component, String parent) {
       final variable = 'component$ordinal';
       ordinal++;
+      if (supportsLiveFactory(component, project)) {
+        statements.add(
+          declareFinal(variable)
+              .assign(
+                refer(
+                  'createWorkspaceComponentJson',
+                  WorkspaceDartEmitter.runtime,
+                ).call([literalString(jsonEncode(component.toJson()))]),
+              )
+              .statement,
+        );
+        statements.add(
+          refer(parent).property('add').call([refer(variable)]).statement,
+        );
+        for (final child in component.children) {
+          writeComponent(child, variable);
+        }
+        return;
+      }
       if (component.assetPath != null &&
           !_isSpriteLike(component.type.name, component.type.baseType)) {
         throw FormatException(
@@ -269,6 +290,30 @@ class ScenePersistenceGenerator {
       yield* _components(component.children);
     }
   }
+
+  static bool supportsLiveFactory(
+    ComponentInstance component,
+    FlameProject project,
+  ) =>
+      WorkspaceCompositionTypes.names.contains(component.type.name) &&
+      component.type.id == component.type.name &&
+      component.assetPath == null &&
+      _componentImportUri(component, project) ==
+          WorkspaceDartEmitter.flameComponents &&
+      {
+        ...component.properties.entries
+            .where((entry) => entry.value != null)
+            .map((entry) => entry.key),
+        ...component.type.properties
+            .where((property) => property.defaultValue != null)
+            .map((property) => property.name),
+      }.every(
+        (key) =>
+            WorkspaceCompositionTypes.properties[component.type.name]!.contains(
+              key,
+            ) ||
+            _transformProperties.contains(key),
+      );
 
   static Reference _componentReference(
     ComponentInstance component,
