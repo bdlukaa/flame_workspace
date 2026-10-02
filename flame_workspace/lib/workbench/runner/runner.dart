@@ -132,8 +132,11 @@ class FlameProjectRunner with ChangeNotifier {
     return succeeded;
   }
 
-  Future<bool> setScene(String sceneName) async {
-    final succeeded = await _invokeRuntime(
+  Future<bool> setScene(String sceneName) =>
+      _enqueue(() => _setSceneNow(sceneName));
+
+  Future<bool> _setSceneNow(String sceneName) async {
+    final succeeded = await _invokeRuntimeNow(
       WorkspaceExtensionNames.setScene,
       arguments: {'scene': sceneName},
     );
@@ -143,11 +146,10 @@ class FlameProjectRunner with ChangeNotifier {
 
   /// Reloads generated scene code, then replaces the active World so its
   /// onLoad repopulates components from the persisted Workspace scene.
-  Future<bool> recreateScene(String sceneName) async {
-    if (!isPreviewRunning) return false;
-    if (!await hotReload()) return false;
-    return setScene(sceneName);
-  }
+  Future<bool> recreateScene(String sceneName) => _enqueue(() async {
+    if (!isPreviewRunning || !await _hotReloadNow()) return false;
+    return _setSceneNow(sceneName);
+  });
 
   Future<void> refreshRuntimeTree() => _refreshRuntimeTree();
 
@@ -178,11 +180,6 @@ class FlameProjectRunner with ChangeNotifier {
         null,
       );
     } catch (error) {
-      if (_isTransientRuntimeRestartError(error)) {
-        // DWDS may surface the short hot-restart window as a failed service
-        // extension even though the next runtime refresh will succeed.
-        return;
-      }
       await onRuntimeTreeChanged?.call(null, error);
       _reportRuntimeDiagnostic(
         WorkspaceDiagnostic(
@@ -195,12 +192,6 @@ class FlameProjectRunner with ChangeNotifier {
         ),
       );
     }
-  }
-
-  bool _isTransientRuntimeRestartError(Object error) {
-    final message = '$error';
-    return message.contains('Unexpected null value') ||
-        message.contains('Service extension failed in some clients');
   }
 
   Future<bool> setProperty({
@@ -252,7 +243,13 @@ class FlameProjectRunner with ChangeNotifier {
   Future<bool> _invokeRuntime(
     String method, {
     Map<String, dynamic> arguments = const {},
+  }) => _enqueue(() => _invokeRuntimeNow(method, arguments: arguments));
+
+  Future<bool> _invokeRuntimeNow(
+    String method, {
+    Map<String, dynamic> arguments = const {},
   }) async {
+    final session = _session;
     final client = runtimeClientOverride ?? runtimeClient;
     if (client == null) {
       _reportRuntimeDiagnostic(
@@ -268,13 +265,17 @@ class FlameProjectRunner with ChangeNotifier {
     }
 
     try {
-      await client.invoke(method, arguments: arguments);
+      await client
+          .invoke(method, arguments: arguments)
+          .timeout(const Duration(seconds: 20));
+      if (session != _session) return false;
       if (_runtimeDiagnostic != null) {
         _runtimeDiagnostic = null;
         notifyListeners();
       }
       return true;
     } on WorkspaceRuntimeException catch (error) {
+      if (session != _session) return false;
       if (error.code == 'component_not_found') {
         // Build edits can reconstruct the World between a selection and the
         // runtime command. Refresh before leaving the editor with a stale
@@ -297,6 +298,7 @@ class FlameProjectRunner with ChangeNotifier {
       );
       return false;
     } catch (error) {
+      if (session != _session) return false;
       _reportRuntimeDiagnostic(
         WorkspaceDiagnostic(
           category: WorkspaceDiagnosticCategory.synchronization,
@@ -330,6 +332,9 @@ class FlameProjectRunner with ChangeNotifier {
   /// Connection failures are returned as `false` and retained in
   /// [runtimeError] so a broken preview cannot crash the editor.
   Future<bool> connectRuntime(String serviceUri) async {
+    if (_runtimeServiceUri != null && _runtimeServiceUri != serviceUri) {
+      _invalidateSession();
+    }
     _runtimeServiceUri = serviceUri;
     try {
       await registerWorkspace(serviceUri);
@@ -385,6 +390,8 @@ class FlameProjectRunner with ChangeNotifier {
   }
 
   void reportRuntimeConnectionError(Object error) {
+    _invalidateSession();
+    _runtimeServiceUri = null;
     _reportRuntimeDiagnostic(
       WorkspaceDiagnostic(
         category: WorkspaceDiagnosticCategory.runtime,
@@ -407,10 +414,15 @@ class FlameProjectRunner with ChangeNotifier {
     emitLog('Starting web preview', kWorkspaceLogPrefix);
     notifyListeners();
     try {
+      final session = _session;
       final starting = previewRunner.start(
-        onOutput: (line) => unawaited(onReceiveLog(line)),
+        onOutput: (line) {
+          if (session == _session) unawaited(onReceiveLog(line));
+        },
         onError: (line) => emitLog(line, kPreviewLogPrefix),
         onExit: (_) {
+          if (session != _session) return;
+          _invalidateSession();
           _isRunning = false;
           _isPaused = null;
           notifyListeners();
@@ -440,72 +452,151 @@ class FlameProjectRunner with ChangeNotifier {
 
   Future<void> retryPreview() => runPreviewSafely();
 
+  Future<void> _operationTail = Future.value();
+  Completer<bool> _sessionCancelled = Completer<bool>();
+  int _session = 0;
+
+  void _invalidateSession() {
+    _session++;
+    if (!_sessionCancelled.isCompleted) _sessionCancelled.complete(false);
+    _sessionCancelled = Completer<bool>();
+    completeHotReload(succeeded: false);
+    completeHotRestart(succeeded: false);
+  }
+
+  Future<bool> _enqueue(Future<bool> Function() action) {
+    final session = _session;
+    final cancelled = _sessionCancelled.future;
+    final result = _operationTail.then((_) async {
+      if (session != _session || _disposeRequested) return false;
+      try {
+        final applied = await Future.any([
+          action().timeout(const Duration(seconds: 45)),
+          cancelled,
+        ]);
+        return session == _session && applied;
+      } catch (error) {
+        if (session != _session) return false;
+        _reportRuntimeDiagnostic(
+          WorkspaceDiagnostic(
+            category: WorkspaceDiagnosticCategory.synchronization,
+            code: 'preview_synchronization_failed',
+            operation: 'Synchronize preview',
+            message: '$error',
+            recovery:
+                'Build State is preserved. Restart Preview to resynchronize.',
+          ),
+        );
+        return false;
+      }
+    });
+    _operationTail = result.then<void>((_) {});
+    return result;
+  }
+
+  void reportPreviewBehind(String sceneName) => _reportRuntimeDiagnostic(
+    WorkspaceDiagnostic(
+      category: WorkspaceDiagnosticCategory.synchronization,
+      code: 'preview_behind',
+      operation: 'Synchronize scene "$sceneName"',
+      message: 'The authored edit was accepted, but Preview did not apply it.',
+      recovery: 'Restart Preview to load the saved scene.',
+    ),
+  );
+
   Completer<bool>? _hotReloadCompleter;
-  Future<bool> hotReload() async {
+  Future<bool> hotReload() => _enqueue(_hotReloadNow);
+
+  Future<bool> _hotReloadNow() async {
     final completer = _hotReloadCompleter = Completer<bool>();
     notifyListeners();
     try {
-      await previewRunner.hotReload();
+      await previewRunner.hotReload().timeout(const Duration(seconds: 20));
+      final succeeded = await completer.future.timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => false,
+      );
+      if (!succeeded) _reportExecutionError('Hot reload failed or timed out.');
+      return succeeded;
     } catch (error) {
-      completeHotReload(succeeded: false);
+      if (!completer.isCompleted) completer.complete(false);
       _reportExecutionError('Hot reload failed: $error');
       return false;
+    } finally {
+      if (identical(_hotReloadCompleter, completer)) {
+        _hotReloadCompleter = null;
+        notifyListeners();
+      }
     }
-    return completer.future;
   }
 
   void completeHotReload({bool succeeded = true}) {
     final completer = _hotReloadCompleter;
     if (completer == null) return;
-    if (!completer.isCompleted) completer.complete(succeeded);
-    _hotReloadCompleter = null;
+    if (completer.isCompleted) return;
+    completer.complete(succeeded);
     notifyListeners();
-    unawaited(_refreshRuntimeTree());
+    if (succeeded) unawaited(_refreshRuntimeTree());
   }
 
   bool get isHotReloading =>
       _hotReloadCompleter != null && !_hotReloadCompleter!.isCompleted;
 
-  Completer? _hotRestartCompleter;
+  Completer<bool>? _hotRestartCompleter;
   Future<void> hotRestart() async {
-    final completer = _hotRestartCompleter = Completer<void>();
+    await _enqueue(_hotRestartNow);
+  }
+
+  Future<bool> _hotRestartNow() async {
+    final completer = _hotRestartCompleter = Completer<bool>();
     notifyListeners();
     try {
-      await previewRunner.hotRestart();
+      await previewRunner.hotRestart().timeout(const Duration(seconds: 20));
+      final succeeded = await completer.future.timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => false,
+      );
+      if (!succeeded) _reportExecutionError('Hot restart failed or timed out.');
+      return succeeded;
     } catch (error) {
-      completeHotRestart(succeeded: false);
+      if (!completer.isCompleted) completer.complete(false);
       _reportExecutionError('Hot restart failed: $error');
-      return;
+      return false;
+    } finally {
+      if (identical(_hotRestartCompleter, completer)) {
+        _hotRestartCompleter = null;
+        notifyListeners();
+      }
     }
-    return completer.future;
   }
 
   void completeHotRestart({bool succeeded = true}) {
     final completer = _hotRestartCompleter;
     if (completer == null) return;
-    if (!completer.isCompleted) completer.complete();
-    _hotRestartCompleter = null;
+    if (completer.isCompleted) return;
+    completer.complete(succeeded);
     if (succeeded) onHotRestartCompleted?.call();
     notifyListeners();
-    unawaited(_refreshRuntimeGameState());
-    unawaited(_refreshRuntimeTree());
+    if (succeeded) {
+      unawaited(_refreshRuntimeGameState());
+      unawaited(_refreshRuntimeTree());
+    }
   }
 
   bool get isHotRestarting =>
       _hotRestartCompleter != null && !_hotRestartCompleter!.isCompleted;
 
   Future<void> reloadPreview() async {
-    try {
-      await previewRunner.reload();
-    } finally {
+    await _enqueue(() async {
+      await previewRunner.reload().timeout(const Duration(seconds: 20));
       notifyListeners();
-    }
+      return true;
+    });
   }
 
   Future<void> stop() async {
+    _invalidateSession();
     if (_isRunning) emitLog('Stopping project', kWorkspaceLogPrefix);
-    completeHotReload(succeeded: false);
-    completeHotRestart(succeeded: false);
     Object? stopError;
     try {
       final stopping = previewRunner.stop();

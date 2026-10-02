@@ -179,6 +179,10 @@ class FlameProjectState with ChangeNotifier {
   List<RuntimeTreeDiagnostic> runtimeTreeDiagnostics = const [];
   List<WorkspaceDiagnostic> generationDiagnostics = const [];
   Future<bool>? _saveWorkspaceInFlight;
+  bool persistencePending = false;
+  bool? lastPersistenceSucceeded;
+  bool previewPending = false;
+  bool? lastPreviewApplied;
   bool _saveWorkspaceRequested = false;
   String? assetError;
   WorkspaceDiagnostic? _operationDiagnostic;
@@ -465,12 +469,7 @@ class FlameProjectState with ChangeNotifier {
         );
     if (recreate) {
       if (!changed || isGameMode) return false;
-      final scene = workspaceModel.currentScene;
-      if (scene == null || !await saveWorkspace()) return false;
-      final runner = _runner;
-      if (runner?.isPreviewRunning == true) {
-        return runner!.recreateScene(scene.name);
-      }
+      await _synchronizeAuthoredChange(WorkspaceChangeKind.structure);
       return true;
     }
     if (isBuildMode && !changed) return false;
@@ -486,6 +485,17 @@ class FlameProjectState with ChangeNotifier {
         type: type,
         runtimeValue: runtimeValue,
         overrideValue: modelValue,
+      );
+    }
+    if (changed) {
+      await _synchronizeAuthoredChange(
+        WorkspaceChangeKind.property,
+        runtimeMutation: (runner) => runner.setProperty(
+          componentId: componentId,
+          property: property,
+          type: type,
+          value: runtimeValue,
+        ),
       );
     }
     return changed;
@@ -510,6 +520,13 @@ class FlameProjectState with ChangeNotifier {
         transform: transform,
       );
     }
+    if (changed) {
+      await _synchronizeAuthoredChange(
+        WorkspaceChangeKind.transform,
+        runtimeMutation: (runner) =>
+            runner.setTransform(componentId: componentId, transform: transform),
+      );
+    }
     return changed;
   }
 
@@ -520,11 +537,26 @@ class FlameProjectState with ChangeNotifier {
     final changed = isBuildMode && workspaceModel.updateTransforms(transforms);
     if (isBuildMode && !changed) return false;
     final runner = _runner;
-    if (runner == null ||
-        !(isGameMode ||
-            (runner.isPreviewRunning && runner.canControlRuntime))) {
+    if (isBuildMode) {
+      if (changed) {
+        await _synchronizeAuthoredChange(
+          WorkspaceChangeKind.transform,
+          runtimeMutation: (runner) async {
+            for (final entry in transforms.entries) {
+              if (!await runner.setTransform(
+                componentId: entry.key,
+                transform: entry.value,
+              )) {
+                return false;
+              }
+            }
+            return true;
+          },
+        );
+      }
       return changed;
     }
+    if (runner == null) return false;
     var succeeded = true;
     for (final entry in transforms.entries) {
       final result = await setRuntimeTransform(
@@ -534,7 +566,7 @@ class FlameProjectState with ChangeNotifier {
       );
       succeeded = succeeded && result;
     }
-    return isBuildMode ? changed : succeeded;
+    return succeeded;
   }
 
   bool setComponentEditorMetadata(
@@ -552,12 +584,23 @@ class FlameProjectState with ChangeNotifier {
     final runner = _runner;
     if (classifyWorkspaceChange(WorkspaceChangeKind.priority) ==
             WorkspaceChangeStrategy.runtimeMutation &&
-        (isGameMode || (runner?.canControlRuntime ?? false))) {
+        isGameMode) {
       if (runner == null) return false;
       return setRuntimePriority(
         runner: runner,
         componentId: componentId,
         priority: priority,
+      );
+    }
+    if (changed) {
+      await _synchronizeAuthoredChange(
+        WorkspaceChangeKind.priority,
+        runtimeMutation: (runner) => runner.setProperty(
+          componentId: componentId,
+          property: 'priority',
+          type: 'int',
+          value: priority,
+        ),
       );
     }
     return changed;
@@ -572,8 +615,7 @@ class FlameProjectState with ChangeNotifier {
     if (isBuildMode && !changed) return false;
 
     final runner = _runner;
-    if (runner != null &&
-        (isGameMode || (runner.isPreviewRunning && runner.canControlRuntime))) {
+    if (runner != null && isGameMode) {
       final succeeded = await runner.setSceneBackgroundColor(
         sceneName: scene.name,
         color: color,
@@ -582,6 +624,13 @@ class FlameProjectState with ChangeNotifier {
         recordRuntimeSceneBackgroundColor(scene.id, color);
       }
       return succeeded;
+    }
+    if (changed) {
+      await _synchronizeAuthoredChange(
+        WorkspaceChangeKind.sceneProperty,
+        runtimeMutation: (runner) =>
+            runner.setSceneBackgroundColor(sceneName: scene.name, color: color),
+      );
     }
     return changed;
   }
@@ -596,7 +645,7 @@ class FlameProjectState with ChangeNotifier {
     if (restart) {
       await runner.hotRestart();
     } else {
-      await runner.hotReload();
+      await _synchronizeAuthoredChange(WorkspaceChangeKind.sourceCode);
     }
   }
 
@@ -663,98 +712,101 @@ class FlameProjectState with ChangeNotifier {
   Future<void> _synchronizeHistoryChange() async {
     final command = workspaceModel.lastExecutedCommand;
     if (command == null) return;
-    final runner = _runner;
-
     switch (classifyWorkspaceChange(command.changeKind)) {
       case WorkspaceChangeStrategy.sceneRecreation:
-        final scene = _sceneById(command.sceneId);
-        if (scene == null || !await saveWorkspace()) return;
-        if (runner?.isPreviewRunning == true &&
-            workspaceModel.currentSceneId == scene.id) {
-          await runner!.recreateScene(scene.name);
-        }
+        await _synchronizeAuthoredChange(
+          command.changeKind,
+          sceneId: command.sceneId,
+        );
         return;
       case WorkspaceChangeStrategy.hotReload:
-        if (runner?.isPreviewRunning == true) await runner!.hotReload();
+        await _synchronizeAuthoredChange(
+          WorkspaceChangeKind.sourceCode,
+          sceneId: command.sceneId,
+        );
         return;
       case WorkspaceChangeStrategy.editorOnly:
         return;
       case WorkspaceChangeStrategy.runtimeMutation:
-        if (runner == null ||
-            !runner.canControlRuntime ||
-            (command.sceneId != null &&
-                command.sceneId != workspaceModel.currentSceneId)) {
-          return;
-        }
-        if (command.changeKind == WorkspaceChangeKind.transform &&
-            command.componentIds.isNotEmpty) {
-          for (final componentId in command.componentIds) {
-            final component = _componentById(
-              componentId,
-              sceneId: command.sceneId,
-            );
-            if (component != null) {
-              await runner.setTransform(
-                componentId: componentId,
-                transform: component.transform,
-              );
-            }
-          }
-          return;
-        }
-        if (command.changeKind == WorkspaceChangeKind.sceneProperty) {
-          final scene = _sceneById(command.sceneId);
-          if (scene != null) {
-            await runner.setSceneBackgroundColor(
-              sceneName: scene.name,
-              color: scene.backgroundColor,
-            );
-          }
-          return;
-        }
-        final component = _componentById(
-          command.componentId,
+        await _synchronizeAuthoredChange(
+          command.changeKind,
           sceneId: command.sceneId,
+          runtimeMutation: (runner) =>
+              _synchronizeHistoryMutation(command, runner),
         );
-        if (component == null) return;
-        switch (command.changeKind) {
-          case WorkspaceChangeKind.property:
-            final name = command.propertyName;
-            final property = component.type.properties
-                .where((property) => property.name == name)
-                .firstOrNull;
-            if (property != null && name != null) {
-              await runner.setProperty(
-                componentId: component.id,
-                property: name,
-                type: property.type,
-                value: PropertyTypeAdapterRegistry.encodeRuntime(
-                  property.type,
-                  component.properties[name] ?? property.defaultValue,
-                ),
-              );
-            }
-            break;
-          case WorkspaceChangeKind.transform:
-            await runner.setTransform(
-              componentId: component.id,
-              transform: component.transform,
-            );
-            break;
-          case WorkspaceChangeKind.priority:
-            await runner.setProperty(
-              componentId: component.id,
-              property: 'priority',
-              type: 'int',
-              value: component.priority,
-            );
-            break;
-          case WorkspaceChangeKind.sceneProperty ||
-              WorkspaceChangeKind.editorMetadata ||
-              WorkspaceChangeKind.structure ||
-              WorkspaceChangeKind.sourceCode:
-            return;
+        return;
+    }
+  }
+
+  Future<bool> _synchronizeHistoryMutation(
+    EditorCommand command,
+    FlameProjectRunner runner,
+  ) async {
+    if (command.changeKind == WorkspaceChangeKind.transform &&
+        command.componentIds.isNotEmpty) {
+      for (final componentId in command.componentIds) {
+        final component = _componentById(componentId, sceneId: command.sceneId);
+        if (component != null) {
+          if (!await runner.setTransform(
+            componentId: componentId,
+            transform: component.transform,
+          )) {
+            return false;
+          }
         }
+      }
+      return true;
+    }
+    if (command.changeKind == WorkspaceChangeKind.sceneProperty) {
+      final scene = _sceneById(command.sceneId);
+      if (scene != null) {
+        return runner.setSceneBackgroundColor(
+          sceneName: scene.name,
+          color: scene.backgroundColor,
+        );
+      }
+      return false;
+    }
+    final component = _componentById(
+      command.componentId,
+      sceneId: command.sceneId,
+    );
+    if (component == null) return false;
+    switch (command.changeKind) {
+      case WorkspaceChangeKind.property:
+        final name = command.propertyName;
+        final property = component.type.properties
+            .where((property) => property.name == name)
+            .firstOrNull;
+        if (property != null && name != null) {
+          return runner.setProperty(
+            componentId: component.id,
+            property: name,
+            type: property.type,
+            value: PropertyTypeAdapterRegistry.encodeRuntime(
+              property.type,
+              component.properties[name] ?? property.defaultValue,
+            ),
+          );
+        }
+        return false;
+      case WorkspaceChangeKind.transform:
+        return runner.setTransform(
+          componentId: component.id,
+          transform: component.transform,
+        );
+      case WorkspaceChangeKind.priority:
+        return runner.setProperty(
+          componentId: component.id,
+          property: 'priority',
+          type: 'int',
+          value: component.priority,
+        );
+      case WorkspaceChangeKind.sceneProperty ||
+          WorkspaceChangeKind.editorMetadata ||
+          WorkspaceChangeKind.structure ||
+          WorkspaceChangeKind.sourceCode:
+        return false;
     }
   }
 
@@ -799,13 +851,7 @@ class FlameProjectState with ChangeNotifier {
         !workspaceModel.renameComponent(componentId, name)) {
       return false;
     }
-    if (!isGameMode && await saveWorkspace()) {
-      final scene = workspaceModel.currentScene;
-      final runner = _runner;
-      if (scene != null && runner?.isPreviewRunning == true) {
-        await runner!.recreateScene(scene.name);
-      }
-    }
+    await _synchronizeAuthoredChange(WorkspaceChangeKind.structure);
     notifyListeners();
     return true;
   }
@@ -920,19 +966,64 @@ class FlameProjectState with ChangeNotifier {
     final sceneId = workspaceModel.currentSceneId;
     final selectedComponentId = workspaceModel.selectedComponent?.id;
     if (!apply()) return false;
-    final scene = workspaceModel.currentScene;
-    if (scene == null || !await saveWorkspace()) return false;
-
     if (sceneId != null) workspaceModel.selectScene(sceneId);
     if (selectedComponentId != null) {
       workspaceModel.selectComponent(selectedComponentId);
     }
 
-    final runner = _runner;
-    if (runner?.isPreviewRunning ?? false) {
-      return runner!.recreateScene(scene.name);
-    }
+    await _synchronizeAuthoredChange(WorkspaceChangeKind.structure);
     return true;
+  }
+
+  Future<void> _synchronizeAuthoredChange(
+    WorkspaceChangeKind kind, {
+    Future<bool> Function(FlameProjectRunner runner)? runtimeMutation,
+    String? sceneId,
+    bool persist = true,
+  }) async {
+    final scene = sceneId == null
+        ? workspaceModel.currentScene
+        : _sceneById(sceneId);
+    if (scene == null) return;
+    final runner = _runner;
+    final saved = kind == WorkspaceChangeKind.structure && persist
+        ? await saveWorkspace()
+        : true;
+    if (!saved ||
+        runner == null ||
+        !runner.isPreviewRunning ||
+        workspaceModel.currentSceneId != scene.id ||
+        !identical(runner, _runner)) {
+      return;
+    }
+    previewPending = true;
+    notifyListeners();
+    try {
+      final applied = switch (classifyWorkspaceChange(kind)) {
+        WorkspaceChangeStrategy.sceneRecreation => await runner.recreateScene(
+          scene.name,
+        ),
+        WorkspaceChangeStrategy.runtimeMutation =>
+          runtimeMutation == null || !runner.canControlRuntime
+              ? false
+              : await runtimeMutation(runner),
+        WorkspaceChangeStrategy.hotReload => await runner.hotReload(),
+        WorkspaceChangeStrategy.editorOnly => true,
+      };
+      if (!identical(runner, _runner) ||
+          workspaceModel.currentSceneId != scene.id) {
+        return;
+      }
+      lastPreviewApplied = applied;
+      if (!applied) runner.reportPreviewBehind(scene.name);
+    } catch (error) {
+      lastPreviewApplied = false;
+      runner.reportPreviewBehind(scene.name);
+      debugPrint('Preview synchronization failed: $error');
+    } finally {
+      previewPending = false;
+      notifyListeners();
+    }
   }
 
   bool hasWorkspaceComponent(String declarationName) {
@@ -1019,14 +1110,10 @@ class FlameProjectState with ChangeNotifier {
         throw StateError(operationError ?? 'Could not save the new scene.');
       }
 
-      final runner = _runner;
-      if (runner?.isPreviewRunning ?? false) {
-        if (!await runner!.recreateScene(scene.name)) {
-          operationError =
-              'Scene "$name" was created, but the running preview could not switch to it.';
-          notifyListeners();
-        }
-      }
+      await _synchronizeAuthoredChange(
+        WorkspaceChangeKind.structure,
+        persist: false,
+      );
       return true;
     } catch (error, stackTrace) {
       if (added) {
@@ -1111,13 +1198,10 @@ class FlameProjectState with ChangeNotifier {
           operationError ?? 'Could not register the scene script.',
         );
       }
-      final runner = _runner;
-      if (runner?.isPreviewRunning ?? false) {
-        if (!await runner!.recreateScene(scene.name)) {
-          operationError = 'The scene script was created, but the running preview could not reload it.';
-          notifyListeners();
-        }
-      }
+      await _synchronizeAuthoredChange(
+        WorkspaceChangeKind.structure,
+        persist: false,
+      );
       return true;
     } catch (error, stackTrace) {
       if (metadataChanged) {
@@ -1387,10 +1471,10 @@ class FlameProjectState with ChangeNotifier {
         await sourceDirectory.list().isEmpty) {
       await sourceDirectory.delete();
     }
-    final runner = _runner;
-    if (runner?.isPreviewRunning ?? false) {
-      await runner!.recreateScene(replacement.name);
-    }
+    await _synchronizeAuthoredChange(
+      WorkspaceChangeKind.structure,
+      persist: false,
+    );
     return true;
   }
 
@@ -1433,12 +1517,21 @@ class FlameProjectState with ChangeNotifier {
       return inFlight;
     }
 
+    persistencePending = true;
+    notifyListeners();
     late final Future<bool> save;
-    save = _saveWorkspaceLoop().whenComplete(() {
-      if (identical(_saveWorkspaceInFlight, save)) {
-        _saveWorkspaceInFlight = null;
-      }
-    });
+    save = _saveWorkspaceLoop()
+        .then((result) {
+          lastPersistenceSucceeded = result;
+          return result;
+        })
+        .whenComplete(() {
+          persistencePending = false;
+          notifyListeners();
+          if (identical(_saveWorkspaceInFlight, save)) {
+            _saveWorkspaceInFlight = null;
+          }
+        });
     _saveWorkspaceInFlight = save;
     return save;
   }
@@ -1485,12 +1578,6 @@ class FlameProjectState with ChangeNotifier {
       }
       operationError = null;
       notifyListeners();
-      if (isBuildMode && _runner?.isPreviewRunning == true) {
-        final scene = workspaceModel.currentScene;
-        if (scene != null) {
-          await _runner!.recreateScene(scene.name);
-        }
-      }
       return true;
     } catch (error, stackTrace) {
       reportOperationDiagnostic(
@@ -1521,7 +1608,11 @@ class FlameProjectState with ChangeNotifier {
           (runner?.isPreviewRunning ?? false) &&
           classifyWorkspaceChange(WorkspaceChangeKind.structure) ==
               WorkspaceChangeStrategy.sceneRecreation) {
-        await runner!.recreateScene(scene.name);
+        await _synchronizeAuthoredChange(
+          WorkspaceChangeKind.structure,
+          sceneId: scene.id,
+          persist: false,
+        );
       }
     } catch (error, stackTrace) {
       operationError = _failureMessage(

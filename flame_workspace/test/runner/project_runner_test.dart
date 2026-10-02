@@ -66,8 +66,56 @@ void main() {
     final recreationRunner = _ReloadFailureRunner();
 
     expect(await recreationRunner.recreateScene('Main'), isFalse);
-    expect(recreationRunner.setSceneCalled, isFalse);
+    expect(recreationRunner.runtimeError, isNull);
   });
+
+  test('overlapping reloads serialize and both callers complete', () async {
+    final preview = _ControlledReloadPreview();
+    final subject = FlameProjectRunner(
+      FlameProject(
+        name: 'reload_queue',
+        organization: 'com.example',
+        location: Directory.current,
+        initialScene: 'Main',
+      ),
+      previewRunnerOverride: preview,
+    );
+    final first = subject.hotReload();
+    final second = subject.hotReload();
+    await Future<void>.delayed(Duration.zero);
+    expect(preview.reloadCount, 1);
+    subject.completeHotReload();
+    expect(await first, isTrue);
+    await Future<void>.delayed(Duration.zero);
+    expect(preview.reloadCount, 2);
+    subject.completeHotReload(succeeded: false);
+    expect(await second, isFalse);
+    await subject.stop();
+  });
+
+  test(
+    'stop settles active and queued reloads; stale completion does not succeed',
+    () async {
+      final preview = _ControlledReloadPreview();
+      final subject = FlameProjectRunner(
+        FlameProject(
+          name: 'reload_stop',
+          organization: 'com.example',
+          location: Directory.current,
+          initialScene: 'Main',
+        ),
+        previewRunnerOverride: preview,
+      );
+      final first = subject.hotReload();
+      final second = subject.hotReload();
+      await Future<void>.delayed(Duration.zero);
+      await subject.stop();
+      subject.completeHotReload();
+      expect(await first, isFalse);
+      expect(await second, isFalse);
+      expect(preview.reloadCount, 1);
+    },
+  );
 
   test('moves to failed when the process exits unsuccessfully', () async {
     final exited = Completer<int>();
@@ -184,6 +232,20 @@ void main() {
   });
 }
 
+class _ControlledReloadPreview extends PreviewProjectRunner {
+  _ControlledReloadPreview()
+    : super(
+        runner: FlutterProjectRunner(projectDirectory: Directory.current),
+        surface: UnavailablePreviewSurface(),
+      );
+  int reloadCount = 0;
+
+  @override
+  Future<void> hotReload() async {
+    reloadCount++;
+  }
+}
+
 class _ReloadFailureRunner extends FlameProjectRunner {
   _ReloadFailureRunner()
     : super(
@@ -193,21 +255,22 @@ class _ReloadFailureRunner extends FlameProjectRunner {
           location: Directory.current,
           initialScene: 'Main',
         ),
+        previewRunnerOverride: _FailingReloadPreview(),
       );
-
-  bool setSceneCalled = false;
 
   @override
   bool get isPreviewRunning => true;
+}
+
+class _FailingReloadPreview extends PreviewProjectRunner {
+  _FailingReloadPreview()
+    : super(
+        runner: FlutterProjectRunner(projectDirectory: Directory.current),
+        surface: UnavailablePreviewSurface(),
+      );
 
   @override
-  Future<bool> hotReload() async => false;
-
-  @override
-  Future<bool> setScene(String sceneName) async {
-    setSceneCalled = true;
-    return true;
-  }
+  Future<void> hotReload() async => throw StateError('reload failed');
 }
 
 class FakeLauncher implements ProjectProcessLauncher {

@@ -306,11 +306,13 @@ void main() {
       onHotRestartCompleted: state.clearRuntimeOverridesAfterRestart,
     );
     final failedRestart = runner.hotRestart();
+    await Future<void>.delayed(Duration.zero);
     runner.completeHotRestart(succeeded: false);
     await failedRestart;
     expect(state.runtimeOverrides.resolveProperty('player', 'speed', 4), 9);
 
     final successfulRestart = runner.hotRestart();
+    await Future<void>.delayed(Duration.zero);
     runner.completeHotRestart();
     await successfulRestart;
     expect(state.runtimeOverrides.resolveProperty('player', 'speed', 4), 4);

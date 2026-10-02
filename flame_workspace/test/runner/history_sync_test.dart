@@ -98,7 +98,6 @@ void main() {
       ),
       isTrue,
     );
-    runner.running = false;
     await state.undoWorkspace();
     expect(component.properties, isEmpty);
     expect(runner.propertyValues.last, 1);
@@ -128,6 +127,29 @@ void main() {
     await state.redoWorkspace();
     expect(component.transform, finalTransform);
     expect(runner.transforms.last, finalTransform);
+
+    runner.running = true;
+    expect(await state.editComponentPriority(component.id, 7), isTrue);
+    expect(runner.propertyValues.last, 7);
+    expect(await state.editSceneBackgroundColor(0xff123456), isTrue);
+    expect(runner.backgroundColors.last, 0xff123456);
+    expect(
+      await state.editComponentTransforms({component.id: firstTransform}),
+      isTrue,
+    );
+    expect(runner.transforms.last, firstTransform);
+    expect(state.lastPreviewApplied, isTrue);
+    runner.failMutations = true;
+    expect(
+      await state.editComponentTransform(component.id, finalTransform),
+      isTrue,
+    );
+    expect(
+      state.selectedComponent?.transform ?? component.transform,
+      finalTransform,
+    );
+    expect(state.lastPreviewApplied, isFalse);
+    expect(runner.runtimeDiagnostic?.code, 'preview_behind');
   });
 
   test(
@@ -181,6 +203,48 @@ void main() {
       await state.redoWorkspace();
       expect(state.currentScene.components, isEmpty);
       expect(runner.recreatedScenes, hasLength(6));
+    },
+  );
+
+  test(
+    'preview failure leaves authored add accepted and reports behind',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'preview_behind_',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      await Directory(path.join(directory.path, 'lib')).create(recursive: true);
+      final project = FlameProject(
+        name: 'preview_behind',
+        organization: 'com.example',
+        location: directory,
+        initialScene: 'Main',
+      );
+      final state = FlameProjectState(project);
+      addTearDown(state.dispose);
+      await state.ready;
+      state.workspaceModel.replaceProject(
+        WorkspaceProject(
+          id: 'project',
+          name: project.name,
+          scenes: [SceneDefinition(id: 'scene-main', name: 'Main')],
+        ),
+        preserveUnsavedChanges: false,
+      );
+      final runner = _HistoryRunner(project)..failRecreation = true;
+      state.attachRunner(runner);
+      final component = ComponentInstance(
+        id: 'head',
+        type: const ComponentType(id: 'Head', name: 'Head'),
+      );
+      expect(await state.addWorkspaceComponentAndSync(component), isTrue);
+      expect(state.currentScene.components.single.id, 'head');
+      expect(state.lastPersistenceSucceeded, isTrue);
+      expect(state.lastPreviewApplied, isFalse);
+      expect(runner.runtimeDiagnostic?.code, 'preview_behind');
+      expect(runner.recreatedScenes, ['Main']);
+      expect(await state.saveWorkspace(), isTrue);
+      expect(runner.recreatedScenes, ['Main']);
     },
   );
 
@@ -376,10 +440,12 @@ class _HistoryRunner extends FlameProjectRunner {
   _HistoryRunner(super.project);
 
   bool failMutations = false;
+  bool failRecreation = false;
   bool running = true;
   final propertyValues = <Object?>[];
   final transforms = <WorkspaceTransform>[];
   final recreatedScenes = <String>[];
+  final backgroundColors = <int>[];
 
   @override
   bool get isPreviewRunning => running;
@@ -408,8 +474,17 @@ class _HistoryRunner extends FlameProjectRunner {
   }
 
   @override
+  Future<bool> setSceneBackgroundColor({
+    required String sceneName,
+    required int color,
+  }) async {
+    backgroundColors.add(color);
+    return !failMutations;
+  }
+
+  @override
   Future<bool> recreateScene(String sceneName) async {
     recreatedScenes.add(sceneName);
-    return true;
+    return !failRecreation;
   }
 }
