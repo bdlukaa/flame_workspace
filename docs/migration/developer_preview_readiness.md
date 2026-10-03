@@ -1,6 +1,6 @@
 # Developer Preview readiness
 
-**Review date:** 2026-09-30
+**Review date:** 2026-10-03
 **Toolchain:** Flutter 3.47.5, Dart 3.13.4
 
 This report describes the current implementation, not the earlier migration
@@ -8,6 +8,8 @@ baseline. Capabilities below are limited to workflows present in the editor and
 covered by tests; a model/API alone is not considered user-facing support.
 
 ## Status
+
+**Authoring-recovery phase: NOT READY.** The six-part-character journey and the no-script movement/target/restart game have not passed the real UI gate. In a UI-created project, the remote runtime pinned by `pubspec.lock` lacks `createWorkspaceComponentJson`, so generated code cannot compile. The embedded CEF Preview does not implement direct Build pointer drag/resize; only the separate Scene View does. No authorable movement, overlap, success, or restart behavior exists. See [`../stabilization/authoring_recovery.md`](../stabilization/authoring_recovery.md) for observed tests and reproduction. The older descriptions below cover *available subsystems*, not acceptance of the current product goal.
 
 Developer Preview supports editing authored scene composition in Build mode and
 running the user's actual Flutter + Flame application in Game mode through the
@@ -54,14 +56,14 @@ are never serialized into Build State automatically.
 
 ### Structural synchronization
 
-Component add/remove, reparenting, ordering, and other scene-composition changes
-are Build-State operations. Workspace persists/generates the authored scene,
-then reloads changed code and explicitly reconstructs the selected Flame `World`
-through the registered scene dispatcher. It does not rely on Flutter hot reload
-to rerun `onLoad`. Selection is restored when the semantic component still
-exists, and the runtime tree is reconciled after reconstruction. Runtime-safe
-property/transform edits use VM Service mutation; developer behavior-source
-changes use Flutter hot reload/restart.
+Component add/remove, reparenting and ordering are Build-State operations.
+When the connected runtime advertises live composition, supported components
+are changed through the VM Service without recompiling. Unsupported components
+or older runtimes retain a reconstruct/reload fallback; persistence does not
+itself reconstruct Preview. Selection is restored when the component survives;
+runtime reconciliation is available only after a successful attachment.
+Runtime-safe property/transform edits use VM Service mutation; developer
+behavior-source changes may still require Flutter compilation.
 
 ## Preview and VM Service
 

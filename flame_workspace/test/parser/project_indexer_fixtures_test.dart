@@ -120,8 +120,8 @@ void main() {}
         project,
       );
       final generated = await adapter.readAsString();
-      expect(generated, contains('radius: 40.0'));
-      expect(generated, isNot(contains('radius: "40.0"')));
+      expect(generated, contains('"radius":40.0'));
+      expect(generated, isNot(contains('"radius":"40.0"')));
       expect(generated, contains('package:flame/components.dart'));
     },
   );
@@ -411,7 +411,11 @@ void main() {}
     );
     final source = await generated.readAsString();
     for (final component in reopened.components) {
-      expect(source, contains("FlameKey('${component.id}')"));
+      if (ScenePersistenceGenerator.supportsLiveFactory(component, project)) {
+        expect(source, contains(jsonEncode(component.toJson())));
+      } else {
+        expect(source, contains("FlameKey('${component.id}')"));
+      }
       expect(source, contains(component.type.name));
     }
     final analysis = await Process.run('flutter', [

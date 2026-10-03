@@ -39,19 +39,20 @@ help:
 pub-get:
 	@printf '\n==> flutter pub get: workspace\n'
 	@flutter pub get
-	@for dir in $(FIXTURE_DIRS) $(BROKEN_FIXTURE_DIR); do \
+	@set -e; for dir in $(FIXTURE_DIRS) $(BROKEN_FIXTURE_DIR); do \
 		printf '\n==> flutter pub get: %s\n' "$$dir"; \
 		(cd "$$dir" && flutter pub get); \
 	done
 
+# Check tracked files only; integration tests create disposable projects under test/.
 format:
-	@for dir in $(CHECK_DIRS); do \
+	@set -e; for dir in $(CHECK_DIRS); do \
 		printf '\n==> dart format --set-exit-if-changed: %s\n' "$$dir"; \
-		(cd "$$dir" && dart format --output=none --set-exit-if-changed .); \
+		(cd "$$dir" && git --no-pager ls-files -z -- '*.dart' | xargs -0 dart format --output=none --set-exit-if-changed); \
 	done
 
 analyze:
-	@for dir in $(CHECK_DIRS); do \
+	@set -e; for dir in $(CHECK_DIRS); do \
 		case "$$dir" in \
 			flame_workspace_protocol) tool='dart analyze' ;; \
 			*) tool='flutter analyze' ;; \
@@ -60,8 +61,9 @@ analyze:
 		(cd "$$dir" && $$tool); \
 	done
 
+# Flutter's default test discovery also descends into ignored generated projects.
 test:
-	@for dir in $(CHECK_DIRS); do \
+	@set -e; for dir in $(CHECK_DIRS); do \
 		if [ ! -d "$$dir/test" ]; then \
 			printf '\n==> skipping tests: %s (no test directory)\n' "$$dir"; \
 			continue; \
@@ -71,7 +73,7 @@ test:
 			*) tool='flutter test --concurrency=1' ;; \
 		esac; \
 		printf '\n==> %s: %s\n' "$$tool" "$$dir"; \
-		(cd "$$dir" && $$tool); \
+		(cd "$$dir" && git --no-pager ls-files -z -- 'test/*_test.dart' | xargs -0 $$tool); \
 	done
 
 check: pub-get format analyze test

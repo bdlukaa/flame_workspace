@@ -147,6 +147,12 @@ void main() {
     );
     await _runChecked(
       'flutter',
+      ['build', 'web', '--no-pub'],
+      workingDirectory: project.path,
+      failureLabel: 'Building generated web game',
+    );
+    await _runChecked(
+      'flutter',
       ['test'],
       workingDirectory: project.path,
       failureLabel: 'Testing generated project',

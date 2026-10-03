@@ -160,7 +160,11 @@ class FlameProjectState with ChangeNotifier {
 
               final dependencyChanged = _isDependencyFile(event.path);
               if (!dependencyChanged &&
-                  (path.extension(event.path) != '.dart' ||
+                  (!path.isWithin(
+                        path.join(project.location.path, 'lib'),
+                        event.path,
+                      ) ||
+                      path.extension(event.path) != '.dart' ||
                       isWorkspaceGeneratedDartFile(
                         event.path,
                         projectPath: project.location.path,

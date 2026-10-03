@@ -335,8 +335,15 @@ void main() {
       );
       expect(generatedSpriteAdapter, contains("'$assetPath'"));
       expect(generatedSpriteAdapter, contains('images: images'));
-      expect(generatedSpriteAdapter, contains('component2.radius = 40.0;'));
-      expect(generatedSpriteAdapter, contains('component2.paint = Paint()'));
+      for (final component in persistedScene.components.skip(2)) {
+        if (component.type.name == 'PolygonComponent') continue;
+        expect(
+          generatedSpriteAdapter,
+          contains(jsonEncode(component.toJson())),
+          reason: 'Generated factory input must match authored ${component.id}',
+        );
+      }
+      expect(generatedSpriteAdapter, contains('createWorkspaceComponentJson'));
       expect(generatedSpriteAdapter, isNot(contains("radius: '40.0'")));
       expect(generatedSpriteAdapter, contains('PolygonComponent('));
       expect(generatedSpriteAdapter, contains('Vector2(80.0, 0.0)'));
@@ -345,34 +352,10 @@ void main() {
         contains("FlameKey('scene:level-one:component:polygon')"),
       );
       expect(generatedSpriteAdapter, isNot(contains('component3.vertices =')));
-      expect(generatedSpriteAdapter, contains('component3.paint = Paint()'));
-      expect(
-        generatedSpriteAdapter,
-        contains("component5.text = 'Flame Workspace';"),
-      );
-      expect(
-        generatedSpriteAdapter,
-        contains('component5.textRenderer = TextPaint('),
-      );
-      expect(
-        generatedSpriteAdapter,
-        contains("component6.text = 'Box content';"),
-      );
-      expect(
-        generatedSpriteAdapter,
-        contains('component6.boxConfig = TextBoxConfig('),
-      );
-      expect(generatedSpriteAdapter, contains('maxWidth: 320.0'));
-      expect(generatedSpriteAdapter, contains('EdgeInsets.only('));
-      expect(
-        generatedSpriteAdapter,
-        contains('component6.align = Anchor.bottomRight;'),
-      );
-      expect(generatedSpriteAdapter, contains('fontWeight: FontWeight.w700'));
-      expect(
-        generatedSpriteAdapter,
-        contains('textDirection: TextDirection.rtl'),
-      );
+
+      expect(generatedSpriteAdapter, contains('"maxWidth":320.0'));
+      expect(generatedSpriteAdapter, contains('"fontWeight":"w700"'));
+      expect(generatedSpriteAdapter, contains('"textDirection":"rtl"'));
       expect(
         generatedSpriteAdapter,
         isNot(contains('component5 as PositionComponent)\n    ..size')),
