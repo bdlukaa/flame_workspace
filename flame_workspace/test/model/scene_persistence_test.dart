@@ -347,6 +347,8 @@ void main() {
     );
 
     expect(generated, contains('createWorkspaceComponentJson'));
+    expect(generated, contains(r'''r'{"id":"circle-id"'''));
+    expect(generated, contains(r'''"$workspaceValue":"paint"'''));
     expect(generated, contains('"radius":18.0'));
     expect(generated, contains('"position":{"x":10.0,"y":20.0}'));
     expect(generated, contains('"scale":{"x":2.0,"y":1.0}'));

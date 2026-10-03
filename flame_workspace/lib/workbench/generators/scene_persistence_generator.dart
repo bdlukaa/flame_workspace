@@ -57,7 +57,9 @@ class ScenePersistenceGenerator {
                 refer(
                   'createWorkspaceComponentJson',
                   WorkspaceDartEmitter.runtime,
-                ).call([literalString(jsonEncode(component.toJson()))]),
+                ).call([
+                  literalString(jsonEncode(component.toJson()), raw: true),
+                ]),
               )
               .statement,
         );

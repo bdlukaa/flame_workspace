@@ -391,7 +391,7 @@ class _WorkbenchViewState extends State<WorkbenchView> {
                 icon: const Icon(Icons.redo),
               ),
               const SizedBox(width: 8.0),
-              const NotificationsField(),
+              const Flexible(child: NotificationsField()),
             ],
           ),
         ),

@@ -48,6 +48,7 @@ class _CreateSceneDialogState extends State<CreateSceneDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextFormField(
+                  key: const ValueKey('workspace.createScene.name'),
                   controller: _nameController,
                   decoration: const InputDecoration(labelText: 'Scene name'),
                   validator: (text) {
