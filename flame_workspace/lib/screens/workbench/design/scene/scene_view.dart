@@ -149,19 +149,26 @@ class _SceneViewState extends State<SceneView> {
                 )
               else if (!choosingScene)
                 Tooltip(
-                  message: 'Add component',
+                  message: state.selectedComponent == null
+                      ? 'Add component to scene'
+                      : 'Add child to ${state.selectedComponent!.declarationName ?? state.selectedComponent!.type.name}',
                   child: Semantics(
                     button: true,
-                    label: 'Add component',
+                    label: state.selectedComponent == null
+                        ? 'Add component to scene'
+                        : 'Add child to selected component',
                     child: InkWell(
                       key: const ValueKey('workspace.addComponent'),
                       child: const Icon(Icons.add),
                       onTap: () async {
+                        final sceneId = scene.id;
+                        final parentId = state.selectedComponent?.id;
                         final result = await showAddComponentDialog(context);
 
                         if (result != null &&
                             context.mounted &&
-                            state.isBuildMode) {
+                            state.isBuildMode &&
+                            state.currentScene.id == sceneId) {
                           final (_, declarationName, _) = result;
                           final uniqueName = _nextDeclarationName(
                             scene,
@@ -173,6 +180,7 @@ class _SceneViewState extends State<SceneView> {
                               scene,
                               declarationName: uniqueName,
                             ),
+                            parentId: parentId,
                           );
                         }
                       },
