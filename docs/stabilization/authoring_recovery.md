@@ -1,5 +1,11 @@
 # Authoring recovery handoff
 
+## DWDS capability status is truthful (2026-10-04)
+
+- **Repair:** a DWDS `No clients available` / `Unexpected null value` extension-call failure now leaves the connection lifecycle at `browserLoaded`, disposes the unusable VM client, disables live runtime controls, and preserves the diagnostic. The Preview status appends `runtime inspection unavailable`; it does not show a retry action for this permanently unavailable embedded-Web-Server capability. Actual attachment failures still use the failed state and Reconnect action.
+- **Live macOS Marionette:** after a real toolbar Stop → Play of `test/test_fw_game`, Preview reached `connectionState: browserLoaded`, `runtimeConnected: false`, and reported `runtime_debug_client_unavailable` once. The inline message was visible and no Reconnect control was present. Logs again contained Flutter's `web-server device requires the Dart Debug Chrome extension` notice and DWDS `Unexpected null value`. The CEF content rectangle remained blank while the local SceneCanvas rendered the orange fixture component; this remains a separate unresolved native rendering blocker.
+- **Validation:** `dart format lib/workbench/runner/runner.dart lib/screens/workbench/design/preview_view.dart test/runner/runtime_attachment_test.dart` (0 changes); `flutter test --no-pub test/runner/runtime_attachment_test.dart` (15 passed); `flutter analyze --no-pub lib/workbench/runner/runner.dart lib/screens/workbench/design/preview_view.dart test/runner/runtime_attachment_test.dart` (no issues); `git diff --check` clean. Marionette screenshot/log evidence was observed in the 2026-10-04 session but has not been exported to an evidence file.
+
 ## Embedded CEF Preview blank despite connected runtime (2026-10-04)
 
 - **Observed through Marionette:** the embedded Preview reported `sceneReady`; the live runtime tree contained `Scene1` and its `MyComponent`, whose source renders an orange 128×128 rectangle at `(64, 64)`. The CEF texture area was nevertheless blank in the screenshot. This is not an authored-scene or VM Service attachment failure.

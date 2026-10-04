@@ -147,6 +147,8 @@ class FlameProjectRunner with ChangeNotifier {
 
   bool get canControlRuntime =>
       _connectionState == RuntimeConnectionState.sceneReady;
+  bool get isRuntimeInspectionUnavailable =>
+      _runtimeDiagnostic?.code == 'runtime_debug_client_unavailable';
   bool get canHotReload => isPreviewRunning;
   bool get canHotRestart => isPreviewRunning;
   bool? get isPaused => _isPaused;
@@ -635,7 +637,6 @@ class FlameProjectRunner with ChangeNotifier {
       );
     } catch (error) {
       if (session != _session) return false;
-      _setConnectionState(RuntimeConnectionState.failed);
       final incompatibleRuntime =
           error is StateError &&
           error.toString().contains('flame_workspace_runtime is incompatible');
@@ -643,6 +644,17 @@ class FlameProjectRunner with ChangeNotifier {
       final sceneNeverReady =
           error is StateError &&
           error.toString().contains('did not report a mounted ready scene');
+      if (debugClientUnavailable) {
+        // CEF can render the web page, but DWDS can only dispatch service
+        // extensions through its Chrome/Edge debug client. Keep visual Preview
+        // available and do not offer a reconnect that cannot succeed.
+        final unavailableConnection = _connection;
+        _connection = null;
+        await unavailableConnection?.dispose();
+        _setConnectionState(RuntimeConnectionState.browserLoaded);
+      } else {
+        _setConnectionState(RuntimeConnectionState.failed);
+      }
       _reportRuntimeDiagnostic(
         WorkspaceDiagnostic(
           category: WorkspaceDiagnosticCategory.runtime,

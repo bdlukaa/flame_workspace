@@ -172,7 +172,7 @@ class _GamePreviewViewState extends State<GamePreviewView> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Preview: ${workbench.runner.connectionState.name}',
+                  'Preview: ${workbench.runner.connectionState.name}${workbench.runner.isRuntimeInspectionUnavailable ? ' · runtime inspection unavailable' : ''}',
                   key: const ValueKey('workspace.runtimeStatus'),
                   style: Theme.of(context).textTheme.labelSmall,
                 ),
@@ -180,24 +180,34 @@ class _GamePreviewViewState extends State<GamePreviewView> {
               if (workbench.runner.runtimeError case final error?)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
+                  child: workbench.runner.isRuntimeInspectionUnavailable
+                      ? Text(
                           error,
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
                           ),
+                        )
+                      : Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                error,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () => unawaited(
+                                workbench.runner.reconnectRuntime(),
+                              ),
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Reconnect'),
+                            ),
+                          ],
                         ),
-                      ),
-                      TextButton.icon(
-                        onPressed: () =>
-                            unawaited(workbench.runner.reconnectRuntime()),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Reconnect'),
-                      ),
-                    ],
-                  ),
                 ),
               if (workbench.state.runtimeTreeDiagnostics.isNotEmpty)
                 Padding(
