@@ -38,6 +38,17 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_macos_build_settings(target)
+
+    # webview_cef's accelerated texture mode has no software fallback. Keep the
+    # supported CPU texture path so Preview remains visible when CEF cannot
+    # export an IOSurface-backed frame on the current macOS GPU.
+    if target.name == 'webview_cef'
+      target.build_configurations.each do |config|
+        flags = '$(inherited) -UWEBVIEW_CEF_GPU_TEXTURE'
+        config.build_settings['OTHER_CFLAGS'] = flags
+        config.build_settings['OTHER_CPLUSPLUSFLAGS'] = flags
+      end
+    end
   end
   require File.expand_path(
     'Flutter/ephemeral/.symlinks/plugins/webview_cef/macos/embed_cef_helpers.rb', __dir__)

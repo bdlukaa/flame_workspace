@@ -1,5 +1,12 @@
 # Authoring recovery handoff
 
+## Embedded CEF Preview blank despite connected runtime (2026-10-04)
+
+- **Observed through Marionette:** the embedded Preview reported `sceneReady`; the live runtime tree contained `Scene1` and its `MyComponent`, whose source renders an orange 128×128 rectangle at `(64, 64)`. The CEF texture area was nevertheless blank in the screenshot. This is not an authored-scene or VM Service attachment failure.
+- **Cause:** the installed `webview_cef` pod enabled `WEBVIEW_CEF_GPU_TEXTURE=1`. Its native source makes that an accelerated-frame-only path with no CPU `OnPaint` fallback; when CEF cannot export an IOSurface-backed frame, the Flutter texture receives no frame and remains transparent/blank.
+- **Repair:** `macos/Podfile` now adds `-UWEBVIEW_CEF_GPU_TEXTURE` for the `webview_cef` pod's C and C++ compilation. This preserves the package's ordinary software-backed `FlutterTexture` path rather than adding another preview transport or changing authored/runtime state.
+- **Validation:** `flutter build macos --debug --no-pub` PASS (CocoaPods reinstalled; generated Pods project contains `-UWEBVIEW_CEF_GPU_TEXTURE` in `OTHER_CFLAGS` and `OTHER_CPLUSPLUSFLAGS`). The build has existing third-party CEF compiler warnings. The already-running editor still uses its previous native binary, so a full quit/relaunch and real CEF screenshot are **required and not yet claimed**; hot reload/restart cannot validate a native Pod change.
+
 ## Scene-readiness timeout handling (2026-10-03)
 
 - A session that responds to `getState` but never reports `sceneReady: true` now reports `runtime_scene_not_ready` once, without reconnecting the same runtime session. Recovery identifies missing scene mounting and directs the user to check game startup/Preview rendering before restarting Preview. This prevents the observed three identical 15-second timeouts. Added a deterministic no-retry test; `flutter test --no-pub test/runner/runtime_attachment_test.dart` passed (15), as did targeted analysis. The live Workspace editor was hot-reloaded.
