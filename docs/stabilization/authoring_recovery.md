@@ -1,5 +1,11 @@
 # Authoring recovery handoff
 
+## Runtime attachment diagnosis (2026-10-03)
+
+- **Observed:** `runtime_attachment_failed` reported `FormatException: Runtime handshake lacks sessionId or sceneReady.` The cached runtime resolved by a UI-created project at git `ee1d0c14889dbf9b9945bea7be4feef14a200365` confirms the cause: its `ext.flameWorkspace.getState` returns only `paused` and `scene`; it predates the session-aware protocol and cannot support live composition.
+- **Repair:** attachment now polls incomplete state responses through the normal bounded handshake window. If the required fields never arrive it reports `runtime_protocol_incompatible`, naming `flame_workspace_runtime`, `sessionId`, `sceneReady`, and the last response; recovery instructs the user to update the project runtime dependency and run `flutter pub get`. It no longer fails immediately with an opaque FormatException. A current runtime remains required; this does **not** make the stale remote package compatible.
+- **Validation:** `dart format lib/workbench/runner/runner.dart test/runner/runtime_attachment_test.dart` (0 changes); `flutter test --no-pub test/runner/runtime_attachment_test.dart` (13 passed); `flutter analyze --no-pub lib/workbench/runner/runner.dart test/runner/runtime_attachment_test.dart` (no issues); `git diff --check` (clean). Native Preview was not launched for this diagnostic repair.
+
 ## Final aggregate gate — NOT COMPLETE (2026-10-03; baseline `bc76b4b`)
 
 - **Implemented this pass:** `Makefile` now fails on the first package error and selects tracked Dart/tests, excluding disposable ignored projects under `test/`; the CI-generated-project scenario builds Flutter Web in addition to formatting, analysis and tests. File-watcher source indexing ignores transient `.dart_tool/flutter_build` Dart files rather than sending them to an Analyzer context that does not own them. Generator integration assertions now compare the exact authored JSON supplied to the runtime factory; the generated project's mounted-Flame tests still verify resulting shapes, text and transforms. No gameplay behavior or direct-Preview manipulation was implemented.

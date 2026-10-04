@@ -528,6 +528,7 @@ class FlameProjectRunner with ChangeNotifier {
       final client = _client!;
       final deadline = DateTime.now().add(handshakeTimeout);
       String? runtimeSession;
+      Map<Object?, Object?>? incompleteHandshake;
       while (DateTime.now().isBefore(deadline) && session == _session) {
         try {
           final result = await client
@@ -538,9 +539,12 @@ class FlameProjectRunner with ChangeNotifier {
               result['sessionId'] is! String ||
               (result['sessionId'] as String).isEmpty ||
               result['sceneReady'] is! bool) {
-            throw const FormatException(
-              'Runtime handshake lacks sessionId or sceneReady.',
-            );
+            incompleteHandshake = result is Map
+                ? Map<Object?, Object?>.from(result)
+                : const {};
+            _setConnectionState(RuntimeConnectionState.extensionsAvailable);
+            await Future<void>.delayed(handshakePollInterval);
+            continue;
           }
           runtimeSession = result['sessionId'] as String;
           _setConnectionState(RuntimeConnectionState.extensionsAvailable);
@@ -604,19 +608,34 @@ class FlameProjectRunner with ChangeNotifier {
         await Future<void>.delayed(handshakePollInterval);
       }
       if (session != _session) return false;
+      if (incompleteHandshake != null) {
+        throw StateError(
+          'The connected flame_workspace_runtime is incompatible with this '
+          'Workspace version: ext.flameWorkspace.getState never supplied '
+          'sessionId and sceneReady. Update the project runtime dependency and '
+          'run flutter pub get. Last response: $incompleteHandshake',
+        );
+      }
       throw TimeoutException(
         'Runtime extensions or scene $runtimeSession did not become ready at $serviceUri.',
       );
     } catch (error) {
       if (session != _session) return false;
       _setConnectionState(RuntimeConnectionState.failed);
+      final incompatibleRuntime =
+          error is StateError &&
+          error.toString().contains('flame_workspace_runtime is incompatible');
       _reportRuntimeDiagnostic(
         WorkspaceDiagnostic(
           category: WorkspaceDiagnosticCategory.runtime,
-          code: 'runtime_attachment_failed',
+          code: incompatibleRuntime
+              ? 'runtime_protocol_incompatible'
+              : 'runtime_attachment_failed',
           operation: 'Attach to running game',
           message: '$error',
-          recovery: 'Check Preview logs and VM Service availability; retry after fixing the game.',
+          recovery: incompatibleRuntime
+              ? 'Update flame_workspace_runtime in the project and run flutter pub get; retry after the new app build starts.'
+              : 'Check Preview logs and VM Service availability; retry after fixing the game.',
         ),
       );
       _scheduleReconnect();

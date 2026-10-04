@@ -105,6 +105,33 @@ void main() {
   );
 
   test(
+    'incomplete handshake reports an incompatible runtime after polling',
+    () async {
+      var polls = 0;
+      final runner = fakeRunner(
+        WorkspaceRuntimeClient.fromInvoker((method, _) async {
+          if (method == WorkspaceExtensionNames.getState) {
+            polls++;
+            return response({'paused': false, 'scene': 'Main'});
+          }
+          return response({});
+        }),
+      );
+
+      expect(await runner.connectRuntime('ws://localhost:8181/ws'), isFalse);
+      expect(polls, greaterThan(1));
+      expect(runner.connectionState, RuntimeConnectionState.failed);
+      expect(
+        runner.runtimeError,
+        contains('incompatible with this Workspace version'),
+      );
+      expect(runner.runtimeError, contains('sessionId and sceneReady'));
+
+      await runner.stop();
+    },
+  );
+
+  test(
     'Game mode attaches without replacing the current gameplay scene',
     () async {
       var sceneChanges = 0;
@@ -150,7 +177,7 @@ void main() {
     expect(await runner.connectRuntime('ws://localhost:8181/ws'), isFalse);
     expect(runner.connectionState, RuntimeConnectionState.failed);
     expect(runner.canControlRuntime, isFalse);
-    expect(runner.runtimeDiagnostic?.code, 'runtime_attachment_failed');
+    expect(runner.runtimeDiagnostic?.code, 'runtime_protocol_incompatible');
     await runner.stop();
   });
 
