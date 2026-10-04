@@ -132,6 +132,40 @@ void main() {
   );
 
   test(
+    'DWDS without a browser debug client fails once without retrying',
+    () async {
+      var calls = 0;
+      final runner = fakeRunner(
+        WorkspaceRuntimeClient.fromInvoker((method, _) async {
+          if (method == WorkspaceExtensionNames.getState) {
+            calls++;
+            throw const WorkspaceRuntimeException(
+              code: 'dwds_client_unavailable',
+              message: 'No clients available for service extension',
+            );
+          }
+          return response({});
+        }),
+      );
+
+      expect(await runner.connectRuntime('ws://localhost:8181/ws'), isFalse);
+      expect(calls, 1);
+      expect(runner.connectionState, RuntimeConnectionState.failed);
+      expect(
+        runner.runtimeDiagnostic?.code,
+        'runtime_debug_client_unavailable',
+      );
+      expect(
+        runner.runtimeDiagnostic?.recovery,
+        contains('no DWDS debug client'),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      expect(calls, 1);
+      await runner.stop();
+    },
+  );
+
+  test(
     'Game mode attaches without replacing the current gameplay scene',
     () async {
       var sceneChanges = 0;

@@ -32,6 +32,14 @@ const kInitialLog =
     '$kWorkspaceLogPrefix'
     'Project not running';
 
+bool _isDwdsClientUnavailable(Object error) {
+  final message = error.toString();
+  return message.contains('No clients available for service extension') ||
+      message.contains(
+        'Service extension failed in some clients: Unexpected null value',
+      );
+}
+
 /// Runs a Flame project and communicates with it through VM Service.
 class FlameProjectRunner with ChangeNotifier {
   /// The project to run.
@@ -625,20 +633,25 @@ class FlameProjectRunner with ChangeNotifier {
       final incompatibleRuntime =
           error is StateError &&
           error.toString().contains('flame_workspace_runtime is incompatible');
+      final debugClientUnavailable = _isDwdsClientUnavailable(error);
       _reportRuntimeDiagnostic(
         WorkspaceDiagnostic(
           category: WorkspaceDiagnosticCategory.runtime,
           code: incompatibleRuntime
               ? 'runtime_protocol_incompatible'
+              : debugClientUnavailable
+              ? 'runtime_debug_client_unavailable'
               : 'runtime_attachment_failed',
           operation: 'Attach to running game',
           message: '$error',
           recovery: incompatibleRuntime
               ? 'Update flame_workspace_runtime in the project and run flutter pub get; retry after the new app build starts.'
+              : debugClientUnavailable
+              ? 'Embedded Web Server Preview has no DWDS debug client. Runtime inspection is unavailable; use Preview normally or run with a supported browser debug client.'
               : 'Check Preview logs and VM Service availability; retry after fixing the game.',
         ),
       );
-      _scheduleReconnect();
+      if (!debugClientUnavailable) _scheduleReconnect();
       return false;
     } finally {
       if (session != _session ||

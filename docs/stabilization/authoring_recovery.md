@@ -1,5 +1,9 @@
 # Authoring recovery handoff
 
+## DWDS unavailable-client handling (2026-10-03)
+
+- The embedded CEF Web Server Preview’s explicit DWDS errors (`No clients available for service extension` and `Service extension failed in some clients: Unexpected null value`) now produce `runtime_debug_client_unavailable` and do **not** schedule automatic reconnect attempts. Recovery explains that runtime inspection is unavailable in this embedded setup and that normal Preview can continue; it recommends a supported browser debug client only when runtime inspection is required. This prevents repeated attachment failures/timeouts for an unavailable capability. `flutter test --no-pub test/runner/runtime_attachment_test.dart` passed (14); targeted `flutter analyze` passed. The running Workspace editor was hot-reloaded after the change.
+
 ## Runtime attachment diagnosis (2026-10-03)
 
 - **Target verification:** `flame_workspace/test/test_fw_game/test_fw_game` was upgraded with `flutter pub upgrade flame_workspace_runtime`; its lockfile now resolves `bdc90e0634fd5300b187746114d6643b9c60d76e` and its package config points to the corresponding runtime source, which exports `sessionId` and `sceneReady`. `flutter analyze --no-pub` and `flutter test --no-pub` in that project pass. After a real Preview stop/start, the runtime supplied a new session (`1791078866650000`) but never became scene-ready. Preview logs identify the limiting boundary: `flutter run -d web-server` says it requires the Dart Debug Chrome extension, and DWDS reports `No clients available for service extension` / `Unexpected null value`. CEF does not supply a supported DWDS debug client, so VM Service attachment to this embedded web-server Preview remains **not available**. Preview was stopped after verification; no alternate transport was added.
