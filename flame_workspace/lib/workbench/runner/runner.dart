@@ -624,8 +624,14 @@ class FlameProjectRunner with ChangeNotifier {
           'run flutter pub get. Last response: $incompleteHandshake',
         );
       }
+      if (runtimeSession != null) {
+        throw StateError(
+          'Runtime session $runtimeSession did not report a mounted ready scene '
+          'at $serviceUri.',
+        );
+      }
       throw TimeoutException(
-        'Runtime extensions or scene $runtimeSession did not become ready at $serviceUri.',
+        'Runtime extensions did not become ready at $serviceUri.',
       );
     } catch (error) {
       if (session != _session) return false;
@@ -634,6 +640,9 @@ class FlameProjectRunner with ChangeNotifier {
           error is StateError &&
           error.toString().contains('flame_workspace_runtime is incompatible');
       final debugClientUnavailable = _isDwdsClientUnavailable(error);
+      final sceneNeverReady =
+          error is StateError &&
+          error.toString().contains('did not report a mounted ready scene');
       _reportRuntimeDiagnostic(
         WorkspaceDiagnostic(
           category: WorkspaceDiagnosticCategory.runtime,
@@ -641,6 +650,8 @@ class FlameProjectRunner with ChangeNotifier {
               ? 'runtime_protocol_incompatible'
               : debugClientUnavailable
               ? 'runtime_debug_client_unavailable'
+              : sceneNeverReady
+              ? 'runtime_scene_not_ready'
               : 'runtime_attachment_failed',
           operation: 'Attach to running game',
           message: '$error',
@@ -648,10 +659,12 @@ class FlameProjectRunner with ChangeNotifier {
               ? 'Update flame_workspace_runtime in the project and run flutter pub get; retry after the new app build starts.'
               : debugClientUnavailable
               ? 'Embedded Web Server Preview has no DWDS debug client. Runtime inspection is unavailable; use Preview normally or run with a supported browser debug client.'
+              : sceneNeverReady
+              ? 'The connected runtime did not mount the expected scene. Check game startup and Preview rendering, then restart Preview after fixing it.'
               : 'Check Preview logs and VM Service availability; retry after fixing the game.',
         ),
       );
-      if (!debugClientUnavailable) _scheduleReconnect();
+      if (!debugClientUnavailable && !sceneNeverReady) _scheduleReconnect();
       return false;
     } finally {
       if (session != _session ||

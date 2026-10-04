@@ -165,6 +165,29 @@ void main() {
     },
   );
 
+  test('mounted-scene timeout fails once without reconnecting', () async {
+    var polls = 0;
+    final runner = fakeRunner(
+      WorkspaceRuntimeClient.fromInvoker((method, _) async {
+        if (method == WorkspaceExtensionNames.getState) {
+          polls++;
+          return response({...ready, 'sceneReady': false});
+        }
+        return response({});
+      }),
+    );
+
+    expect(await runner.connectRuntime('ws://localhost:8181/ws'), isFalse);
+    expect(polls, greaterThan(1));
+    expect(runner.connectionState, RuntimeConnectionState.failed);
+    expect(runner.runtimeDiagnostic?.code, 'runtime_scene_not_ready');
+    expect(runner.runtimeDiagnostic?.recovery, contains('did not mount'));
+    final pollsAfterFailure = polls;
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    expect(polls, pollsAfterFailure);
+    await runner.stop();
+  });
+
   test(
     'Game mode attaches without replacing the current gameplay scene',
     () async {

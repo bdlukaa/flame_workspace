@@ -1,5 +1,9 @@
 # Authoring recovery handoff
 
+## Scene-readiness timeout handling (2026-10-03)
+
+- A session that responds to `getState` but never reports `sceneReady: true` now reports `runtime_scene_not_ready` once, without reconnecting the same runtime session. Recovery identifies missing scene mounting and directs the user to check game startup/Preview rendering before restarting Preview. This prevents the observed three identical 15-second timeouts. Added a deterministic no-retry test; `flutter test --no-pub test/runner/runtime_attachment_test.dart` passed (15), as did targeted analysis. The live Workspace editor was hot-reloaded.
+
 ## DWDS unavailable-client handling (2026-10-03)
 
 - The embedded CEF Web Server Preview’s explicit DWDS errors (`No clients available for service extension` and `Service extension failed in some clients: Unexpected null value`) now produce `runtime_debug_client_unavailable` and do **not** schedule automatic reconnect attempts. Recovery explains that runtime inspection is unavailable in this embedded setup and that normal Preview can continue; it recommends a supported browser debug client only when runtime inspection is required. This prevents repeated attachment failures/timeouts for an unavailable capability. `flutter test --no-pub test/runner/runtime_attachment_test.dart` passed (14); targeted `flutter analyze` passed. The running Workspace editor was hot-reloaded after the change.
